@@ -43,16 +43,23 @@ PVP = Coste / (1 − margen/100)
 - Divergencia con la spec original. Documentado aquí para evitar confusión futura.
 - Cifras aparentemente altas para quien viene de markup: 50% margen sobre venta = 100% markup sobre coste. Se mitiga mostrando ambos valores en la UI si es útil.
 
-## Otros modelos que se soportarán (Fase 1+)
+## Otros modelos soportados o previstos
 
-Confirmados por Yako en la sesión del 2026-07-20 aunque no todos están implementados en v0.1:
+Confirmados por Yako en la sesión del 2026-07-20:
 
-- **% sobre venta (margen)** — implementado en v0.1. Por defecto.
-- **% sobre coste (markup)** — a añadir como opción alternativa por formato.
-- **Multiplicador directo (×2,3, ×1,8…)** — útil cuando hay una intuición rápida.
-- **Importe fijo en € por envase** — útil en formatos grandes (208L, 1000L) donde el % se descontrola.
+- **% sobre venta (margen)** — implementado en v0.1. Modo por defecto.
+- **% sobre coste (markup)** — implementado en v0.2 como toggle en el panel.
+  Fórmula: `PVP = Coste × (1 + %/100)`. Útil cuando Yako prefiere razonar en
+  términos de recargo sobre el coste (más intuitivo para formatos pequeños).
+- **Multiplicador directo (×2,3, ×1,8…)** — pendiente. Es equivalente a "sobre
+  coste" con % = (multiplicador − 1) × 100, así que se puede introducir vía el
+  modo cost. Un input dedicado se planificará si aparece la necesidad.
+- **Importe fijo en € por envase** — pendiente. Útil en formatos grandes
+  (208L, 1000L) donde el % se descontrola. No implementado.
 
-El objetivo es que Yako pueda elegir el modelo por marca / formato según cómo prefiera pensar en ese caso concreto.
+El toggle Venta/Compra vive en el panel de configuración de margen. El valor de
+% que introduzcas por formato se aplica según el modo activo — cambiar el modo
+recalcula toda la tabla en vivo sin perder los valores.
 
 ## Referencias
 

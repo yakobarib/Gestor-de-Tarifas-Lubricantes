@@ -31,14 +31,24 @@ ExcelReader  ← lectura específica por proveedor. Hoy solo `readRepsol()`.
                con detección automática por nombre de archivo o firma de
                columnas.
 
-Pricing      ← cálculo de PVP a partir de coste + margen sobre venta y
-               redondeo configurable. Fórmula: PVP = Coste / (1 − %/100).
+Pricing      ← cálculo de PVP a partir de coste + margen. Soporta dos modos:
+               · 'sale' (margen sobre venta): PVP = Coste / (1 − %/100)
+               · 'cost' (markup sobre compra): PVP = Coste × (1 + %/100)
+               Y redondeo configurable (2 decimales, ,99, ,95, múltiplo 0,05, entero).
+
+History      ← comparativa entre tarifas del mismo proveedor. Guarda la última
+               tarifa "vigente" (refs, coste, litros, descripción) por proveedor
+               en localStorage. Al cargar una nueva tarifa, produce el diff:
+               { total, stable, new, obsolete, obsoleteRefs, priceDeltas }.
+               Auto-guardado al exportar; botón manual "Establecer como vigente".
 
 ExcelWriter  ← generación del Excel de salida en formato Skrit
                (5 columnas invariantes + fecha).
 
 UI           ← estado global, listeners, renderizado. Orquesta a los
-               otros módulos.
+               otros módulos. Renderiza el banner de contexto histórico,
+               los 4 KPIs comparativos, la tabla con columna Estado y el
+               modal de refs desaparecidas.
 ```
 
 ## Flujo de datos
@@ -95,6 +105,7 @@ Están en [decisiones/](decisiones/) como ADRs (Architecture Decision Records). 
 - [0003 · Parser de litros por regex sobre descripción](decisiones/0003-parser-litros.md)
 - [0004 · GitHub Pages para publicación](decisiones/0004-github-pages.md)
 - [0005 · Un workflow por proveedor (Supplier Profiles)](decisiones/0005-un-workflow-por-proveedor.md)
+- [0006 · Comparativa histórica entre tarifas](decisiones/0006-comparativa-historica.md)
 
 ## Preparación para Electron (fase futura)
 

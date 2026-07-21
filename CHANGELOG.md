@@ -2,6 +2,47 @@
 
 Formato inspirado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [v0.2] — 2026-07-21
+
+### Añadido
+- **Comparativa histórica entre tarifas del mismo proveedor.** Al cargar una nueva tarifa,
+  la app la compara contra la última "vigente" guardada y muestra referencias:
+  - **Totales** — nº de refs en la tarifa cargada.
+  - **Estables** — refs que ya estaban en la vigente anterior. Se muestra tooltip con
+    el coste anterior al pasar el ratón por la celda de coste.
+  - **Nuevas** — refs que no aparecían en la anterior (badge azul "NUEVA" en la tabla,
+    borde izquierdo de la fila).
+  - **Desaparecidas** — refs que estaban en la anterior y ya no. Link "ver lista →"
+    abre modal con las refs perdidas.
+- **Módulo `History`** en `app/index.html`: guarda por proveedor en localStorage
+  (`history_<supplier>`) las refs {ref, cost, liters, description} de la tarifa vigente.
+- **Auto-guardado** de la tarifa vigente al pulsar "Exportar a Skrit".
+- **Botón "Establecer como vigente"** para guardar sin exportar (útil para verificar
+  antes de comprometer).
+- **Filtro por estado** en la barra de filtros: "Todos / Solo nuevas / Solo estables".
+- **Toggle Margen sobre Venta / sobre Compra.**
+  - Sobre venta: `PVP = Coste / (1 − %/100)`. Por defecto.
+  - Sobre compra: `PVP = Coste × (1 + %/100)`.
+  - La fórmula visible en el panel se adapta al modo elegido.
+- **Banner de contexto histórico** que indica "Comparando con la tarifa vigente
+  del YYYY-MM-DD" o avisa si no hay tarifa previa.
+
+### Cambiado
+- **Dashboard reescrito**: los KPIs agregados de coste/PVP/margen medio se
+  reemplazan por los 4 KPIs comparativos (Total, Estables, Nuevas, Desaparecidas).
+- **Tabla preview**: nueva columna "Estado" con chip visual para refs nuevas.
+- **Anchos de inputs**:
+  - Buscador y filtro de formato con ancho suficiente para el placeholder.
+  - Fecha de tarifa en fila ancha propia.
+  - Input de litros en la tabla ampliado a 88px para "1000".
+- **Botones secundarios** (`Guardar perfil`, `Cargar perfil`, `Establecer como vigente`,
+  `Cargar otra tarifa`) ahora en gris claro visible por defecto, gris más oscuro al hover.
+- **Panel de configuración** ampliado de 320px a 340px de ancho.
+
+### Documentado
+- ADR 0005 sobre "un workflow por proveedor" (supplier profiles).
+- Actualización en `docs/arquitectura.md` con módulo History y notas sobre KPIs.
+
 ## [v0.1.1] — 2026-07-21
 
 ### Arreglado

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Tarifador Lubricantes — v0 Repsol</title>
+<title>Tarifador Lubricantes — v0.2</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <style>
@@ -27,46 +27,90 @@
   #dropZone .hint { color: var(--pico-muted-color); font-size: 0.85rem; }
 
   /* Layout principal tras carga */
-  .layout { display: grid; grid-template-columns: 320px 1fr; gap: 1.2rem; margin-top: 1.2rem; }
+  .layout { display: grid; grid-template-columns: 340px 1fr; gap: 1.2rem; margin-top: 1.2rem; }
   @media (max-width: 1100px) { .layout { grid-template-columns: 1fr; } }
 
   /* Panel config */
   .config-panel { position: sticky; top: 0.5rem; align-self: start; }
   .config-panel h3 { font-size: 1rem; margin-bottom: 0.5rem; }
-  .config-panel h4 { font-size: 0.85rem; margin: 0.8rem 0 0.4rem; color: var(--pico-muted-color); text-transform: uppercase; letter-spacing: 0.05em; }
-  .format-row { display: grid; grid-template-columns: 1fr 80px 60px; gap: 0.5rem; align-items: center; margin-bottom: 0.3rem; font-size: 0.88rem; }
+  .config-panel h4 { font-size: 0.85rem; margin: 0.9rem 0 0.4rem; color: var(--pico-muted-color); text-transform: uppercase; letter-spacing: 0.05em; }
+  .format-row { display: grid; grid-template-columns: 1fr 90px 60px; gap: 0.5rem; align-items: center; margin-bottom: 0.3rem; font-size: 0.88rem; }
   .format-row label { margin: 0; }
-  .format-row input { margin: 0; padding: 0.3rem 0.5rem; font-size: 0.85rem; text-align: right; }
+  .format-row input, .format-row select { margin: 0; padding: 0.3rem 0.5rem; font-size: 0.85rem; text-align: right; height: auto; }
+  .format-row select { text-align: left; }
   .format-row .count { color: var(--pico-muted-color); font-size: 0.78rem; text-align: right; }
+  .wide-row { display: grid; grid-template-columns: 1fr; gap: 0.35rem; align-items: center; margin-bottom: 0.5rem; font-size: 0.88rem; }
+  .wide-row label { margin: 0; color: var(--pico-muted-color); font-size: 0.82rem; }
+  .wide-row input, .wide-row select { margin: 0; padding: 0.35rem 0.55rem; font-size: 0.85rem; width: 100%; height: auto; }
+
+  /* Toggle de modo margen */
+  .mode-toggle { display: flex; gap: 0; margin: 0.3rem 0 0.5rem; border: 1px solid var(--pico-muted-border-color); border-radius: 0.35rem; overflow: hidden; }
+  .mode-btn { flex: 1; padding: 0.45rem 0.5rem; font-size: 0.82rem; background: transparent; color: var(--pico-color); border: none; border-radius: 0; margin: 0; cursor: pointer; transition: background 0.12s ease, color 0.12s ease; font-weight: 500; }
+  .mode-btn.active { background: var(--pico-primary); color: var(--pico-primary-inverse); }
+  .mode-btn:not(.active):hover { background: #e9e9ec; }
+
+  .formula-hint { background: #f5f5f7; border-radius: 0.3rem; padding: 0.4rem 0.6rem; font-size: 0.8rem; color: var(--pico-muted-color); margin-bottom: 0.4rem; }
+  .formula-hint code { font-size: 0.82rem; background: transparent; padding: 0; color: var(--pico-color); }
+
+  /* Botones acción */
   .panel-actions { margin-top: 1rem; display: flex; flex-direction: column; gap: 0.4rem; }
   .panel-actions button { width: 100%; margin: 0; }
-  .secondary-btn { background: transparent; border: 1px solid var(--pico-muted-border-color); color: var(--pico-color); }
-  .secondary-btn:hover { background: var(--pico-secondary-background); }
+  /* Botones secundarios: gris suave visible por defecto, gris más oscuro al hover */
+  .secondary-btn {
+    background: #e8e8ec;
+    border: 1px solid #d1d1d6;
+    color: #333;
+    transition: background 0.12s ease, border-color 0.12s ease;
+  }
+  .secondary-btn:hover { background: #d1d1d6; border-color: #b0b0b6; color: #111; }
+  .secondary-btn:focus { box-shadow: 0 0 0 0.15rem rgba(120,120,130,0.25); }
 
-  /* KPIs */
+  /* KPIs — ahora 4 tarjetas comparativas: Total, Estables, Nuevas, Obsoletas */
   .kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.6rem; margin-bottom: 0.8rem; }
   .kpi { background: var(--pico-card-background-color); border: 1px solid var(--pico-card-border-color); border-radius: 0.4rem; padding: 0.6rem 0.8rem; }
   .kpi .label { font-size: 0.72rem; color: var(--pico-muted-color); text-transform: uppercase; letter-spacing: 0.04em; }
-  .kpi .value { font-size: 1.1rem; font-weight: 600; }
+  .kpi .value { font-size: 1.25rem; font-weight: 600; }
+  .kpi .value small { font-size: 0.72rem; font-weight: 400; color: var(--pico-muted-color); margin-left: 0.3rem; }
+  .kpi.stable .value { color: #2d7a2d; }
+  .kpi.new .value { color: #1a6bcf; }
+  .kpi.obsolete .value { color: #b04040; }
+  .kpi .action { font-size: 0.72rem; margin-top: 0.15rem; }
+  .kpi .action a { color: #b04040; text-decoration: underline; cursor: pointer; }
+
+  /* Banner de contexto histórico */
+  .history-banner { background: #f0f4fa; border: 1px solid #d5dfec; padding: 0.5rem 0.75rem; border-radius: 0.35rem; font-size: 0.83rem; margin-bottom: 0.7rem; color: #384457; }
+  .history-banner.first-time { background: #fff8e6; border-color: #f0dda3; color: #7a5a00; }
 
   /* Tabla preview */
-  .table-wrap { overflow: auto; max-height: 70vh; border: 1px solid var(--pico-card-border-color); border-radius: 0.4rem; }
+  .table-wrap { overflow: auto; max-height: 68vh; border: 1px solid var(--pico-card-border-color); border-radius: 0.4rem; }
   table.preview { width: 100%; font-size: 0.82rem; margin: 0; border-collapse: collapse; }
   table.preview thead { position: sticky; top: 0; background: var(--pico-card-background-color); z-index: 1; }
   table.preview th, table.preview td { padding: 0.35rem 0.6rem; border-bottom: 1px solid var(--pico-card-border-color); white-space: nowrap; }
   table.preview td.num, table.preview th.num { text-align: right; font-variant-numeric: tabular-nums; }
   table.preview tr.warn { background: rgba(255, 200, 0, 0.08); }
   table.preview tr.err { background: rgba(255, 80, 80, 0.10); }
+  table.preview tr.status-new td:first-child { border-left: 3px solid #1a6bcf; }
   table.preview tr.fmt-1 { background: rgba(0, 150, 255, 0.04); }
   table.preview tr.fmt-5 { background: rgba(100, 200, 100, 0.04); }
   table.preview tr.fmt-20, table.preview tr.fmt-60 { background: rgba(200, 100, 200, 0.04); }
   table.preview tr.fmt-208, table.preview tr.fmt-1000 { background: rgba(255, 150, 100, 0.05); }
+  table.preview input[data-field="liters"] { width: 88px; text-align: right; padding: 0.15rem 0.35rem; margin: 0; }
+  .status-chip { display: inline-block; padding: 0 0.4rem; border-radius: 0.7rem; font-size: 0.68rem; font-weight: 600; letter-spacing: 0.02em; }
+  .status-chip.new { background: #dbeafe; color: #1a6bcf; }
+  .status-chip.stable { background: #e6f4e6; color: #2d7a2d; }
 
   .filter-bar { display: flex; gap: 0.6rem; align-items: center; margin-bottom: 0.6rem; flex-wrap: wrap; }
-  .filter-bar input[type=search] { margin: 0; max-width: 280px; }
-  .filter-bar select { margin: 0; max-width: 180px; }
+  .filter-bar input[type=search] { margin: 0; min-width: 260px; max-width: 340px; flex: 0 1 320px; }
+  .filter-bar select { margin: 0; min-width: 210px; max-width: 240px; }
   .chip { display: inline-block; padding: 0.1rem 0.5rem; border-radius: 1rem; font-size: 0.72rem; background: var(--pico-secondary-background); border: 1px solid var(--pico-muted-border-color); }
   .chip.warn { background: rgba(255, 200, 0, 0.15); border-color: rgba(255, 200, 0, 0.5); }
+
+  /* Modal simple */
+  .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.35); display: flex; align-items: center; justify-content: center; z-index: 100; }
+  .modal { background: var(--pico-card-background-color); border-radius: 0.5rem; padding: 1.2rem; max-width: 520px; max-height: 80vh; overflow: auto; box-shadow: 0 12px 40px rgba(0,0,0,0.2); }
+  .modal h3 { margin-top: 0; }
+  .modal ul { max-height: 40vh; overflow: auto; margin: 0.6rem 0; padding-left: 1.2rem; font-size: 0.85rem; }
+  .modal .actions { display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 1rem; }
 
   .hidden { display: none !important; }
   .muted { color: var(--pico-muted-color); }
@@ -77,7 +121,7 @@
 
 <header>
   <h1>Tarifador de Lubricantes</h1>
-  <p class="subtitle">v0 · Importa tarifa Repsol → configura margen por formato → exporta a Skrit</p>
+  <p class="subtitle">v0.2 · Importa tarifa → detecta nuevas / estables / desaparecidas → configura margen (venta o compra) → exporta a Skrit</p>
 </header>
 
 <!-- Zona de carga -->
@@ -96,9 +140,15 @@
   <aside class="config-panel">
     <article style="padding: 1rem;">
       <h3>Configuración de margen</h3>
-      <p class="muted" style="font-size:0.8rem; margin-top: -0.3rem;">
-        Margen <strong>sobre venta</strong>: <code>PVP = Coste / (1 − %/100)</code>
-      </p>
+
+      <!-- Toggle Margen sobre Venta / sobre Compra -->
+      <div class="mode-toggle" role="tablist" aria-label="Modo de margen">
+        <button type="button" class="mode-btn active" data-mode="sale" aria-pressed="true">Sobre venta</button>
+        <button type="button" class="mode-btn" data-mode="cost" aria-pressed="false">Sobre compra</button>
+      </div>
+      <div class="formula-hint">
+        Fórmula: <code id="formulaText">PVP = Coste / (1 − %/100)</code>
+      </div>
 
       <h4>Margen por formato (%)</h4>
       <div id="formatConfig"></div>
@@ -106,12 +156,12 @@
       <h4>Otros ajustes</h4>
       <div class="format-row">
         <label for="defaultMargin">Por defecto</label>
-        <input type="number" id="defaultMargin" min="0" max="95" step="0.5" value="30">
+        <input type="number" id="defaultMargin" min="0" max="500" step="0.5" value="30">
         <span class="count">%</span>
       </div>
-      <div class="format-row">
+      <div class="wide-row">
         <label for="rounding">Redondeo PVP</label>
-        <select id="rounding" style="grid-column: span 2; padding: 0.3rem 0.5rem; font-size:0.85rem; margin:0;">
+        <select id="rounding">
           <option value="none">Sin redondeo (2 dec.)</option>
           <option value="2dec" selected>2 decimales</option>
           <option value="psy99">Acabado en ,99</option>
@@ -120,28 +170,35 @@
           <option value="int">Entero</option>
         </select>
       </div>
-      <div class="format-row">
+      <div class="wide-row">
         <label for="tariffDate">Fecha tarifa</label>
-        <input type="date" id="tariffDate" style="grid-column: span 2; padding: 0.3rem 0.5rem; font-size:0.85rem; margin:0;">
+        <input type="date" id="tariffDate">
       </div>
 
       <div class="panel-actions">
         <button id="btnExport">Exportar a Skrit</button>
+        <button id="btnSetCurrent" class="secondary-btn" title="Guarda esta tarifa como la nueva vigente para comparar con la próxima">Establecer como vigente</button>
         <button id="btnSaveProfile" class="secondary-btn">Guardar perfil de margen</button>
         <button id="btnLoadProfile" class="secondary-btn">Cargar perfil…</button>
         <button id="btnReset" class="secondary-btn">Cargar otra tarifa</button>
       </div>
-      <p class="footnote">Los márgenes se guardan automáticamente entre sesiones.</p>
+      <p class="footnote">Los márgenes se guardan automáticamente entre sesiones. Exportar a Skrit también actualiza la tarifa vigente para comparar con la próxima.</p>
     </article>
   </aside>
 
   <!-- Zona central: KPIs + tabla preview -->
   <main>
+    <div id="historyBanner" class="history-banner hidden"></div>
     <div class="kpis" id="kpis"></div>
 
     <div class="filter-bar">
       <input type="search" id="searchInput" placeholder="Buscar por ref o descripción…">
       <select id="formatFilter"><option value="">Todos los formatos</option></select>
+      <select id="statusFilter">
+        <option value="">Todos los estados</option>
+        <option value="new">Solo nuevas</option>
+        <option value="stable">Solo estables</option>
+      </select>
       <span class="muted" style="font-size:0.85rem;">
         Mostrando <strong id="visibleCount">0</strong> de <strong id="totalCount">0</strong> referencias
       </span>
@@ -153,6 +210,7 @@
         <thead>
           <tr>
             <th>Ref</th>
+            <th>Estado</th>
             <th>Producto</th>
             <th class="num">Litros</th>
             <th class="num">Uds/caja</th>
@@ -170,8 +228,21 @@
     <p class="footnote">
       Filas en amarillo: litros no detectados automáticamente desde la descripción (puedes editar manualmente la columna Litros).
       Filas en rojo: coste 0 o negativo (excluidas del export).
+      Estado <span class="status-chip new">NUEVA</span>: no estaba en la tarifa vigente anterior.
     </p>
   </main>
+</div>
+
+<!-- Modal para lista de refs obsoletas -->
+<div id="modalObsolete" class="modal-backdrop hidden">
+  <div class="modal">
+    <h3>Referencias desaparecidas</h3>
+    <p class="muted" style="font-size:0.85rem;">Refs que estaban en la tarifa vigente anterior y no aparecen en la actual.</p>
+    <ul id="obsoleteList"></ul>
+    <div class="actions">
+      <button class="secondary-btn" onclick="document.getElementById('modalObsolete').classList.add('hidden')">Cerrar</button>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -361,14 +432,29 @@ const ExcelReader = (() => {
    ============================================================================ */
 const Pricing = (() => {
 
-  /** PVP a partir de coste y margen sobre venta. */
-  function pvpFromMargin(cost, marginPct) {
+  /**
+   * PVP a partir de coste y % de margen.
+   * @param {number} cost       coste por envase.
+   * @param {number} marginPct  % introducido por el usuario.
+   * @param {string} mode       'sale' (margen sobre venta) o 'cost' (markup sobre compra).
+   *
+   * Fórmulas:
+   *   sale: PVP = Coste / (1 - m/100)     (30% → PVP = 100/0,70 = 142,86)
+   *   cost: PVP = Coste × (1 + m/100)     (30% → PVP = 100 × 1,30 = 130,00)
+   */
+  function pvpFromMargin(cost, marginPct, mode) {
     if (!cost || cost <= 0) return 0;
-    const m = Math.max(0, Math.min(94.99, marginPct || 0));
+    const raw = marginPct || 0;
+    if (mode === 'cost') {
+      const m = Math.max(0, Math.min(500, raw));
+      return cost * (1 + m / 100);
+    }
+    // Modo por defecto: sale
+    const m = Math.max(0, Math.min(94.99, raw));
     return cost / (1 - m / 100);
   }
 
-  /** Margen real sobre venta tras redondeo. */
+  /** Margen real sobre venta tras redondeo (para columna informativa). */
   function realMargin(cost, pvp) {
     if (!pvp || pvp <= 0) return 0;
     return ((pvp - cost) / pvp) * 100;
@@ -393,18 +479,116 @@ const Pricing = (() => {
     const marginPct = (config.byFormat && config.byFormat[row.formatKey] != null)
       ? config.byFormat[row.formatKey]
       : config.defaultMargin;
-    const pvpRaw = pvpFromMargin(row.costPerPack, marginPct);
+    const mode = config.marginMode || 'sale';
+    const pvpRaw = pvpFromMargin(row.costPerPack, marginPct, mode);
     const pvp = round(pvpRaw, config.rounding);
     const gain = pvp - row.costPerPack;
     return {
       marginPct,
+      mode,
       pvp,
       gain,
       realMarginPct: realMargin(row.costPerPack, pvp)
     };
   }
 
-  return { pvpFromMargin, realMargin, round, compute };
+  /** Texto de fórmula para mostrar en UI. */
+  function formulaText(mode) {
+    return mode === 'cost'
+      ? 'PVP = Coste × (1 + %/100)'
+      : 'PVP = Coste / (1 − %/100)';
+  }
+
+  return { pvpFromMargin, realMargin, round, compute, formulaText };
+})();
+
+/* ============================================================================
+   MÓDULO: history  (comparativa entre tarifas del mismo proveedor)
+   ============================================================================
+   Almacena en localStorage la última tarifa "vigente" por proveedor:
+     { savedAt, tariffDate, refs: [{ref, cost, liters}, ...] }
+   Al cargar una nueva tarifa, compara refs vs. la vigente para producir:
+     { hasPrevious, previousDate, total, stable, new, obsolete, obsoleteRefs, priceDeltas }
+*/
+const History = (() => {
+  function keyFor(supplierId) {
+    return 'history_' + String(supplierId || 'unknown').toLowerCase().replace(/\s+/g, '_');
+  }
+
+  function load(supplierId) {
+    return Storage.get(keyFor(supplierId), null);
+  }
+
+  function save(supplierId, rows, tariffDate) {
+    const payload = {
+      savedAt: new Date().toISOString().slice(0, 10),
+      tariffDate: tariffDate || null,
+      refs: rows.map(r => ({
+        ref: r.ref,
+        cost: r.costPerPack,
+        liters: r.liters,
+        description: r.description
+      }))
+    };
+    Storage.set(keyFor(supplierId), payload);
+    return payload;
+  }
+
+  /** Compara filas actuales contra un histórico previo. */
+  function diff(currentRows, previous) {
+    if (!previous || !Array.isArray(previous.refs)) {
+      return {
+        hasPrevious: false,
+        previousDate: null,
+        previousTariffDate: null,
+        total: currentRows.length,
+        stable: 0,
+        new: currentRows.length,
+        obsolete: 0,
+        obsoleteRefs: [],
+        priceDeltas: []
+      };
+    }
+    const currentByRef = new Map(currentRows.map(r => [r.ref, r]));
+    const prevByRef = new Map(previous.refs.map(r => [r.ref, r]));
+
+    let stable = 0, newCount = 0;
+    const priceDeltas = [];
+    for (const [ref, row] of currentByRef) {
+      const prev = prevByRef.get(ref);
+      if (prev) {
+        stable++;
+        row._status = 'stable';
+        row._prevCost = prev.cost;
+        if (typeof prev.cost === 'number' && typeof row.costPerPack === 'number' && prev.cost > 0) {
+          const deltaPct = (row.costPerPack - prev.cost) / prev.cost * 100;
+          if (Math.abs(deltaPct) >= 0.01) {
+            priceDeltas.push({ ref, prev: prev.cost, curr: row.costPerPack, deltaPct });
+          }
+        }
+      } else {
+        newCount++;
+        row._status = 'new';
+      }
+    }
+    const obsoleteRefs = [];
+    for (const [ref, r] of prevByRef) {
+      if (!currentByRef.has(ref)) obsoleteRefs.push({ ref, description: r.description, cost: r.cost });
+    }
+    return {
+      hasPrevious: true,
+      previousDate: previous.savedAt,
+      previousTariffDate: previous.tariffDate,
+      total: currentRows.length,
+      stable,
+      new: newCount,
+      obsolete: obsoleteRefs.length,
+      obsoleteRefs,
+      priceDeltas
+    };
+  }
+
+  return { load, save, diff };
 })();
 
 /* ============================================================================
@@ -462,11 +646,13 @@ const UI = (() => {
     rows: [],            // todas las filas leídas
     config: {
       defaultMargin: 30,
-      byFormat: {},      // { 1: 35, 5: 30, 20: 25, ... }
-      rounding: '2dec'
+      byFormat: {},      // { '1': 35, '5': 30, '20': 25, ... }
+      rounding: '2dec',
+      marginMode: 'sale' // 'sale' (sobre venta) | 'cost' (sobre compra)
     },
-    filter: { text: '', format: '' },
-    tariffDate: ''
+    filter: { text: '', format: '', status: '' },
+    tariffDate: '',
+    diff: null           // resultado de History.diff cargado al importar
   };
 
   /* ----- elementos del DOM ----- */
@@ -542,12 +728,15 @@ const UI = (() => {
   function visibleRows() {
     const txt = state.filter.text.toLowerCase().trim();
     const fmt = state.filter.format;
+    const status = state.filter.status;
     return state.rows.filter(r => {
       if (txt) {
         const hay = (r.ref + ' ' + r.description).toLowerCase();
         if (!hay.includes(txt)) return false;
       }
       if (fmt && r.formatKey !== fmt) return false;
+      if (status === 'new'    && r._status !== 'new')    return false;
+      if (status === 'stable' && r._status !== 'stable') return false;
       return true;
     });
   }
@@ -578,12 +767,24 @@ const UI = (() => {
       }
       tr.className = classes.join(' ');
 
+      // Chip de estado (NUEVA / vacío para estable)
+      let statusChip = '';
+      if (r._status === 'new') statusChip = '<span class="status-chip new">NUEVA</span>';
+      else if (r._status === 'stable') statusChip = '';
+      if (r._status === 'new') classes.push('status-new');
+
+      // Tooltip precio anterior si hay
+      const costTitle = r._prevCost != null
+        ? `Anterior: ${r._prevCost.toLocaleString('es-ES', {minimumFractionDigits:2, maximumFractionDigits:2})} €`
+        : '';
+
       tr.innerHTML = `
         <td>${escapeHtml(r.ref)}</td>
+        <td>${statusChip}</td>
         <td title="${escapeHtml(r.description)}">${escapeHtml(truncate(r.description, 60))}</td>
-        <td class="num"><input type="number" step="0.01" value="${r.liters ?? ''}" data-ref="${escapeHtml(r.ref)}" data-field="liters" style="width:70px; text-align:right; padding:0.1rem 0.3rem; margin:0;"></td>
+        <td class="num"><input type="number" step="0.01" value="${r.liters ?? ''}" data-ref="${escapeHtml(r.ref)}" data-field="liters"></td>
         <td class="num">${r.unitsPerBox ?? ''}</td>
-        <td class="num">${formatEur(r.costPerPack)}</td>
+        <td class="num" title="${escapeHtml(costTitle)}">${formatEur(r.costPerPack)}</td>
         <td class="num">${c.marginPct.toFixed(1)}%</td>
         <td class="num"><strong>${formatEur(c.pvp)}</strong></td>
         <td class="num">${formatEur(c.gain)}</td>
@@ -615,36 +816,94 @@ const UI = (() => {
     // Aviso si hay más de MAX filas
     if (rows.length > MAX) {
       const note = document.createElement('tr');
-      note.innerHTML = `<td colspan="9" style="text-align:center; padding:0.6rem; color: var(--pico-muted-color); font-style: italic;">
-        Mostrando ${MAX} primeras filas (de ${rows.length}). Usa el buscador o filtro de formato para acotar.
+      note.innerHTML = `<td colspan="10" style="text-align:center; padding:0.6rem; color: var(--pico-muted-color); font-style: italic;">
+        Mostrando ${MAX} primeras filas (de ${rows.length}). Usa el buscador o los filtros para acotar.
       </td>`;
       tbody.appendChild(note);
     }
   }
 
-  /* ----- render: KPIs agregados ----- */
+  /* ----- render: banner de contexto histórico ----- */
+  function renderHistoryBanner() {
+    const b = $('historyBanner');
+    const d = state.diff;
+    if (!d) { b.classList.add('hidden'); return; }
+    if (!d.hasPrevious) {
+      b.className = 'history-banner first-time';
+      b.innerHTML = `⚠ Sin tarifa anterior guardada para <strong>${escapeHtml(state.supplier)}</strong>. Todas las referencias se marcan como nuevas. Al exportar (o pulsar "Establecer como vigente") esta tarifa quedará como referencia para futuras comparaciones.`;
+    } else {
+      b.className = 'history-banner';
+      const dt = d.previousTariffDate || d.previousDate;
+      b.innerHTML = `📊 Comparando con la tarifa vigente de <strong>${escapeHtml(state.supplier)}</strong> del <strong>${escapeHtml(dt)}</strong>.`;
+    }
+    b.classList.remove('hidden');
+  }
+
+  /* ----- render: KPIs comparativos ----- */
   function renderKpis() {
-    const valid = state.rows.filter(r => r.costPerPack > 0);
-    const total = valid.length;
-    const totalCost = valid.reduce((s, r) => s + r.costPerPack, 0);
-    const totalPVP = valid.reduce((s, r) => s + Pricing.compute(r, state.config).pvp, 0);
-    const totalGain = totalPVP - totalCost;
-    const avgMargin = totalPVP > 0 ? (totalGain / totalPVP * 100) : 0;
-    const noLiters = state.rows.filter(r => !r.litersDetected).length;
+    const d = state.diff || {
+      total: state.rows.length, stable: 0, new: state.rows.length, obsolete: 0, obsoleteRefs: []
+    };
+    const total = d.total;
+    const stablePct = total > 0 ? (d.stable / total * 100) : 0;
+    const newPct    = total > 0 ? (d.new    / total * 100) : 0;
+    const obsoleteLink = d.obsolete > 0
+      ? `<div class="action"><a onclick="window.__openObsoleteModal()">ver lista →</a></div>`
+      : '';
 
     $('kpis').innerHTML = `
-      <div class="kpi"><div class="label">Referencias</div><div class="value">${total}</div></div>
-      <div class="kpi"><div class="label">Coste total (suma)</div><div class="value">${formatEur(totalCost)}</div></div>
-      <div class="kpi"><div class="label">PVP total (suma)</div><div class="value">${formatEur(totalPVP)}</div></div>
-      <div class="kpi"><div class="label">Margen medio real</div><div class="value">${avgMargin.toFixed(1)}%</div></div>
+      <div class="kpi">
+        <div class="label">Referencias totales</div>
+        <div class="value">${total}</div>
+      </div>
+      <div class="kpi stable">
+        <div class="label">Estables</div>
+        <div class="value">${d.stable}<small>${stablePct.toFixed(0)}%</small></div>
+      </div>
+      <div class="kpi new">
+        <div class="label">Nuevas</div>
+        <div class="value">${d.new}<small>${newPct.toFixed(0)}%</small></div>
+      </div>
+      <div class="kpi obsolete">
+        <div class="label">Desaparecidas</div>
+        <div class="value">${d.obsolete}</div>
+        ${obsoleteLink}
+      </div>
     `;
 
+    const noLiters = state.rows.filter(r => !r.litersDetected).length;
     if (noLiters > 0) {
       $('warningChip').classList.remove('hidden');
       $('warningText').textContent = `${noLiters} refs sin litros detectados`;
     } else {
       $('warningChip').classList.add('hidden');
     }
+  }
+
+  /* ----- render: modal refs obsoletas ----- */
+  window.__openObsoleteModal = function() {
+    const d = state.diff;
+    if (!d || !d.obsoleteRefs || d.obsoleteRefs.length === 0) return;
+    const ul = $('obsoleteList');
+    ul.innerHTML = d.obsoleteRefs.map(r => {
+      const desc = r.description ? escapeHtml(r.description) : '<em class="muted">(sin descripción)</em>';
+      const cost = r.cost != null ? ` — ${formatEur(r.cost)}` : '';
+      return `<li><strong>${escapeHtml(r.ref)}</strong>: ${desc}${cost}</li>`;
+    }).join('');
+    $('modalObsolete').classList.remove('hidden');
+  };
+
+  /* ----- render: fórmula según modo ----- */
+  function renderFormula() {
+    $('formulaText').textContent = Pricing.formulaText(state.config.marginMode);
+    document.querySelectorAll('.mode-btn').forEach(btn => {
+      const active = btn.dataset.mode === state.config.marginMode;
+      btn.classList.toggle('active', active);
+      btn.setAttribute('aria-pressed', active ? 'true' : 'false');
+    });
+    // Ampliar límite en el input por defecto cuando el modo es 'cost' (permite markups altos)
+    const dm = $('defaultMargin');
+    dm.max = state.config.marginMode === 'cost' ? 500 : 95;
   }
 
   /* ----- helpers ----- */
@@ -669,7 +928,12 @@ const UI = (() => {
         const result = ExcelReader.read(e.target.result, file.name);
         state.supplier = result.supplier;
         state.rows = result.rows;
-        $('loadStatus').innerHTML = `<small class="muted">✓ <strong>${state.rows.length}</strong> referencias cargadas de <strong>${result.supplier}</strong> (hoja <code>${result.sheetUsed}</code>).</small>`;
+
+        // Comparar contra la tarifa vigente guardada (si existe)
+        const previous = History.load(state.supplier);
+        state.diff = History.diff(state.rows, previous);
+
+        $('loadStatus').innerHTML = `<small class="muted">✓ <strong>${state.rows.length}</strong> referencias cargadas de <strong>${escapeHtml(state.supplier)}</strong> (hoja <code>${escapeHtml(result.sheetUsed)}</code>).</small>`;
         $('mainLayout').classList.remove('hidden');
         $('dropZone').classList.add('hidden');
         loadConfig();
@@ -679,8 +943,10 @@ const UI = (() => {
           state.tariffDate = new Date().toISOString().slice(0, 10);
           $('tariffDate').value = state.tariffDate;
         }
+        renderFormula();
         renderFormatConfig();
         renderFormatFilter();
+        renderHistoryBanner();
         renderTable();
         renderKpis();
       } catch (err) {
@@ -706,6 +972,16 @@ const UI = (() => {
   }
 
   function setupConfigListeners() {
+    // Toggle modo Venta / Compra
+    document.querySelectorAll('.mode-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        state.config.marginMode = btn.dataset.mode;
+        saveConfig();
+        renderFormula();
+        renderTable();
+        renderKpis();
+      });
+    });
     $('defaultMargin').addEventListener('input', (e) => {
       state.config.defaultMargin = parseFloat(e.target.value) || 0;
       saveConfig(); renderFormatConfig(); renderTable(); renderKpis();
@@ -717,15 +993,35 @@ const UI = (() => {
     $('tariffDate').addEventListener('change', (e) => { state.tariffDate = e.target.value; });
     $('searchInput').addEventListener('input', (e) => { state.filter.text = e.target.value; renderTable(); });
     $('formatFilter').addEventListener('change', (e) => { state.filter.format = e.target.value; renderTable(); });
+    $('statusFilter').addEventListener('change', (e) => { state.filter.status = e.target.value; renderTable(); });
+
     $('btnExport').addEventListener('click', () => {
       try {
         const fname = ExcelWriter.exportSkrit(state.rows, state.config, state.supplier || 'proveedor', state.tariffDate);
+        // Auto-guardar como tarifa vigente al exportar
+        if (state.supplier && state.rows.length > 0) {
+          History.save(state.supplier, state.rows, state.tariffDate);
+          // Refrescar diff con el nuevo estado guardado (ahora será "sin cambios pendientes")
+          state.diff = History.diff(state.rows, History.load(state.supplier));
+          renderHistoryBanner(); renderKpis();
+        }
         $('loadStatus').classList.remove('hidden');
-        $('loadStatus').innerHTML = `<small style="color: var(--pico-ins-color);">✓ Exportado: <strong>${fname}</strong></small>`;
+        $('loadStatus').innerHTML = `<small style="color: var(--pico-ins-color);">✓ Exportado: <strong>${escapeHtml(fname)}</strong> y guardado como tarifa vigente.</small>`;
       } catch (err) {
         $('loadStatus').innerHTML = `<small style="color: var(--pico-del-color);">❌ Error al exportar: ${escapeHtml(err.message)}</small>`;
       }
     });
+
+    $('btnSetCurrent').addEventListener('click', () => {
+      if (!state.supplier || state.rows.length === 0) return;
+      if (!confirm(`¿Establecer esta tarifa como la vigente para ${state.supplier}?\n\nLa próxima tarifa que cargues se comparará contra esta.`)) return;
+      History.save(state.supplier, state.rows, state.tariffDate);
+      state.diff = History.diff(state.rows, History.load(state.supplier));
+      renderHistoryBanner(); renderKpis(); renderTable();
+      $('loadStatus').classList.remove('hidden');
+      $('loadStatus').innerHTML = `<small style="color: var(--pico-ins-color);">✓ Tarifa vigente de ${escapeHtml(state.supplier)} actualizada.</small>`;
+    });
+
     $('btnSaveProfile').addEventListener('click', () => {
       const name = prompt('Nombre del perfil (ej: "Repsol estándar 2026"):');
       if (!name) return;
@@ -745,11 +1041,13 @@ const UI = (() => {
       saveConfig();
       $('defaultMargin').value = state.config.defaultMargin;
       $('rounding').value = state.config.rounding;
+      renderFormula();
       renderFormatConfig(); renderTable(); renderKpis();
     });
     $('btnReset').addEventListener('click', () => {
       state.rows = [];
       state.supplier = null;
+      state.diff = null;
       $('mainLayout').classList.add('hidden');
       $('dropZone').classList.remove('hidden');
       $('loadStatus').classList.add('hidden');
@@ -763,6 +1061,7 @@ const UI = (() => {
     loadConfig();
     $('defaultMargin').value = state.config.defaultMargin;
     $('rounding').value = state.config.rounding;
+    renderFormula();
     state.tariffDate = new Date().toISOString().slice(0, 10);
     $('tariffDate').value = state.tariffDate;
   }
