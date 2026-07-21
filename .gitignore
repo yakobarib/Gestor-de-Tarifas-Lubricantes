@@ -1,0 +1,29 @@
+# SO
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editores
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Datos sensibles: NUNCA subir tarifas reales de proveedores al repo público
+TARIFAS ACTUALIZADAS/
+EJEMPLOS TARIFAS/
+CONSIDERACIONES/
+Ecoembes y Genci/
+BASE DE CONOCIMIENTO/*.xlsx
+BASE DE CONOCIMIENTO/*.pdf
+
+# Node / build (por si en el futuro añadimos herramientas)
+node_modules/
+dist/
+build/
+*.log
+
+# Backups temporales
+*.bak
+*.tmp

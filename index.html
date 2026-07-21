@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gestor de Tarifas Lubricantes</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+<style>
+  body { max-width: 800px; margin: 2rem auto; padding: 0 1.5rem; }
+  h1 { margin-bottom: 0.3rem; }
+  .lead { color: var(--pico-muted-color); margin-top: 0; }
+  .cta { display: flex; gap: 1rem; margin: 2rem 0; flex-wrap: wrap; }
+  .cta a { padding: 0.8rem 1.5rem; }
+  .cta a.primary { background: var(--pico-primary); color: var(--pico-primary-inverse); border-color: var(--pico-primary); }
+  ul.docs { list-style: none; padding: 0; }
+  ul.docs li { padding: 0.4rem 0; border-bottom: 1px solid var(--pico-muted-border-color); }
+  ul.docs li a { text-decoration: none; }
+  ul.docs li small { color: var(--pico-muted-color); display: block; margin-top: 0.1rem; }
+  footer { margin-top: 3rem; font-size: 0.85rem; color: var(--pico-muted-color); }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Gestor de Tarifas Lubricantes</h1>
+  <p class="lead">Transforma tarifas heterogéneas de proveedores en el formato Skrit, con margen configurable por formato.</p>
+</header>
+
+<div class="cta">
+  <a href="app/" class="primary" role="button">Abrir la app →</a>
+  <a href="https://github.com/yakobarib/Gestor-de-Tarifas-Lubricantes" role="button" class="secondary">Ver en GitHub</a>
+</div>
+
+<h2>Estado v0.1</h2>
+<p>Repsol funcionando (99,8% de acierto en detección de litros). AD Parts, Castrol, Eni Live, Racing Oil, Krafft y Shell en pipeline.</p>
+
+<h2>Documentación</h2>
+<ul class="docs">
+  <li>
+    <a href="https://github.com/yakobarib/Gestor-de-Tarifas-Lubricantes/blob/main/docs/arquitectura.md">Arquitectura técnica</a>
+    <small>Stack, módulos internos, flujo de datos.</small>
+  </li>
+  <li>
+    <a href="https://github.com/yakobarib/Gestor-de-Tarifas-Lubricantes/blob/main/docs/roadmap.md">Roadmap por fases</a>
+    <small>Fase 0 (auditoría) → Fase 4 (Electron + PDF).</small>
+  </li>
+  <li>
+    <a href="https://github.com/yakobarib/Gestor-de-Tarifas-Lubricantes/blob/main/docs/reglas-negocio.md">Reglas de negocio</a>
+    <small>Litros por envase, casuística AD Parts, tasas, redondeo.</small>
+  </li>
+  <li>
+    <a href="https://github.com/yakobarib/Gestor-de-Tarifas-Lubricantes/tree/main/docs/decisiones">Decisiones (ADRs)</a>
+    <small>Single-file HTML, margen sobre venta, parser, Pages.</small>
+  </li>
+  <li>
+    <a href="https://github.com/yakobarib/Gestor-de-Tarifas-Lubricantes/tree/main/docs/proveedores">Proveedores</a>
+    <small>Ficha por proveedor con formato y estado.</small>
+  </li>
+  <li>
+    <a href="https://github.com/yakobarib/Gestor-de-Tarifas-Lubricantes/blob/main/CHANGELOG.md">Changelog</a>
+    <small>Historial de versiones.</small>
+  </li>
+</ul>
+
+<footer>
+  <p>Proyecto interno de Yako para AD Ibiza. Código en <a href="https://github.com/yakobarib/Gestor-de-Tarifas-Lubricantes">GitHub</a>.</p>
+</footer>
+
+</body>
+</html>

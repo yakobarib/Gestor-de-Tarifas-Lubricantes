@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Tarifador Lubricantes — v0 Repsol</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+  :root { --pico-form-element-spacing-vertical: 0.4rem; --pico-form-element-spacing-horizontal: 0.6rem; }
+  body { padding: 1rem 1.5rem; max-width: 1600px; margin: 0 auto; }
+  header h1 { margin-bottom: 0.2rem; font-size: 1.5rem; }
+  header p.subtitle { color: var(--pico-muted-color); margin-top: 0; font-size: 0.9rem; }
+
+  /* Drop zone */
+  #dropZone {
+    border: 2px dashed var(--pico-muted-border-color);
+    border-radius: 0.5rem;
+    padding: 2rem 1rem;
+    text-align: center;
+    transition: all 0.15s ease;
+    cursor: pointer;
+    background: var(--pico-card-background-color);
+  }
+  #dropZone.hover { border-color: var(--pico-primary); background: var(--pico-primary-background); }
+  #dropZone p { margin: 0.3rem 0; }
+  #dropZone .hint { color: var(--pico-muted-color); font-size: 0.85rem; }
+
+  /* Layout principal tras carga */
+  .layout { display: grid; grid-template-columns: 320px 1fr; gap: 1.2rem; margin-top: 1.2rem; }
+  @media (max-width: 1100px) { .layout { grid-template-columns: 1fr; } }
+
+  /* Panel config */
+  .config-panel { position: sticky; top: 0.5rem; align-self: start; }
+  .config-panel h3 { font-size: 1rem; margin-bottom: 0.5rem; }
+  .config-panel h4 { font-size: 0.85rem; margin: 0.8rem 0 0.4rem; color: var(--pico-muted-color); text-transform: uppercase; letter-spacing: 0.05em; }
+  .format-row { display: grid; grid-template-columns: 1fr 80px 60px; gap: 0.5rem; align-items: center; margin-bottom: 0.3rem; font-size: 0.88rem; }
+  .format-row label { margin: 0; }
+  .format-row input { margin: 0; padding: 0.3rem 0.5rem; font-size: 0.85rem; text-align: right; }
+  .format-row .count { color: var(--pico-muted-color); font-size: 0.78rem; text-align: right; }
+  .panel-actions { margin-top: 1rem; display: flex; flex-direction: column; gap: 0.4rem; }
+  .panel-actions button { width: 100%; margin: 0; }
+  .secondary-btn { background: transparent; border: 1px solid var(--pico-muted-border-color); color: var(--pico-color); }
+  .secondary-btn:hover { background: var(--pico-secondary-background); }
+
+  /* KPIs */
+  .kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.6rem; margin-bottom: 0.8rem; }
+  .kpi { background: var(--pico-card-background-color); border: 1px solid var(--pico-card-border-color); border-radius: 0.4rem; padding: 0.6rem 0.8rem; }
+  .kpi .label { font-size: 0.72rem; color: var(--pico-muted-color); text-transform: uppercase; letter-spacing: 0.04em; }
+  .kpi .value { font-size: 1.1rem; font-weight: 600; }
+
+  /* Tabla preview */
+  .table-wrap { overflow: auto; max-height: 70vh; border: 1px solid var(--pico-card-border-color); border-radius: 0.4rem; }
+  table.preview { width: 100%; font-size: 0.82rem; margin: 0; border-collapse: collapse; }
+  table.preview thead { position: sticky; top: 0; background: var(--pico-card-background-color); z-index: 1; }
+  table.preview th, table.preview td { padding: 0.35rem 0.6rem; border-bottom: 1px solid var(--pico-card-border-color); white-space: nowrap; }
+  table.preview td.num, table.preview th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  table.preview tr.warn { background: rgba(255, 200, 0, 0.08); }
+  table.preview tr.err { background: rgba(255, 80, 80, 0.10); }
+  table.preview tr.fmt-1 { background: rgba(0, 150, 255, 0.04); }
+  table.preview tr.fmt-5 { background: rgba(100, 200, 100, 0.04); }
+  table.preview tr.fmt-20, table.preview tr.fmt-60 { background: rgba(200, 100, 200, 0.04); }
+  table.preview tr.fmt-208, table.preview tr.fmt-1000 { background: rgba(255, 150, 100, 0.05); }
+
+  .filter-bar { display: flex; gap: 0.6rem; align-items: center; margin-bottom: 0.6rem; flex-wrap: wrap; }
+  .filter-bar input[type=search] { margin: 0; max-width: 280px; }
+  .filter-bar select { margin: 0; max-width: 180px; }
+  .chip { display: inline-block; padding: 0.1rem 0.5rem; border-radius: 1rem; font-size: 0.72rem; background: var(--pico-secondary-background); border: 1px solid var(--pico-muted-border-color); }
+  .chip.warn { background: rgba(255, 200, 0, 0.15); border-color: rgba(255, 200, 0, 0.5); }
+
+  .hidden { display: none !important; }
+  .muted { color: var(--pico-muted-color); }
+  .footnote { font-size: 0.78rem; color: var(--pico-muted-color); margin-top: 0.5rem; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Tarifador de Lubricantes</h1>
+  <p class="subtitle">v0 · Importa tarifa Repsol → configura margen por formato → exporta a Skrit</p>
+</header>
+
+<!-- Zona de carga -->
+<section id="dropZone">
+  <p><strong>Arrastra aquí la tarifa del proveedor</strong> o pulsa para elegirla</p>
+  <p class="hint">Formato actualmente soportado: <strong>Repsol</strong> (.xlsx con hoja <code>DATOS</code> o <code>Hoja1</code>). Otros proveedores en próximas versiones.</p>
+  <input type="file" id="fileInput" accept=".xlsx,.xls" class="hidden">
+</section>
+
+<div id="loadStatus" class="hidden" style="margin-top:0.6rem;"></div>
+
+<!-- Layout principal (oculto hasta cargar) -->
+<div id="mainLayout" class="layout hidden">
+
+  <!-- Panel lateral de configuración -->
+  <aside class="config-panel">
+    <article style="padding: 1rem;">
+      <h3>Configuración de margen</h3>
+      <p class="muted" style="font-size:0.8rem; margin-top: -0.3rem;">
+        Margen <strong>sobre venta</strong>: <code>PVP = Coste / (1 − %/100)</code>
+      </p>
+
+      <h4>Margen por formato (%)</h4>
+      <div id="formatConfig"></div>
+
+      <h4>Otros ajustes</h4>
+      <div class="format-row">
+        <label for="defaultMargin">Por defecto</label>
+        <input type="number" id="defaultMargin" min="0" max="95" step="0.5" value="30">
+        <span class="count">%</span>
+      </div>
+      <div class="format-row">
+        <label for="rounding">Redondeo PVP</label>
+        <select id="rounding" style="grid-column: span 2; padding: 0.3rem 0.5rem; font-size:0.85rem; margin:0;">
+          <option value="none">Sin redondeo (2 dec.)</option>
+          <option value="2dec" selected>2 decimales</option>
+          <option value="psy99">Acabado en ,99</option>
+          <option value="psy95">Acabado en ,95</option>
+          <option value="step05">Múltiplo de 0,05 €</option>
+          <option value="int">Entero</option>
+        </select>
+      </div>
+      <div class="format-row">
+        <label for="tariffDate">Fecha tarifa</label>
+        <input type="date" id="tariffDate" style="grid-column: span 2; padding: 0.3rem 0.5rem; font-size:0.85rem; margin:0;">
+      </div>
+
+      <div class="panel-actions">
+        <button id="btnExport">Exportar a Skrit</button>
+        <button id="btnSaveProfile" class="secondary-btn">Guardar perfil de margen</button>
+        <button id="btnLoadProfile" class="secondary-btn">Cargar perfil…</button>
+        <button id="btnReset" class="secondary-btn">Cargar otra tarifa</button>
+      </div>
+      <p class="footnote">Los márgenes se guardan automáticamente entre sesiones.</p>
+    </article>
+  </aside>
+
+  <!-- Zona central: KPIs + tabla preview -->
+  <main>
+    <div class="kpis" id="kpis"></div>
+
+    <div class="filter-bar">
+      <input type="search" id="searchInput" placeholder="Buscar por ref o descripción…">
+      <select id="formatFilter"><option value="">Todos los formatos</option></select>
+      <span class="muted" style="font-size:0.85rem;">
+        Mostrando <strong id="visibleCount">0</strong> de <strong id="totalCount">0</strong> referencias
+      </span>
+      <span id="warningChip" class="chip warn hidden">⚠ <span id="warningText"></span></span>
+    </div>
+
+    <div class="table-wrap">
+      <table class="preview" id="previewTable">
+        <thead>
+          <tr>
+            <th>Ref</th>
+            <th>Producto</th>
+            <th class="num">Litros</th>
+            <th class="num">Uds/caja</th>
+            <th class="num">Coste/envase</th>
+            <th class="num">% Margen</th>
+            <th class="num">PVP envase</th>
+            <th class="num">Ganancia €</th>
+            <th class="num">Margen real</th>
+          </tr>
+        </thead>
+        <tbody id="previewBody"></tbody>
+      </table>
+    </div>
+
+    <p class="footnote">
+      Filas en amarillo: litros no detectados automáticamente desde la descripción (puedes editar manualmente la columna Litros).
+      Filas en rojo: coste 0 o negativo (excluidas del export).
+    </p>
+  </main>
+</div>
+
+<script>
+/* ============================================================================
+   MÓDULO: storage  (capa de persistencia — hoy localStorage, mañana fs.electron)
+   ============================================================================ */
+const Storage = (() => {
+  const PREFIX = 'tarifador_v0_';
+  return {
+    get(key, fallback = null) {
+      try { const v = localStorage.getItem(PREFIX + key); return v ? JSON.parse(v) : fallback; }
+      catch { return fallback; }
+    },
+    set(key, value) {
+      try { localStorage.setItem(PREFIX + key, JSON.stringify(value)); return true; }
+      catch { return false; }
+    },
+    list() {
+      return Object.keys(localStorage).filter(k => k.startsWith(PREFIX)).map(k => k.slice(PREFIX.length));
+    },
+    delete(key) { localStorage.removeItem(PREFIX + key); }
+  };
+})();
+
+/* ============================================================================
+   MÓDULO: parser  (extracción de litros, formato canónico)
+   ============================================================================ */
+const Parser = (() => {
+
+  /** Helper interno: convierte número + unidad a litros equivalentes. */
+  function toLiters(value, unit) {
+    const u = (unit || '').toUpperCase();
+    if (u === 'ML' || u === 'MLS') return value / 1000;
+    if (u === 'GR' || u === 'GRS' || u === 'G') return value / 1000; // densidad ≈ 1
+    if (u === 'KG' || u === 'KGS') return value;                     // 1 kg ≈ 1 L
+    return value; // L / LT / LTR / LITROS / sin unidad
+  }
+
+  /**
+   * Extrae litros (equivalentes) desde una descripción de producto.
+   * Reconoce L/LT/LTR/LITROS, ML, GR/G/KG y patrón NxM (12X300ML, 1X208, 5X4, etc.).
+   * Devuelve el MAYOR candidato razonable (el envase suele ser el número grande).
+   * El valor devuelto es el REAL extraído (no bucketizado): 18, 45, 180, 18.5… se respetan.
+   */
+  function extractLiters(description) {
+    if (!description || typeof description !== 'string') return null;
+    const desc = description.trim();
+    const candidates = [];
+
+    // Patrón 1: NxM con unidad opcional al final → 12X300ML, 1X208L, 5X4, 4x5L
+    const reNxM = /(\d+)\s*[xX]\s*(\d+(?:[.,]\d+)?)\s*(ML|MLS|L|LT|LTR|LTRS|LITROS?|KG|KGS|GR|GRS|G)?\b/gi;
+    let m;
+    while ((m = reNxM.exec(desc)) !== null) {
+      const v = parseFloat(m[2].replace(',', '.'));
+      const liters = toLiters(v, m[3]);
+      if (liters >= 0.05 && liters <= 2000) candidates.push(liters);
+    }
+
+    // Patrón 2: número suelto + unidad obligatoria (ej. "5W40 1000L", "500 ML", "180KG")
+    const reUnit = /(?:^|[\s\-_(/])(\d+(?:[.,]\d+)?)\s*(ML|MLS|L|LT|LTR|LTRS|LITROS?|KG|KGS|GR|GRS|G)\b/gi;
+    while ((m = reUnit.exec(desc)) !== null) {
+      const v = parseFloat(m[1].replace(',', '.'));
+      const liters = toLiters(v, m[2]);
+      if (liters >= 0.05 && liters <= 2000) candidates.push(liters);
+    }
+
+    if (candidates.length === 0) return null;
+    return Math.max(...candidates);
+  }
+
+  /**
+   * Devuelve la clave de agrupación para configuración de margen.
+   * Usa el valor real (no redondea). Solo agrupa con tolerancia muy estrecha
+   * para que 1.0 y 1.00 se traten igual, pero 18 y 20 sean distintos.
+   */
+  function formatKey(liters) {
+    if (liters == null) return '?';
+    // Redondea a 3 decimales para evitar duplicados por flotantes
+    return String(Math.round(liters * 1000) / 1000);
+  }
+
+  /** Etiqueta legible del formato (1 L, 500 ml, 18 kg si se infiere…). */
+  function formatLabel(liters) {
+    if (liters == null) return 'Sin detectar';
+    if (liters < 1) return `${Math.round(liters * 1000)} ml`;
+    if (Number.isInteger(liters)) return `${liters} L`;
+    return `${liters.toFixed(2)} L`;
+  }
+
+  /** Limpia la descripción del producto para la salida. */
+  function cleanDescription(s) {
+    if (!s) return '';
+    return String(s).replace(/\s+/g, ' ').replace(/\xa0/g, ' ').trim();
+  }
+
+  return { extractLiters, formatKey, formatLabel, cleanDescription };
+})();
+
+/* ============================================================================
+   MÓDULO: excelReader  (lectura específica por proveedor)
+   ============================================================================ */
+const ExcelReader = (() => {
+
+  /** Lee un workbook de Repsol y devuelve array de filas estandarizadas. */
+  function readRepsol(workbook) {
+    // Prioridad: hoja "DATOS" (limpia) > "Hoja1" (con presentación)
+    const sheetName = workbook.SheetNames.find(n => /^DATOS$/i.test(n))
+                   || workbook.SheetNames.find(n => /^Hoja1$/i.test(n))
+                   || workbook.SheetNames[0];
+    const sheet = workbook.Sheets[sheetName];
+    const raw = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: null, blankrows: false });
+
+    // Detectar fila de cabecera: la que contiene "PRECIO FACTURA" o "REF PROVEDOR"
+    let headerIdx = -1;
+    for (let i = 0; i < Math.min(10, raw.length); i++) {
+      const row = raw[i].map(x => String(x || '').toUpperCase());
+      if (row.some(c => c.includes('PRECIO FACTURA')) && row.some(c => c.includes('REF'))) {
+        headerIdx = i; break;
+      }
+    }
+    if (headerIdx === -1) throw new Error('No se encontró la fila de cabecera en la tarifa Repsol (busco "REF PROVEDOR" + "PRECIO FACTURA").');
+
+    const headers = raw[headerIdx].map(x => String(x || '').toUpperCase().trim());
+    const col = (re) => headers.findIndex(h => re.test(h));
+    const idxRef    = col(/REF/);
+    const idxName   = col(/NOMBRE/);
+    const idxPeso   = col(/PESO/);
+    const idxUds    = col(/UDS?\s*X?\s*CAJA|UNIDADES/);
+    const idxPrecio = col(/PRECIO\s*FACTURA/);
+
+    if (idxRef < 0 || idxName < 0 || idxPrecio < 0)
+      throw new Error('Faltan columnas obligatorias (REF / NOMBRE / PRECIO FACTURA).');
+
+    const rows = [];
+    for (let i = headerIdx + 1; i < raw.length; i++) {
+      const r = raw[i];
+      if (!r || r.length === 0) continue;
+      const ref = r[idxRef];
+      const name = r[idxName];
+      const price = r[idxPrecio];
+      // Saltar filas de cabecera de sección (sin ref o sin precio numérico)
+      if (!ref || ref === null) continue;
+      if (typeof price !== 'number' || !isFinite(price)) continue;
+
+      const description = Parser.cleanDescription(name);
+      const liters = Parser.extractLiters(description);
+
+      rows.push({
+        ref: String(ref).trim(),
+        description,
+        liters,
+        formatKey: Parser.formatKey(liters),
+        unitsPerBox: (idxUds >= 0 && typeof r[idxUds] === 'number') ? r[idxUds] : null,
+        netWeight: (idxPeso >= 0 && typeof r[idxPeso] === 'number') ? r[idxPeso] : null,
+        costPerPack: price,
+        litersDetected: liters !== null
+      });
+    }
+    return { supplier: 'Repsol', rows, sheetUsed: sheetName };
+  }
+
+  /** Punto de entrada: detecta proveedor (de momento solo Repsol). */
+  function read(arrayBuffer, filename) {
+    const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+    // Detección por nombre de archivo (luego: por firma de columnas)
+    const lower = (filename || '').toLowerCase();
+    if (lower.includes('repsol') || workbook.SheetNames.includes('DATOS')) {
+      return readRepsol(workbook);
+    }
+    // Fallback: intentar Repsol igualmente
+    return readRepsol(workbook);
+  }
+
+  return { read };
+})();
+
+/* ============================================================================
+   MÓDULO: pricing  (cálculo de PVP y agregados)
+   ============================================================================ */
+const Pricing = (() => {
+
+  /** PVP a partir de coste y margen sobre venta. */
+  function pvpFromMargin(cost, marginPct) {
+    if (!cost || cost <= 0) return 0;
+    const m = Math.max(0, Math.min(94.99, marginPct || 0));
+    return cost / (1 - m / 100);
+  }
+
+  /** Margen real sobre venta tras redondeo. */
+  function realMargin(cost, pvp) {
+    if (!pvp || pvp <= 0) return 0;
+    return ((pvp - cost) / pvp) * 100;
+  }
+
+  /** Redondeo configurable. */
+  function round(value, mode) {
+    if (!isFinite(value)) return 0;
+    switch (mode) {
+      case 'none': return value;
+      case '2dec': return Math.round(value * 100) / 100;
+      case 'psy99': return Math.floor(value) + 0.99;
+      case 'psy95': return Math.floor(value) + 0.95;
+      case 'step05': return Math.round(value * 20) / 20;
+      case 'int': return Math.round(value);
+      default: return Math.round(value * 100) / 100;
+    }
+  }
+
+  /** Aplica config a un row → devuelve campos calculados. */
+  function compute(row, config) {
+    const marginPct = (config.byFormat && config.byFormat[row.formatKey] != null)
+      ? config.byFormat[row.formatKey]
+      : config.defaultMargin;
+    const pvpRaw = pvpFromMargin(row.costPerPack, marginPct);
+    const pvp = round(pvpRaw, config.rounding);
+    const gain = pvp - row.costPerPack;
+    return {
+      marginPct,
+      pvp,
+      gain,
+      realMarginPct: realMargin(row.costPerPack, pvp)
+    };
+  }
+
+  return { pvpFromMargin, realMargin, round, compute };
+})();
+
+/* ============================================================================
+   MÓDULO: excelWriter  (export a formato Skrit)
+   ============================================================================ */
+const ExcelWriter = (() => {
+
+  function exportSkrit(rows, config, supplier, tariffDate) {
+    const data = [];
+    data.push(['REF', 'PRODUCTO', 'LITROS', 'NETO FACTURA ENVASE', 'P.V.P. ENVASE', tariffDate || '']);
+    for (const r of rows) {
+      if (!r.costPerPack || r.costPerPack <= 0) continue;
+      const c = Pricing.compute(r, config);
+      data.push([
+        r.ref,
+        r.description,
+        r.liters || '',
+        r.costPerPack,
+        c.pvp,
+        ''
+      ]);
+    }
+    const ws = XLSX.utils.aoa_to_sheet(data);
+    // Ancho de columnas
+    ws['!cols'] = [
+      { wch: 14 }, { wch: 50 }, { wch: 8 }, { wch: 14 }, { wch: 14 }, { wch: 12 }
+    ];
+    // Formato numérico €
+    const range = XLSX.utils.decode_range(ws['!ref']);
+    for (let R = 1; R <= range.e.r; ++R) {
+      for (const col of [3, 4]) {
+        const cell = ws[XLSX.utils.encode_cell({ r: R, c: col })];
+        if (cell && typeof cell.v === 'number') cell.z = '#,##0.00 €';
+      }
+    }
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'SKRIT');
+
+    const dateStr = (tariffDate || new Date().toISOString().slice(0, 10));
+    const filename = `tarifa-skrit-${supplier.toLowerCase()}-${dateStr}.xlsx`;
+    XLSX.writeFile(wb, filename);
+    return filename;
+  }
+
+  return { exportSkrit };
+})();
+
+/* ============================================================================
+   MÓDULO: ui  (estado + renderizado)
+   ============================================================================ */
+const UI = (() => {
+
+  const state = {
+    supplier: null,
+    rows: [],            // todas las filas leídas
+    config: {
+      defaultMargin: 30,
+      byFormat: {},      // { 1: 35, 5: 30, 20: 25, ... }
+      rounding: '2dec'
+    },
+    filter: { text: '', format: '' },
+    tariffDate: ''
+  };
+
+  /* ----- elementos del DOM ----- */
+  const $ = (id) => document.getElementById(id);
+
+  /* ----- persistencia config ----- */
+  function loadConfig() {
+    const saved = Storage.get('config_repsol');
+    if (saved) Object.assign(state.config, saved);
+  }
+  function saveConfig() {
+    Storage.set('config_repsol', state.config);
+  }
+
+  /* ----- render: panel de formatos ----- */
+  function renderFormatConfig() {
+    // Contar refs por formatKey, ordenar por litros ascendente
+    const counts = {};
+    for (const r of state.rows) {
+      counts[r.formatKey] = (counts[r.formatKey] || 0) + 1;
+    }
+    const keys = Object.keys(counts).sort((a, b) => {
+      if (a === '?') return 1; if (b === '?') return -1;
+      return parseFloat(a) - parseFloat(b);
+    });
+
+    const container = $('formatConfig');
+    container.innerHTML = '';
+    for (const key of keys) {
+      const liters = key === '?' ? null : parseFloat(key);
+      const label = Parser.formatLabel(liters);
+      const value = state.config.byFormat[key] != null ? state.config.byFormat[key] : '';
+      const placeholder = state.config.defaultMargin;
+
+      const row = document.createElement('div');
+      row.className = 'format-row';
+      row.innerHTML = `
+        <label>${label}</label>
+        <input type="number" min="0" max="95" step="0.5" data-format="${escapeHtml(key)}" placeholder="${placeholder}" value="${value}">
+        <span class="count">${counts[key]} refs</span>
+      `;
+      container.appendChild(row);
+    }
+    // Listeners
+    container.querySelectorAll('input').forEach(inp => {
+      inp.addEventListener('input', (e) => {
+        const k = e.target.dataset.format;
+        const v = e.target.value;
+        if (v === '' || v == null) delete state.config.byFormat[k];
+        else state.config.byFormat[k] = parseFloat(v);
+        saveConfig();
+        renderTable();
+        renderKpis();
+      });
+    });
+  }
+
+  /* ----- render: filtro de formato ----- */
+  function renderFormatFilter() {
+    const sel = $('formatFilter');
+    const keys = [...new Set(state.rows.map(r => r.formatKey))].sort((a, b) => {
+      if (a === '?') return 1; if (b === '?') return -1;
+      return parseFloat(a) - parseFloat(b);
+    });
+    sel.innerHTML = '<option value="">Todos los formatos</option>'
+      + keys.map(k => {
+          const l = k === '?' ? null : parseFloat(k);
+          return `<option value="${escapeHtml(k)}">${Parser.formatLabel(l)}</option>`;
+        }).join('');
+  }
+
+  /* ----- filtrado ----- */
+  function visibleRows() {
+    const txt = state.filter.text.toLowerCase().trim();
+    const fmt = state.filter.format;
+    return state.rows.filter(r => {
+      if (txt) {
+        const hay = (r.ref + ' ' + r.description).toLowerCase();
+        if (!hay.includes(txt)) return false;
+      }
+      if (fmt && r.formatKey !== fmt) return false;
+      return true;
+    });
+  }
+
+  /* ----- render: tabla preview ----- */
+  function renderTable() {
+    const tbody = $('previewBody');
+    const rows = visibleRows();
+    $('visibleCount').textContent = rows.length;
+    $('totalCount').textContent = state.rows.length;
+
+    // Render por chunks para performance (>500 filas)
+    const MAX = 500;
+    const slice = rows.slice(0, MAX);
+
+    const frag = document.createDocumentFragment();
+    for (const r of slice) {
+      const c = Pricing.compute(r, state.config);
+      const tr = document.createElement('tr');
+
+      // Clases visuales — bandeo por rango de tamaño
+      const classes = [];
+      if (!r.litersDetected) classes.push('warn');
+      if (!r.costPerPack || r.costPerPack <= 0) classes.push('err');
+      if (r.liters != null) {
+        const band = r.liters >= 500 ? 1000 : r.liters >= 100 ? 208 : r.liters >= 30 ? 60 : r.liters >= 10 ? 20 : r.liters >= 3 ? 5 : 1;
+        classes.push('fmt-' + band);
+      }
+      tr.className = classes.join(' ');
+
+      tr.innerHTML = `
+        <td>${escapeHtml(r.ref)}</td>
+        <td title="${escapeHtml(r.description)}">${escapeHtml(truncate(r.description, 60))}</td>
+        <td class="num"><input type="number" step="0.01" value="${r.liters ?? ''}" data-ref="${escapeHtml(r.ref)}" data-field="liters" style="width:70px; text-align:right; padding:0.1rem 0.3rem; margin:0;"></td>
+        <td class="num">${r.unitsPerBox ?? ''}</td>
+        <td class="num">${formatEur(r.costPerPack)}</td>
+        <td class="num">${c.marginPct.toFixed(1)}%</td>
+        <td class="num"><strong>${formatEur(c.pvp)}</strong></td>
+        <td class="num">${formatEur(c.gain)}</td>
+        <td class="num">${c.realMarginPct.toFixed(1)}%</td>
+      `;
+      frag.appendChild(tr);
+    }
+    tbody.innerHTML = '';
+    tbody.appendChild(frag);
+
+    // Listeners de edición de litros inline
+    tbody.querySelectorAll('input[data-field="liters"]').forEach(inp => {
+      inp.addEventListener('change', (e) => {
+        const ref = e.target.dataset.ref;
+        const v = parseFloat(e.target.value);
+        const row = state.rows.find(r => r.ref === ref);
+        if (row) {
+          row.liters = isFinite(v) ? v : null;
+          row.formatKey = Parser.formatKey(row.liters);
+          row.litersDetected = row.liters != null;
+          renderFormatConfig();
+          renderFormatFilter();
+          renderTable();
+          renderKpis();
+        }
+      });
+    });
+
+    // Aviso si hay más de MAX filas
+    if (rows.length > MAX) {
+      const note = document.createElement('tr');
+      note.innerHTML = `<td colspan="9" style="text-align:center; padding:0.6rem; color: var(--pico-muted-color); font-style: italic;">
+        Mostrando ${MAX} primeras filas (de ${rows.length}). Usa el buscador o filtro de formato para acotar.
+      </td>`;
+      tbody.appendChild(note);
+    }
+  }
+
+  /* ----- render: KPIs agregados ----- */
+  function renderKpis() {
+    const valid = state.rows.filter(r => r.costPerPack > 0);
+    const total = valid.length;
+    const totalCost = valid.reduce((s, r) => s + r.costPerPack, 0);
+    const totalPVP = valid.reduce((s, r) => s + Pricing.compute(r, state.config).pvp, 0);
+    const totalGain = totalPVP - totalCost;
+    const avgMargin = totalPVP > 0 ? (totalGain / totalPVP * 100) : 0;
+    const noLiters = state.rows.filter(r => !r.litersDetected).length;
+
+    $('kpis').innerHTML = `
+      <div class="kpi"><div class="label">Referencias</div><div class="value">${total}</div></div>
+      <div class="kpi"><div class="label">Coste total (suma)</div><div class="value">${formatEur(totalCost)}</div></div>
+      <div class="kpi"><div class="label">PVP total (suma)</div><div class="value">${formatEur(totalPVP)}</div></div>
+      <div class="kpi"><div class="label">Margen medio real</div><div class="value">${avgMargin.toFixed(1)}%</div></div>
+    `;
+
+    if (noLiters > 0) {
+      $('warningChip').classList.remove('hidden');
+      $('warningText').textContent = `${noLiters} refs sin litros detectados`;
+    } else {
+      $('warningChip').classList.add('hidden');
+    }
+  }
+
+  /* ----- helpers ----- */
+  function formatEur(v) {
+    if (!isFinite(v)) return '—';
+    return v.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
+  }
+  function escapeHtml(s) {
+    return String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  }
+  function truncate(s, n) { return s.length > n ? s.slice(0, n - 1) + '…' : s; }
+
+  /* ----- handlers ----- */
+  function handleFiles(files) {
+    if (!files || files.length === 0) return;
+    const file = files[0];
+    $('loadStatus').classList.remove('hidden');
+    $('loadStatus').innerHTML = `<small class="muted">Leyendo <strong>${escapeHtml(file.name)}</strong>…</small>`;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const result = ExcelReader.read(e.target.result, file.name);
+        state.supplier = result.supplier;
+        state.rows = result.rows;
+        $('loadStatus').innerHTML = `<small class="muted">✓ <strong>${state.rows.length}</strong> referencias cargadas de <strong>${result.supplier}</strong> (hoja <code>${result.sheetUsed}</code>).</small>`;
+        $('mainLayout').classList.remove('hidden');
+        $('dropZone').classList.add('hidden');
+        loadConfig();
+        $('defaultMargin').value = state.config.defaultMargin;
+        $('rounding').value = state.config.rounding;
+        if (!state.tariffDate) {
+          state.tariffDate = new Date().toISOString().slice(0, 10);
+          $('tariffDate').value = state.tariffDate;
+        }
+        renderFormatConfig();
+        renderFormatFilter();
+        renderTable();
+        renderKpis();
+      } catch (err) {
+        console.error(err);
+        $('loadStatus').innerHTML = `<small style="color: var(--pico-del-color);">❌ ${escapeHtml(err.message)}</small>`;
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  }
+
+  function setupDropZone() {
+    const dz = $('dropZone');
+    const input = $('fileInput');
+    dz.addEventListener('click', () => input.click());
+    input.addEventListener('change', (e) => handleFiles(e.target.files));
+    dz.addEventListener('dragover', (e) => { e.preventDefault(); dz.classList.add('hover'); });
+    dz.addEventListener('dragleave', () => dz.classList.remove('hover'));
+    dz.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dz.classList.remove('hover');
+      handleFiles(e.dataTransfer.files);
+    });
+  }
+
+  function setupConfigListeners() {
+    $('defaultMargin').addEventListener('input', (e) => {
+      state.config.defaultMargin = parseFloat(e.target.value) || 0;
+      saveConfig(); renderFormatConfig(); renderTable(); renderKpis();
+    });
+    $('rounding').addEventListener('change', (e) => {
+      state.config.rounding = e.target.value;
+      saveConfig(); renderTable(); renderKpis();
+    });
+    $('tariffDate').addEventListener('change', (e) => { state.tariffDate = e.target.value; });
+    $('searchInput').addEventListener('input', (e) => { state.filter.text = e.target.value; renderTable(); });
+    $('formatFilter').addEventListener('change', (e) => { state.filter.format = e.target.value; renderTable(); });
+    $('btnExport').addEventListener('click', () => {
+      try {
+        const fname = ExcelWriter.exportSkrit(state.rows, state.config, state.supplier || 'proveedor', state.tariffDate);
+        $('loadStatus').classList.remove('hidden');
+        $('loadStatus').innerHTML = `<small style="color: var(--pico-ins-color);">✓ Exportado: <strong>${fname}</strong></small>`;
+      } catch (err) {
+        $('loadStatus').innerHTML = `<small style="color: var(--pico-del-color);">❌ Error al exportar: ${escapeHtml(err.message)}</small>`;
+      }
+    });
+    $('btnSaveProfile').addEventListener('click', () => {
+      const name = prompt('Nombre del perfil (ej: "Repsol estándar 2026"):');
+      if (!name) return;
+      const profiles = Storage.get('profiles', {});
+      profiles[name] = JSON.parse(JSON.stringify(state.config));
+      Storage.set('profiles', profiles);
+      alert('Perfil guardado: ' + name);
+    });
+    $('btnLoadProfile').addEventListener('click', () => {
+      const profiles = Storage.get('profiles', {});
+      const names = Object.keys(profiles);
+      if (names.length === 0) { alert('No hay perfiles guardados.'); return; }
+      const choice = prompt('Perfiles disponibles:\n\n' + names.map((n, i) => `${i + 1}. ${n}`).join('\n') + '\n\nEscribe el número del perfil a cargar:');
+      const idx = parseInt(choice, 10) - 1;
+      if (isNaN(idx) || idx < 0 || idx >= names.length) return;
+      Object.assign(state.config, profiles[names[idx]]);
+      saveConfig();
+      $('defaultMargin').value = state.config.defaultMargin;
+      $('rounding').value = state.config.rounding;
+      renderFormatConfig(); renderTable(); renderKpis();
+    });
+    $('btnReset').addEventListener('click', () => {
+      state.rows = [];
+      state.supplier = null;
+      $('mainLayout').classList.add('hidden');
+      $('dropZone').classList.remove('hidden');
+      $('loadStatus').classList.add('hidden');
+      $('fileInput').value = '';
+    });
+  }
+
+  function init() {
+    setupDropZone();
+    setupConfigListeners();
+    loadConfig();
+    $('defaultMargin').value = state.config.defaultMargin;
+    $('rounding').value = state.config.rounding;
+    state.tariffDate = new Date().toISOString().slice(0, 10);
+    $('tariffDate').value = state.tariffDate;
+  }
+
+  return { init };
+})();
+
+document.addEventListener('DOMContentLoaded', UI.init);
+</script>
+</body>
+</html>
