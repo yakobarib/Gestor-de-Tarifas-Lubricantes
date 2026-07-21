@@ -66,6 +66,26 @@ UI           ← estado global, listeners, renderizado. Orquesta a los
         └─▶  ExcelWriter.exportSkrit()  →  [tarifa-skrit-repsol-YYYY-MM-DD.xlsx]
 ```
 
+## Perfiles por proveedor (Supplier Profiles)
+
+**Cada proveedor tiene su workflow dedicado**, no hay importador genérico. Un perfil es un módulo con: función `detect()` (¿este Excel es mío?), función `read()` (extraer filas normalizadas) y config de salida `output` (prefijo REF, columnas extra, etc.).
+
+Cuando el usuario arrastra un archivo, la app itera los perfiles hasta encontrar uno que encaje. Si ninguno lo hace, muestra un selector manual.
+
+Perfiles previstos:
+
+```
+RepsolProfile      ← v0.1 (implementado)
+ADPartsProfile     ← v0.2 (próximo, marca propia)
+CastrolProfile     ← v0.3
+EniLiveProfile     ← v0.4
+RacingOilProfile   ← v0.5
+KrafftProfile      ← v0.6
+ShellProfile       ← v0.6
+```
+
+Detalle en [decisiones/0005-un-workflow-por-proveedor.md](decisiones/0005-un-workflow-por-proveedor.md).
+
 ## Decisiones arquitectónicas clave
 
 Están en [decisiones/](decisiones/) como ADRs (Architecture Decision Records). Cada decisión tiene contexto, alternativas consideradas y consecuencias:
@@ -74,6 +94,7 @@ Están en [decisiones/](decisiones/) como ADRs (Architecture Decision Records). 
 - [0002 · Margen sobre venta como modelo por defecto](decisiones/0002-margen-sobre-venta.md)
 - [0003 · Parser de litros por regex sobre descripción](decisiones/0003-parser-litros.md)
 - [0004 · GitHub Pages para publicación](decisiones/0004-github-pages.md)
+- [0005 · Un workflow por proveedor (Supplier Profiles)](decisiones/0005-un-workflow-por-proveedor.md)
 
 ## Preparación para Electron (fase futura)
 

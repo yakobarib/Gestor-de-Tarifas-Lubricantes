@@ -7,12 +7,16 @@
 
 ## Formato de la tarifa entrante
 
-Archivo Excel `.xlsx` con dos hojas principales:
+**Lo que envía Repsol tal cual** es un archivo `.xlsx` con **una sola hoja `Hoja1`**:
+- Fila 0: título de la tarifa (ej. `TARIFA 1 MAYO 2026`).
+- Fila 1: cabeceras (`SIRDI`, `NOMBRE`, `PESO NETO`, `UDSX CAJA`, `PRECIO FACTURA`, `CLASIFICACIÓN`, `PREMIUNIZACIÓN`, `EAN / 13`, `EAN / 14`, `COMENTARIO`).
+- Filas 2+: intercala **filas de sección** vacías (`AUTOMOCION`, `MOTO`, `PESADO`, `INDUSTRIA`…) con filas de producto reales.
 
-| Hoja | Uso | Filas | Descripción |
-|---|---|---|---|
-| `Hoja1` | Presentación humana | ~856 | Con título de tarifa en fila 0, cabeceras en fila 1, subtotales de sección interleaved (`AUTOMOCION`, `MOTO`, etc.). |
-| `DATOS` | Consumo automático | 829 | Ya limpia, cabeceras en fila 0, sin filas de sección. **Es la que usa la app.** |
+La hoja `DATOS` **NO viene del proveedor**: era una hoja que Yako creaba manualmente antes de existir la app, para tener las filas limpias. La app la reconoce como fallback si aparece, pero la ruta principal es `Hoja1`.
+
+Cambios entre versiones de tarifa:
+- **2025 y anteriores**: columna de referencia se llamaba `REF PROVEDOR`.
+- **2026 en adelante**: la columna pasó a llamarse `SIRDI` (código interno Repsol). Se añadió también la columna `PREMIUNIZACIÓN`. La app detecta ambos nombres.
 
 ## Columnas relevantes (hoja `DATOS` o `Hoja1`)
 

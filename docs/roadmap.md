@@ -15,7 +15,10 @@ Plan acordado con Yako en la sesión del **2026-05-14** y actualizado según ava
 
 **Objetivo:** app que ingiere una tarifa Excel, permite configurar margen por formato y exporta a Skrit.
 
+**Estrategia:** un workflow (perfil) dedicado por proveedor. Detalle en [decisiones/0005-un-workflow-por-proveedor.md](decisiones/0005-un-workflow-por-proveedor.md).
+
 - ✅ **v0.1 · Repsol** — implementado y validado (99,8% acierto parser).
+- ⏳ **v0.1.x · Formalizar Supplier Profile como interfaz** — refactor previo a v0.2 para dejar el patrón limpio antes de duplicarlo.
 - ⏳ **v0.2 · AD Parts (marca propia, prioridad)**
   - Gama Normal + Gama Standard como dos flujos separados.
   - Producto químico también dentro del "saco" de lubricantes.
