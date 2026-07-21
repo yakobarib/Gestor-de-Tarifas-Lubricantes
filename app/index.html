@@ -284,26 +284,34 @@ const ExcelReader = (() => {
     const sheet = workbook.Sheets[sheetName];
     const raw = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: null, blankrows: false });
 
-    // Detectar fila de cabecera: la que contiene "PRECIO FACTURA" o "REF PROVEDOR"
+    // Detectar fila de cabecera: la que contiene "PRECIO FACTURA" y algún identificador
+    // de referencia (SIRDI, REF PROVEDOR, REFERENCIA, REF). Repsol cambia el nombre entre
+    // versiones de tarifa (2025 usaba "REF PROVEDOR", 2026 usa "SIRDI").
     let headerIdx = -1;
     for (let i = 0; i < Math.min(10, raw.length); i++) {
       const row = raw[i].map(x => String(x || '').toUpperCase());
-      if (row.some(c => c.includes('PRECIO FACTURA')) && row.some(c => c.includes('REF'))) {
-        headerIdx = i; break;
-      }
+      const hasPrecio = row.some(c => c.includes('PRECIO FACTURA'));
+      const hasRef    = row.some(c => /\b(SIRDI|REF|REFERENCIA|CODIGO)\b/.test(c));
+      const hasNombre = row.some(c => c.includes('NOMBRE') || c.includes('PRODUCTO') || c.includes('DESCRIP'));
+      if (hasPrecio && hasRef && hasNombre) { headerIdx = i; break; }
     }
-    if (headerIdx === -1) throw new Error('No se encontró la fila de cabecera en la tarifa Repsol (busco "REF PROVEDOR" + "PRECIO FACTURA").');
+    if (headerIdx === -1) throw new Error('No se encontró la fila de cabecera en la tarifa Repsol (busco columnas de referencia + nombre + PRECIO FACTURA en las primeras 10 filas).');
 
     const headers = raw[headerIdx].map(x => String(x || '').toUpperCase().trim());
     const col = (re) => headers.findIndex(h => re.test(h));
-    const idxRef    = col(/REF/);
-    const idxName   = col(/NOMBRE/);
+    // Prioridad para la columna de referencia (SIRDI en tarifas 2026, REF PROVEDOR en anteriores)
+    const idxRef = col(/^SIRDI$/) >= 0 ? col(/^SIRDI$/)
+                : col(/REF\s*PROVE?EDOR/) >= 0 ? col(/REF\s*PROVE?EDOR/)
+                : col(/REFERENCIA/) >= 0 ? col(/REFERENCIA/)
+                : col(/\bREF\b/) >= 0 ? col(/\bREF\b/)
+                : col(/CODIGO/);
+    const idxName   = col(/NOMBRE|PRODUCTO|DESCRIP/);
     const idxPeso   = col(/PESO/);
     const idxUds    = col(/UDS?\s*X?\s*CAJA|UNIDADES/);
     const idxPrecio = col(/PRECIO\s*FACTURA/);
 
     if (idxRef < 0 || idxName < 0 || idxPrecio < 0)
-      throw new Error('Faltan columnas obligatorias (REF / NOMBRE / PRECIO FACTURA).');
+      throw new Error(`Faltan columnas obligatorias. Detectadas: ref=${idxRef>=0?'✓':'✗'} nombre=${idxName>=0?'✓':'✗'} precio=${idxPrecio>=0?'✓':'✗'}. Cabecera vista: ${headers.filter(Boolean).join(' | ')}`);
 
     const rows = [];
     for (let i = headerIdx + 1; i < raw.length; i++) {

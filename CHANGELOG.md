@@ -2,6 +2,17 @@
 
 Formato inspirado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [v0.1.1] — 2026-07-21
+
+### Arreglado
+- La tarifa Repsol de mayo 2026 (`Tarifa Repsol Lubricants - 06 mayo 2026.xlsx`) usa
+  el nombre de columna **`SIRDI`** en lugar de `REF PROVEDOR`. La detección ahora
+  reconoce ambos alias además de `REFERENCIA`, `REF` y `CODIGO`.
+- La detección de la columna de nombre también acepta `PRODUCTO` y `DESCRIP*` como
+  alias de `NOMBRE`.
+- Mensaje de error de cabecera ausente ahora incluye la cabecera detectada para
+  facilitar diagnóstico.
+
 ## [v0.1] — 2026-07-20
 
 ### Añadido

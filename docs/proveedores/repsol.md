@@ -14,11 +14,11 @@ Archivo Excel `.xlsx` con dos hojas principales:
 | `Hoja1` | Presentación humana | ~856 | Con título de tarifa en fila 0, cabeceras en fila 1, subtotales de sección interleaved (`AUTOMOCION`, `MOTO`, etc.). |
 | `DATOS` | Consumo automático | 829 | Ya limpia, cabeceras en fila 0, sin filas de sección. **Es la que usa la app.** |
 
-## Columnas relevantes (hoja `DATOS`)
+## Columnas relevantes (hoja `DATOS` o `Hoja1`)
 
 | Columna Excel | Campo interno app | Notas |
 |---|---|---|
-| `REF PROVEDOR` | `ref` | Código proveedor. Se mantiene tal cual en la salida Skrit. |
+| `SIRDI` (2026) / `REF PROVEDOR` (2025 y anteriores) | `ref` | Código proveedor. Se mantiene tal cual en la salida Skrit. Repsol renombró la columna en la tarifa 2026. |
 | `NOMBRE` | `description` | De aquí se extrae LITROS con el parser. Ejemplo: `RACING 4T 5W40 1000L`. |
 | `PESO NETO` | `netWeight` | Informativo. En kg. |
 | `UDS X CAJA` | `unitsPerBox` | Informativo. En Skrit no se usa. |
