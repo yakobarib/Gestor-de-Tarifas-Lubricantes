@@ -31,11 +31,21 @@ URL de la app en vivo: https://yakobarib.github.io/Gestor-de-Tarifas-Lubricantes
 Enlazar Pages a la carpeta raíz de la rama `main`:
 
 1. En el repo → **Settings** → **Pages**.
-2. **Source**: Deploy from a branch.
+2. **Source**: **Deploy from a branch** (importante: NO usar "GitHub Actions" para este proyecto).
 3. **Branch**: `main` / `/ (root)`.
 4. Guardar.
 
-El deploy tarda 1-2 minutos tras cada push a `main`. El estado se ve en la pestaña **Actions**.
+El deploy tarda 1-2 minutos tras cada push a `main`. El estado se ve en la pestaña **Actions** como workflow `pages build and deployment` (workflow interno de GitHub, no requiere ningún archivo YAML en el repo).
+
+### Por qué NO usamos un workflow custom
+
+Inicialmente el repo incluía un workflow custom `.github/workflows/pages.yml` para el modo "GitHub Actions". Se eliminó el 2026-07-21 porque:
+
+- La app es HTML estático puro (sin build, sin `npm install`). El workflow custom no hacía ningún procesamiento — solo copiaba archivos.
+- El workflow custom se disparaba con `on: push: branches: [main]` **además** del workflow interno que GitHub ejecuta cuando Pages está en modo "Deploy from a branch". Resultado: dos deploys por cada push, doblando consumo de minutos de Actions y añadiendo ruido a la pestaña Actions.
+- No hay ninguna ventaja de mantener el custom para HTML estático puro. La configuración built-in cubre este caso perfectamente.
+
+Si en el futuro se añade cualquier build step (por ejemplo, minificación, compilación de Tailwind, generación estática de docs con MkDocs), habría que reintroducir un workflow custom.
 
 ## Estructura publicada
 

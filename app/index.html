@@ -110,14 +110,18 @@
   table.preview tr.fmt-5 { background: rgba(100, 200, 100, 0.04); }
   table.preview tr.fmt-20, table.preview tr.fmt-60 { background: rgba(200, 100, 200, 0.04); }
   table.preview tr.fmt-208, table.preview tr.fmt-1000 { background: rgba(255, 150, 100, 0.05); }
-  table.preview input[data-field="liters"] { width: 88px; text-align: right; padding: 0.15rem 0.35rem; margin: 0; }
+  table.preview input[data-field="liters"] { width: 68px; text-align: right; padding: 0.1rem 0.3rem; margin: 0; font-size: 0.8rem; }
+  table.preview th.liters, table.preview td.liters { max-width: 76px; }
   .status-chip { display: inline-block; padding: 0 0.4rem; border-radius: 0.7rem; font-size: 0.68rem; font-weight: 600; letter-spacing: 0.02em; }
   .status-chip.new { background: #dbeafe; color: #1a6bcf; }
   .status-chip.stable { background: #e6f4e6; color: #2d7a2d; }
 
-  .filter-bar { display: flex; gap: 0.6rem; align-items: center; margin-bottom: 0.6rem; flex-wrap: wrap; }
-  .filter-bar input[type=search] { margin: 0; min-width: 260px; max-width: 340px; flex: 0 1 320px; }
-  .filter-bar select { margin: 0; min-width: 210px; max-width: 240px; }
+  .filter-bar { display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.6rem; flex-wrap: wrap; }
+  .filter-bar input[type=search], .filter-bar select {
+    margin: 0; padding: 0.3rem 0.55rem; font-size: 0.82rem; height: auto; line-height: 1.3;
+  }
+  .filter-bar input[type=search] { min-width: 240px; max-width: 320px; flex: 0 1 300px; }
+  .filter-bar select { min-width: 170px; max-width: 210px; padding-right: 1.8rem; background-position: right 0.55rem center; }
   .chip { display: inline-block; padding: 0.1rem 0.5rem; border-radius: 1rem; font-size: 0.72rem; background: var(--pico-secondary-background); border: 1px solid var(--pico-muted-border-color); }
   .chip.warn { background: rgba(255, 200, 0, 0.15); border-color: rgba(255, 200, 0, 0.5); }
 
@@ -137,7 +141,7 @@
 
 <header>
   <h1>Gestor de Tarifas de Lubricantes</h1>
-  <p class="subtitle">v0.2 · Importa tarifa → detecta nuevas / estables / desaparecidas → configura margen (venta o compra) → exporta a Skrit</p>
+  <p class="subtitle">v0.2.2 · Importa tarifa → detecta nuevas / estables / desaparecidas → configura margen (venta o compra) → exporta a Skrit</p>
 </header>
 
 <!-- Zona de carga -->
@@ -228,8 +232,7 @@
             <th>Ref</th>
             <th>Estado</th>
             <th>Producto</th>
-            <th class="num">Litros</th>
-            <th class="num">Uds/caja</th>
+            <th class="num liters">Litros</th>
             <th class="num">Coste/envase</th>
             <th class="num">% Margen</th>
             <th class="num">PVP envase</th>
@@ -406,22 +409,32 @@ const ExcelReader = (() => {
       if (!r || r.length === 0) continue;
       const ref = r[idxRef];
       const name = r[idxName];
-      const price = r[idxPrecio];
+      const priceInvoice = r[idxPrecio];   // PRECIO FACTURA = precio por unidad de compra (caja)
       // Saltar filas de cabecera de sección (sin ref o sin precio numérico)
       if (!ref || ref === null) continue;
-      if (typeof price !== 'number' || !isFinite(price)) continue;
+      if (typeof priceInvoice !== 'number' || !isFinite(priceInvoice)) continue;
 
       const description = Parser.cleanDescription(name);
       const liters = Parser.extractLiters(description);
+
+      // CRÍTICO: Repsol factura por CAJA (unidad de compra), no por envase.
+      // Ejemplo: "5W-40 12X1L" con UDS X CAJA=12 y PRECIO FACTURA=102,17 €
+      // → coste real por envase (botella de 1L) = 102,17 / 12 = 8,51 €
+      // Skrit espera el precio por envase individual, por eso dividimos aquí.
+      const unitsPerBox = (idxUds >= 0 && typeof r[idxUds] === 'number' && r[idxUds] > 0)
+        ? r[idxUds]
+        : 1;
+      const costPerPack = priceInvoice / unitsPerBox;
 
       rows.push({
         ref: String(ref).trim(),
         description,
         liters,
         formatKey: Parser.formatKey(liters),
-        unitsPerBox: (idxUds >= 0 && typeof r[idxUds] === 'number') ? r[idxUds] : null,
+        unitsPerBox,                 // usado para el cálculo; no se muestra en UI
+        costPerBox: priceInvoice,    // precio factura original (por caja) — trazabilidad
         netWeight: (idxPeso >= 0 && typeof r[idxPeso] === 'number') ? r[idxPeso] : null,
-        costPerPack: price,
+        costPerPack,                 // precio real por envase individual (lo que espera Skrit)
         litersDetected: liters !== null
       });
     }
@@ -707,23 +720,14 @@ const UI = (() => {
       row.className = 'format-row';
       row.innerHTML = `
         <label>${label}</label>
-        <input type="number" min="0" max="95" step="0.5" data-format="${escapeHtml(key)}" placeholder="${placeholder}" value="${value}">
+        <input type="number" min="0" max="500" step="0.5" data-format="${escapeHtml(key)}" placeholder="${placeholder}" value="${value}">
         <span class="count">${counts[key]} refs</span>
       `;
       container.appendChild(row);
     }
-    // Listeners
-    container.querySelectorAll('input').forEach(inp => {
-      inp.addEventListener('input', (e) => {
-        const k = e.target.dataset.format;
-        const v = e.target.value;
-        if (v === '' || v == null) delete state.config.byFormat[k];
-        else state.config.byFormat[k] = parseFloat(v);
-        saveConfig();
-        renderTable();
-        renderKpis();
-      });
-    });
+    // NOTA: los listeners de estos inputs se manejan por event delegation en
+    // setupConfigListeners() sobre el contenedor #formatConfig — así sobreviven
+    // a cualquier re-render sin necesidad de re-enganchar cada vez.
   }
 
   /* ----- render: filtro de formato ----- */
@@ -798,8 +802,7 @@ const UI = (() => {
         <td>${escapeHtml(r.ref)}</td>
         <td>${statusChip}</td>
         <td title="${escapeHtml(r.description)}">${escapeHtml(truncate(r.description, 60))}</td>
-        <td class="num"><input type="number" step="0.01" value="${r.liters ?? ''}" data-ref="${escapeHtml(r.ref)}" data-field="liters"></td>
-        <td class="num">${r.unitsPerBox ?? ''}</td>
+        <td class="num liters"><input type="number" step="0.01" value="${r.liters ?? ''}" data-ref="${escapeHtml(r.ref)}" data-field="liters"></td>
         <td class="num" title="${escapeHtml(costTitle)}">${formatEur(r.costPerPack)}</td>
         <td class="num">${c.marginPct.toFixed(1)}%</td>
         <td class="num"><strong>${formatEur(c.pvp)}</strong></td>
@@ -832,7 +835,7 @@ const UI = (() => {
     // Aviso si hay más de MAX filas
     if (rows.length > MAX) {
       const note = document.createElement('tr');
-      note.innerHTML = `<td colspan="10" style="text-align:center; padding:0.6rem; color: var(--pico-muted-color); font-style: italic;">
+      note.innerHTML = `<td colspan="9" style="text-align:center; padding:0.6rem; color: var(--pico-muted-color); font-style: italic;">
         Mostrando ${MAX} primeras filas (de ${rows.length}). Usa el buscador o los filtros para acotar.
       </td>`;
       tbody.appendChild(note);
@@ -998,6 +1001,27 @@ const UI = (() => {
         renderKpis();
       });
     });
+
+    // Event delegation para inputs de margen por formato — sobrevive a re-renders.
+    // Se escuchan 'input' (tecla a tecla) y 'change' (blur/enter) para máxima cobertura.
+    const applyFormatMargin = (target) => {
+      if (!target || !target.matches('input[data-format]')) return;
+      const k = target.dataset.format;
+      const raw = target.value;
+      if (raw === '' || raw == null) {
+        delete state.config.byFormat[k];
+      } else {
+        const v = parseFloat(raw);
+        if (isFinite(v)) state.config.byFormat[k] = v;
+        else delete state.config.byFormat[k];
+      }
+      saveConfig();
+      renderTable();
+      renderKpis();
+    };
+    $('formatConfig').addEventListener('input',  (e) => applyFormatMargin(e.target));
+    $('formatConfig').addEventListener('change', (e) => applyFormatMargin(e.target));
+
     $('defaultMargin').addEventListener('input', (e) => {
       state.config.defaultMargin = parseFloat(e.target.value) || 0;
       saveConfig(); renderFormatConfig(); renderTable(); renderKpis();

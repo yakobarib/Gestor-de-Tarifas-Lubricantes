@@ -25,11 +25,13 @@ Cambios entre versiones de tarifa:
 | `SIRDI` (2026) / `REF PROVEDOR` (2025 y anteriores) | `ref` | Código proveedor. Se mantiene tal cual en la salida Skrit. Repsol renombró la columna en la tarifa 2026. |
 | `NOMBRE` | `description` | De aquí se extrae LITROS con el parser. Ejemplo: `RACING 4T 5W40 1000L`. |
 | `PESO NETO` | `netWeight` | Informativo. En kg. |
-| `UDS X CAJA` | `unitsPerBox` | Informativo. En Skrit no se usa. |
-| `PRECIO FACTURA` | `costPerPack` | **Precio neto por envase individual** (no por litro, no por caja). Es lo que Skrit espera como coste. |
+| `UDS X CAJA` | `unitsPerBox` | **Crítico para el cálculo** (aunque no se muestra en la UI). Divide el precio factura para obtener el coste por envase individual. |
+| `PRECIO FACTURA` | `costPerBox` | **Precio de la unidad de compra (la caja)**, no del envase individual. Ejemplo: `12X1L` con `UDS X CAJA=12` y `PRECIO FACTURA=102,17` significa que la caja de 12 botellas cuesta 102,17 €. La botella individual cuesta 8,51 €. Skrit espera este último. |
+| — (calculado) | `costPerPack` | **Coste real por envase individual**: `costPerBox / unitsPerBox`. Es lo que va a Skrit. |
 
 ## Casuísticas
 
+- **Precio factura = precio por caja, no por envase.** Repsol vende siempre la caja como unidad mínima de compra (no venden garrafas ni botellas sueltas). El coste que Skrit necesita es el del envase individual = `PRECIO FACTURA / UDS X CAJA`. Con formatos como `12X1L` esto divide entre 12; con `5X4L` entre 5. Con `1X208L` o `1X1000L` la unidad de compra ya es un solo envase y no cambia nada. En la tarifa Repsol mayo 2026, unas 295 de 830 refs (36%) tienen UDS X CAJA > 1 y requieren esta división. Regla aplicada en v0.2.2 tras corregir un bug que trataba el precio factura como si fuera por envase.
 - **Sin descuentos en cascada**: Repsol ya da el precio neto final. Una sola columna de precio. Ver comparación con Castrol en su ficha.
 - **Muchos productos "no aceite"**: Repsol vende lubricantes automoción/moto, pero también químicos (WIZARD, GUARD, SMARTER, QUALIFIER…) con envases pequeños (100ml, 300ml, 500ml). Todos van en la misma tarifa.
 - **Grasas en kilos**: la línea `PROTECTOR ... KG` usa formatos 18KG, 45KG, 180KG. En Skrit se registran como si fueran litros equivalentes (densidad ≈ 1).

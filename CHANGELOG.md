@@ -2,6 +2,48 @@
 
 Formato inspirado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [v0.2.2] — 2026-07-21
+
+### Arreglado (bug crítico)
+- **Coste por envase en Repsol**: `PRECIO FACTURA` en Repsol es el precio de la
+  unidad de compra (la caja completa), no del envase individual. La app tratábalo
+  como coste por envase, inflando el PVP de todas las refs con más de una unidad
+  por caja. Ahora divide `PRECIO FACTURA / UDS X CAJA` para obtener el coste real.
+  Impacto: **295 refs de 830 (36%)** con UDS X CAJA > 1. Ejemplos:
+  - `12X1L`, PRECIO FACTURA=102,17 € → coste real = **8,51 €** por botella (no 102,17).
+  - `5X4L`, PRECIO FACTURA=154,77 € → coste real = **30,95 €** por garrafa (no 154,77).
+  - `1X208L` y `1X1000L`: sin cambio (UDS=1).
+
+### Cambiado
+- **Event delegation** para los inputs de margen por formato: los cambios ahora
+  disparan recálculo instantáneo aunque el panel se re-renderice. Se escuchan
+  `input` (tecla a tecla) y `change` (blur/enter) para máxima robustez.
+
+### Añadido
+- Trazabilidad: cada fila conserva `costPerBox` (precio factura original de Repsol)
+  y `costPerPack` (calculado). Actualmente solo se usa el segundo para todo, pero
+  el primero queda disponible por si en el futuro se muestra en tabla o export.
+
+## [v0.2.1] — 2026-07-21
+
+### Arreglado
+- Botones de modo (Sobre venta / Sobre compra) ahora en gris visible por defecto
+  (antes solo se veían al pasar el ratón por encima). El activo se sigue mostrando
+  en azul primario.
+- Layout centrado y aprovechamiento del ancho de pantalla: `max-width` ampliado a
+  1800px, `min-width: 0` en el `<main>` para evitar overflow, `overflow-x: hidden`
+  en `body` como red de seguridad.
+- Barra de filtros más compacta (padding 0,3rem, fuente 0,82rem).
+
+### Cambiado
+- Los KPIs se renombran a "Referencias Totales / Estables / Nuevas / Desaparecidas"
+  para claridad.
+- Se elimina la columna "Uds/caja" de la tabla — no es información útil para el
+  usuario (Skrit solo quiere precio por envase). La app la usa internamente para
+  calcular el coste correcto (ver v0.2.2).
+- Input de litros en la tabla reducido a 68px, fuente 0,8rem — libera espacio.
+- Subtítulo actualizado a v0.2.1.
+
 ## [v0.2] — 2026-07-21
 
 ### Añadido
