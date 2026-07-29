@@ -1,9 +1,45 @@
 # AD Parts
 
 ## Estado
-- **Versión de app:** ⏳ pendiente (v0.2, próximo objetivo)
+- **Versión de app:** ✅ implementado en v0.3.0 (Aceite Normal + Standard [+ Sport Car] y Producto Químico)
 - **Prioridad:** ALTA — marca propia
 - **Última tarifa disponible:** `Tarifa AD Aceite - 24 abril 2026.xlsx` + `Tarifa AD Producto Químico Mayo 2026.xlsx`
+
+## Regla de litros por sufijo de referencia (descubierta en v0.3.0)
+
+Los últimos 3 dígitos de la referencia (quitando puntos) codifican los litros del envase,
+con el caso especial `'000'` → 1000 L:
+
+| Referencia | Litros |
+|---|---|
+| `10.005` / `10005` | 5 L |
+| `10.208` / `10208` | 208 L |
+| `10.600` / `10600` | 600 L |
+| `10.1000` / `101000` | 1000 L (caso especial `'000'`) |
+
+Verificado cruzando 235/235 refs de `AD NORMAL` contra la descripción real de `Tarifa`. Es
+la única fuente fiable en la **gama Standard**: su descripción es siempre igual para todos
+los formatos ("AD STANDARD SC 5W30"), sin ningún dato de tamaño — solo la referencia lo
+indica. Implementada en `Parser.litersFromRefSuffix()` (`app/index.html`), usada como
+fuente primaria con fallback al parser de descripción existente.
+
+## Dos formatos de entrada (ambos soportados)
+
+AD Parts Aceite llega en uno de estos dos formatos según el mes (confirmado por Yako):
+
+1. **"ENTRADA" crudo** — hojas `AD NORMAL` / `AD STANDARD` (`REFERENCIA` + `PRECIO COMPRA
+   FACTURA`) + hoja `Tarifa` maestro. Join: `AD NORMAL/STANDARD.REFERENCIA` ==
+   `Tarifa.REF PROVEEDOR` **sin el punto** (`"11.020"` → `"11020"`) — descubierto cruzando
+   los datos reales, no documentado por el proveedor.
+2. **"de trabajo"** — hojas `Coste` (gama Normal, `PRODUCTO` en carry-forward), `ADStandard`
+   (gama Standard, `Envase` ya numérico) y `CosteSC` (línea **Sport Car**, 3ª línea de
+   producto no presente en el formato "ENTRADA"). El coste vigente está siempre en la
+   columna inmediatamente a la derecha de `ref.` — su cabecera es una fecha variable mes a
+   mes, así que se localiza por posición, no por nombre. `CosteSC` trae además una segunda
+   columna `ref.` (numérica) antes de la de coste.
+
+`ExcelReader.ADPartsAceiteProfile` detecta cuál de los dos ha llegado por las hojas
+presentes en el workbook.
 
 ## Formato de la tarifa entrante
 
@@ -76,16 +112,14 @@ La salida Skrit de AD Parts incluye una columna extra `FAM` con código de famil
   - AD Parts Standard: márgenes altos porque el coste de entrada es muy bajo.
 - La marca propia debería tener márgenes objetivo definidos por dirección. Falta capturar la política.
 
-## Estado en la app
+## Estado en la app (v0.3.0)
 
-**No implementado todavía.** Plan de implementación (v0.2):
-
-1. Detección de archivo AD Parts por nombre (`AD Parts`, `ADP`) o por presencia de hojas `AD NORMAL`/`AD STANDARD`.
-2. Preguntar al usuario **qué gama importar** (Normal / Standard) — o importar las dos en pestañas separadas.
-3. JOIN automático con la hoja `Tarifa` para completar descripción y familia.
-4. Prefijo automático `ADP` en la salida.
-5. Columna extra `FAM` en la salida Skrit.
-6. **Interfaz para PVP manuales del 5L**: opción "cargar PVPs manuales" que sobreescribe el cálculo por margen.
+1. ✅ Detección de archivo AD Parts por nombre (`AD Parts`, `ADP`) o por presencia de hojas `AD NORMAL`/`AD STANDARD`/`Coste`+`ADStandard`.
+2. ✅ Las gamas (Normal / Standard / Sport Car si aparece) se muestran en **pestañas independientes**, cada una con su propia configuración de margen, historial de comparación y export.
+3. ✅ JOIN automático con la hoja `Tarifa` (formato "ENTRADA") para completar descripción y familia.
+4. ✅ Prefijo automático `ADP` en la salida.
+5. ✅ Columna extra `FAM` en la salida Skrit (fijo `06` = Aceite Motor, única familia observada).
+6. ✅ **PVP manual editable por fila** en la tabla de preview (no limitado a 5L — cualquier ref admite override), en vez de importar un Excel aparte de PVPs manuales.
 
 ## Referencias
 

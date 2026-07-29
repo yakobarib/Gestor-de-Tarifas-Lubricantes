@@ -2,6 +2,91 @@
 
 Formato inspirado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [v0.4.0] — 2026-07-29
+
+### Añadido
+- **Rediseño a 4 pantallas**: Importación / Reglas / Comparación / Exportación, navegación
+  por hash (`#import`/`#rules`/`#compare`/`#export`), reflejando el workflow real de crear
+  precios. Importación es el flujo de v0.1-v0.3.0 (drop zone, tabla, pestañas de gama)
+  movido tal cual, más una cuadrícula de tarjetas con el estado de la última tarifa
+  importada por marca.
+- **Maestro persistente multi-marca** (`MasterDB`, IndexedDB): cada importación guarda
+  sus filas fusionadas por ref, con dos niveles de coste posibles — `costFactura`
+  (siempre) y `costNetoNeto` (nullable, se rellenará proveedor a proveedor conforme se
+  audite su lógica de descuentos/rappels en próximas sesiones).
+- **Niveles de precio configurables por marca/gama** (`priceLevels`, pantalla Reglas):
+  PVP (siempre existe, migrado sin cambios desde la config previa), Precio Neto de Venta,
+  y Precios para Bonus (uso interno de Yako para ventas especiales — nunca se exporta a
+  Skrit, flag `goesToSkrit`).
+- **Pantalla Comparación**: carga los 5 Excel de equivalencias de `BASE DE CONOCIMIENTO/`
+  (dos formatos reales distintos, con carry-forward de especificaciones compartidas) y
+  compara en vivo el precio de una referencia entre las marcas equivalentes que ya tengan
+  tarifa en el maestro.
+- **Pantalla Exportación**: layout unificado de 9 columnas (MARCA, REFERENCIA,
+  MARCA+REFERENCIA, coste factura, coste neto-neto, precio del nivel elegido, familia,
+  litros, descripción) leído directamente del maestro, para cualquier marca/gama/nivel.
+- Catálogo `BRANDS` data-driven (abreviatura, gamas, prefijo de referencia) — añadir un
+  proveedor nuevo a la cuadrícula de Importación es una entrada de array.
+
+### Cambiado
+- **Extracción de `app/index.html`** (~1557 líneas) a ficheros separados bajo `app/js/` y
+  `app/css/` — scripts clásicos (no ES modules: fallan por CORS bajo `file://`), sin
+  bundler. Regresión cero verificada contra los 4 ficheros reales ya usados en v0.3.0.
+- `Pricing.compute()` generaliza su segundo argumento de "config plana" a "nivel de
+  precio", con `baseCostField` configurable; sigue aceptando la config legacy tal cual.
+
+### Arreglado
+- Los niveles de precio calculados sobre el maestro (Comparación, Exportación) devolvían
+  PVP vacío porque heredaban `baseCostField: 'costPerPack'` de la config legacy en vez de
+  `costFactura`/`costNetoNeto` (los nombres de campo reales de las filas del maestro).
+  Corregido remapeando `baseCostField` a partir de `baseCost` antes de calcular.
+
+### Documentado
+- ADR 0008 sobre el rediseño de 4 pantallas, el maestro multi-marca y `priceLevels`.
+- `docs/arquitectura.md` actualizado con la nueva estructura de ficheros.
+
+## [v0.3.0] — 2026-07-28
+
+### Añadido
+- **Soporte AD Parts Aceite** (marca propia, prioridad alta — hito que el roadmap marcaba
+  como v0.2 y que había quedado pendiente). Dos gamas, **Normal** y **Standard**, mostradas
+  en pestañas independientes (cada una con su propia configuración de margen, historial y
+  export). Soporta los **dos formatos de entrada** que llegan según el mes:
+  - "ENTRADA" crudo del proveedor: hojas `AD NORMAL` / `AD STANDARD` + `Tarifa` (join por
+    `REF PROVEEDOR` sin el punto).
+  - "de trabajo": hojas `Coste` / `ADStandard` / `CosteSC` (esta última añade una 3ª línea,
+    **Sport Car**, que se muestra como pestaña adicional cuando está presente).
+  - Prefijo `ADP` y columna `FAM` (`06` = Aceite Motor) en la salida Skrit.
+- **Regla de litros por sufijo de referencia**: los últimos 3 dígitos de la referencia
+  (sin puntos) son los litros del envase, con el caso especial `000` → 1000 L. Descubierta
+  cruzando los Excel reales — es la única fuente fiable en la gama Standard, cuya
+  descripción no varía entre formatos ("AD STANDARD SC 5W30" para 5L, 20L, 50L, 208L…).
+  Ver ADR 0007.
+- **Soporte AD Parts Producto Químico**: hoja `Coste` (+ `Coste-SC`) organizada en
+  secciones por familia (AD Estándar, AD Plus, Líquido limpiaparabrisas…), litros
+  extraídos de la descripción. Los precios escalonados por cantidad de la hoja `PVP`
+  quedan fuera de alcance (solo interesa el coste base para el cálculo de margen).
+- **PVP manual editable por fila**: cualquier referencia admite un PVP fijado a mano que
+  sustituye al cálculo por margen (persistido junto a la config del proveedor/gama). Caso
+  real: Albert fija a mano el PVP del formato 5L en AD Parts, y a veces también en
+  formatos grandes.
+- Parser: reconoce el apóstrofe como separador decimal (`"0'5L"`), visto en las
+  referencias de Líquido de Frenos de AD Parts Químico.
+
+### Cambiado
+- **Refactor a "Supplier Profiles"** (cierre del ADR 0005, pendiente desde v0.1): `ExcelReader`
+  pasa de llamar siempre a `readRepsol` a iterar un registro de perfiles (`RepsolProfile`,
+  `ADPartsAceiteProfile`, `ADPartsQuimicoProfile`), cada uno con su propio `detect()`/`read()`.
+  Sin cambios de comportamiento para Repsol.
+- Config e historial pasan de una clave fija (`config_repsol`) a una clave por
+  proveedor+gama. Repsol conserva su clave histórica (`config_repsol`, `history_repsol`)
+  para no perder los márgenes ya guardados en v0.2.x.
+
+### Nota sobre la numeración de versión
+El roadmap marcaba AD Parts como el hito v0.2 (prioridad alta), pero el trabajo real de
+v0.2/v0.2.1/v0.2.2 se dedicó a la comparativa histórica (ADR 0006) y a un fix de coste en
+Repsol — AD Parts quedó pendiente hasta esta versión. Ver `docs/roadmap.md`.
+
 ## [v0.2.2] — 2026-07-21
 
 ### Arreglado (bug crítico)

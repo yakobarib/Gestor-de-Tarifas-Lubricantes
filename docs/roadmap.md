@@ -18,16 +18,21 @@ Plan acordado con Yako en la sesión del **2026-05-14** y actualizado según ava
 **Estrategia:** un workflow (perfil) dedicado por proveedor. Detalle en [decisiones/0005-un-workflow-por-proveedor.md](decisiones/0005-un-workflow-por-proveedor.md).
 
 - ✅ **v0.1 · Repsol** — implementado y validado (99,8% acierto parser).
-- ⏳ **v0.1.x · Formalizar Supplier Profile como interfaz** — refactor previo a v0.2 para dejar el patrón limpio antes de duplicarlo.
-- ⏳ **v0.2 · AD Parts (marca propia, prioridad)**
-  - Gama Normal + Gama Standard como dos flujos separados.
-  - Producto químico también dentro del "saco" de lubricantes.
-  - Formato 5L con PVP manual por Albert — no automatizar, dejar hueco editable.
-- ⏳ **v0.3 · Castrol** — descuentos en cascada (Pronto Pago + Dto Logístico + Rappel FA) o consumo directo de la hoja `DATOS` ya consolidada.
-- ⏳ **v0.4 · Eni Live** — multi-hoja por familia; coste = `TARIFA 2 UNIDAD DE VENTA`.
-- ⏳ **v0.5 · Racing Oil** — cabecera bipartita (row 12 + row 13), litros como string ("1L", "5L") a parsear.
-- ⏳ **v0.6 · Krafft + Shell** — auditar tarifas reales y decidir tratamiento.
-- ⏳ **v0.7 · Detección automática de proveedor** — por firma de columnas, no solo por nombre de archivo.
+- ✅ **v0.1.x · Formalizar Supplier Profile como interfaz** — hecho en v0.3.0 (más tarde de lo previsto, ver nota de numeración más abajo).
+- ✅ **AD Parts (marca propia, prioridad)** — implementado en **v0.3.0**: Gama Normal + Gama Standard (+ Sport Car cuando el fichero la trae) como pestañas independientes, Producto Químico como perfil separado, PVP manual editable por fila (no limitado a 5L).
+- ⏳ **Castrol** (siguiente) — descuentos en cascada (Pronto Pago + Dto Logístico + Rappel FA) o consumo directo de la hoja `DATOS` ya consolidada.
+- ⏳ **Eni Live** — multi-hoja por familia; coste = `TARIFA 2 UNIDAD DE VENTA`.
+- ⏳ **Racing Oil** — cabecera bipartita (row 12 + row 13), litros como string ("1L", "5L") a parsear.
+- ⏳ **Krafft + Shell** — auditar tarifas reales y decidir tratamiento.
+- ⏳ **Detección automática de proveedor** — por firma de columnas, no solo por nombre de archivo.
+
+> **Nota sobre la numeración (2026-07-28):** este roadmap marcaba AD Parts como el hito
+> **v0.2**, pero el trabajo real publicado como v0.2/v0.2.1/v0.2.2 se dedicó a la
+> comparativa histórica entre tarifas (Fase 2, ADR 0006) y a un fix de coste en Repsol —
+> no a AD Parts. AD Parts quedó pendiente hasta retomarse explícitamente y publicarse
+> como v0.3.0. A partir de aquí este roadmap deja de fijar de antemano qué número de
+> versión corresponde a cada proveedor — solo el orden de prioridad — para evitar que
+> vuelva a desalinearse con el CHANGELOG real.
 
 ## Fase 2 — Comparador y aportaciones
 
@@ -67,7 +72,8 @@ Plan acordado con Yako en la sesión del **2026-05-14** y actualizado según ava
 | Hito | Fecha objetivo | Estado |
 |---|---|---|
 | v0.1 Repsol funcional | 2026-07-20 | ✅ Cumplido |
-| v0.2 AD Parts | 2026-08-15 | Próximo |
+| v0.3.0 AD Parts (Aceite + Químico) | 2026-07-28 | ✅ Cumplido |
+| Castrol | 2026-08-15 | Próximo |
 | Fase 1 completa (7 proveedores) | 2026-10-31 | Planificado |
 | Fase 2 (comparador + tasas) | 2026-Q4 | Planificado |
 | Fase 3 (maestro) | 2027-Q1 | Planificado |
