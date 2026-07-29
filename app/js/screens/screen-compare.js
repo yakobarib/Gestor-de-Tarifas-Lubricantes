@@ -37,9 +37,10 @@ const ScreenCompare = (() => {
   /** Las filas del maestro usan costFactura/costNetoNeto, no costPerPack (ver ADR 0008) —
    *  se remapea baseCostField a partir de baseCost antes de pasarlo a Pricing.compute. */
   function forMaster(level) {
-    return Object.assign({}, level, {
-      baseCostField: level.baseCost === 'netoNeto' ? 'costNetoNeto' : 'costFactura'
-    });
+    const baseCostField = level.baseCost === 'tripleNeto' ? 'costTripleNeto'
+                        : level.baseCost === 'netoNeto' ? 'costNetoNeto'
+                        : 'costFactura';
+    return Object.assign({}, level, { baseCostField });
   }
 
   function loadPvpLevel(brandId, gama) {

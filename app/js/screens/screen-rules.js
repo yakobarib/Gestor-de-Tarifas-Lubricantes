@@ -84,8 +84,9 @@ const ScreenRules = (() => {
         <div class="level-row">
           <label>Base de coste</label>
           <select data-field="baseCost" data-index="${index}">
-            <option value="factura" ${lvl.baseCost !== 'netoNeto' ? 'selected' : ''}>Coste factura</option>
+            <option value="factura" ${!lvl.baseCost || lvl.baseCost === 'factura' ? 'selected' : ''}>Coste factura</option>
             <option value="netoNeto" ${lvl.baseCost === 'netoNeto' ? 'selected' : ''}>Coste neto-neto (si está auditado)</option>
+            <option value="tripleNeto" ${lvl.baseCost === 'tripleNeto' ? 'selected' : ''}>Coste triple neto (si está auditado)</option>
           </select>
         </div>
         <div class="level-row">
@@ -125,7 +126,7 @@ const ScreenRules = (() => {
     if (!lvl) return;
     if (field === 'baseCost') {
       lvl.baseCost = value;
-      lvl.baseCostField = value === 'netoNeto' ? 'costNetoNeto' : 'costPerPack';
+      lvl.baseCostField = value === 'tripleNeto' ? 'costTripleNeto' : value === 'netoNeto' ? 'costNetoNeto' : 'costPerPack';
     } else if (field === 'defaultMargin') {
       lvl.defaultMargin = parseFloat(value) || 0;
     } else if (field === 'goesToSkrit') {

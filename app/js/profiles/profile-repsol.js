@@ -45,6 +45,24 @@
     const idxRefNuevo  = col(/SIRDI\s*NUEVO/);
     const idxNameNuevo = col(/NOMBRE\s*NUEVO/);
 
+    // Tarifa "con aportaciones" (ver ADR 0010): trae, además de todo lo anterior, el
+    // precio ya neto de rappels (incondicional + variable + volumen grupo) y el precio
+    // neto-neto tras aplicar también el soporte marketing — Repsol ya los calcula por
+    // envase/caja en la propia hoja, no hace falta recomputar los rappels intermedios.
+    // Se detectan por texto de cabecera, no por letra de columna fija (puede cambiar de
+    // mes a mes). Distinción: ambas cabeceras contienen "NETO" y "CAJA"/"ENVASE", pero la
+    // de triple neto repite "NETO" dos veces ("PRECIO NETO NETO CAJA/ENVASE") frente a
+    // una sola vez en la de neto-neto ("Precio Neto caja/envase").
+    const netoCols = [];
+    headers.forEach((h, i) => {
+      if (!h) return;
+      const isCajaOrEnvase = h.includes('CAJA') || h.includes('ENVASE');
+      const netoCount = (h.match(/NETO/g) || []).length;
+      if (isCajaOrEnvase && netoCount >= 1) netoCols.push({ idx: i, netoCount });
+    });
+    const idxNetoNeto   = (netoCols.find(c => c.netoCount === 1) || {}).idx;
+    const idxTripleNeto = (netoCols.find(c => c.netoCount >= 2) || {}).idx;
+
     if (idxRef < 0 || idxName < 0 || idxPrecio < 0)
       throw new Error(`Faltan columnas obligatorias. Detectadas: ref=${idxRef>=0?'✓':'✗'} nombre=${idxName>=0?'✓':'✗'} precio=${idxPrecio>=0?'✓':'✗'}. Cabecera vista: ${headers.filter(Boolean).join(' | ')}`);
 
@@ -73,7 +91,10 @@
         : 1;
       const costPerPack = priceInvoice / unitsPerBox;
 
-      rows.push({
+      const netoNetoVal = idxNetoNeto >= 0 ? r[idxNetoNeto] : null;
+      const tripleNetoVal = idxTripleNeto >= 0 ? r[idxTripleNeto] : null;
+
+      const row = {
         ref: String(ref).trim(),
         description,
         liters,
@@ -84,7 +105,13 @@
         costPerPack,                 // precio real por envase individual (lo que espera Skrit)
         gama: 'default',
         litersDetected: liters !== null
-      });
+      };
+      // Ya vienen por envase/caja en la propia hoja de Repsol — no hace falta dividir
+      // de nuevo por unitsPerBox como con costPerPack.
+      if (typeof netoNetoVal === 'number' && isFinite(netoNetoVal)) row.costNetoNeto = netoNetoVal;
+      if (typeof tripleNetoVal === 'number' && isFinite(tripleNetoVal)) row.costTripleNeto = tripleNetoVal;
+
+      rows.push(row);
     }
     return { supplier: 'Repsol', gamas: ['default'], rows, sheetUsed: sheetName };
   }

@@ -57,11 +57,11 @@ const ExcelWriter = (() => {
    * `rows` = filas del maestro (MasterDB), ya de una marca+gama concretas.
    */
   function exportSkritV2(rows, brandAbbr, levelConfig, tariffDate) {
-    const header = ['MARCA', 'REFERENCIA', 'MARCA+REFERENCIA', 'COSTE FACTURA', 'COSTE NETO-NETO', 'PVP', 'FAMILIA', 'LITROS', 'DESCRIPCION'];
+    const header = ['MARCA', 'REFERENCIA', 'MARCA+REFERENCIA', 'COSTE FACTURA', 'COSTE NETO-NETO', 'COSTE TRIPLE NETO', 'PVP', 'FAMILIA', 'LITROS', 'DESCRIPCION'];
     const data = [header];
     for (const r of rows) {
       const c = Pricing.compute(r, levelConfig);
-      if (c.pvp == null) continue; // sin coste base para este nivel (ej. netoNeto aún no auditado)
+      if (c.pvp == null) continue; // sin coste base para este nivel (ej. netoNeto/tripleNeto aún no auditado)
       const bare = r.ref.startsWith(brandAbbr) ? r.ref.slice(brandAbbr.length) : r.ref;
       data.push([
         brandAbbr,
@@ -69,6 +69,7 @@ const ExcelWriter = (() => {
         brandAbbr + bare,
         r.costFactura != null ? r.costFactura : '',
         r.costNetoNeto != null ? r.costNetoNeto : '',
+        r.costTripleNeto != null ? r.costTripleNeto : '',
         c.pvp,
         r.fam || '',
         r.liters || '',
@@ -77,11 +78,11 @@ const ExcelWriter = (() => {
     }
     const ws = XLSX.utils.aoa_to_sheet(data);
     ws['!cols'] = [
-      { wch: 8 }, { wch: 14 }, { wch: 16 }, { wch: 14 }, { wch: 16 }, { wch: 12 }, { wch: 8 }, { wch: 8 }, { wch: 50 }
+      { wch: 8 }, { wch: 14 }, { wch: 16 }, { wch: 14 }, { wch: 16 }, { wch: 16 }, { wch: 12 }, { wch: 8 }, { wch: 8 }, { wch: 50 }
     ];
     const range = XLSX.utils.decode_range(ws['!ref']);
     for (let R = 1; R <= range.e.r; ++R) {
-      for (const col of [3, 4, 5]) {
+      for (const col of [3, 4, 5, 6]) {
         const cell = ws[XLSX.utils.encode_cell({ r: R, c: col })];
         if (cell && typeof cell.v === 'number') cell.z = '#,##0.00 €';
       }

@@ -32,6 +32,26 @@ Este es el punto donde más se rompe si no se implementa bien:
   - Primer número = unidades por caja; segundo = litros por envase.
 - **El CRM Skrit espera el precio del envase individual**, no por litro ni por caja.
 
+**Regla confirmada por Yako (todos los proveedores auditados hasta ahora, salvo Eni)**:
+el precio que trae la tarifa es el de la **unidad de compra**, que casi siempre es la
+caja, no el envase individual — hay que dividir siempre. La forma de saber por cuánto
+dividir varía por proveedor, de más a menos cómodo:
+1. **Repsol**: trae columna explícita `UDS X CAJA` — se divide `PRECIO FACTURA / UDS X CAJA`
+   (ver `profile-repsol.js`).
+2. **AD Parts**: es la excepción — su `PRECIO COMPRA FACTURA` / coste de las hojas
+   `AD NORMAL`/`AD STANDARD`/`Coste`/`ADStandard` **ya viene por envase**, no hace falta dividir
+   (confirmado cruzando los datos reales en el ADR 0007).
+3. **Resto de proveedores (Castrol, Racing Oil, Krafft, Shell — sin auditar todavía)**:
+   previsiblemente **sin columna de unidades por caja**, hay que extraer el multiplicador
+   de la propia descripción (patrón `NxM`, ej. `"...12X1L"` → 12 unidades por caja).
+   **Pendiente de implementar**: hoy `Parser.extractLiters()` reconoce el patrón `NxM` pero
+   solo devuelve `M` (litros por envase) — descarta `N` (unidades por caja). Antes de dar de
+   alta un perfil para estos proveedores hay que añadir una función equivalente
+   (`Parser.unitsPerBoxFromDescription()` o similar) que sí devuelva `N`, replicando en el
+   perfil correspondiente la división que ya hace Repsol.
+- **Eni**: según Yako, es el único proveedor que sí da directamente el precio por unidad de
+  venta (envase individual) en su tarifa — no necesitará esta división cuando se implemente.
+
 **Implementación actual**: el parser reconoce L, ML, GR, KG y el patrón NxM con unidad opcional. Detalle en [decisiones/0003-parser-litros.md](decisiones/0003-parser-litros.md).
 
 ## AD Parts (marca propia, prioritaria)

@@ -2,6 +2,24 @@
 
 Formato inspirado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [v0.5.0] — 2026-07-29
+
+### Añadido
+- **Tres niveles de coste conviviendo**: `costFactura`, `costNetoNeto` (tras rappels) y
+  `costTripleNeto` (tras rappels + soporte marketing) en el maestro multi-marca. La
+  tarifa Repsol "con aportaciones" rellena los tres de una sola importación — auditadas y
+  verificadas las fórmulas reales de las columnas P a Z (rappel incondicional, variable,
+  volumen de grupo por densidad del producto, soporte marketing, descuento acumulado).
+- `priceLevels.baseCost` gana un tercer valor, `'tripleNeto'` — seleccionable en la
+  pantalla Reglas para cualquier marca/gama.
+- `exportSkritV2` añade la columna `COSTE TRIPLE NETO` (10 columnas en total).
+- El mismo perfil de Repsol detecta ambas variantes de tarifa (normal / con aportaciones)
+  por texto de cabecera, sin que el usuario tenga que elegir dónde soltar cada una — se
+  pueden arrastrar las dos a la misma zona de importación.
+
+### Documentado
+- ADR 0010 con el desglose columna a columna verificado numéricamente.
+
 ## [v0.4.1] — 2026-07-29
 
 ### Añadido

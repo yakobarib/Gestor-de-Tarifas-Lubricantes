@@ -63,13 +63,21 @@ const MasterDB = (() => {
           litersDetected: !!r.litersDetected
         }
       );
-      if (tariffType === 'netoNeto' || tariffType === 'triple_neto') {
+      if (tariffType === 'triple_neto') {
+        merged.costTripleNeto = r.costPerPack;
+        merged.costTripleNetoImportedAt = now;
+      } else if (tariffType === 'netoNeto') {
         merged.costNetoNeto = r.costPerPack;
         merged.costNetoNetoImportedAt = now;
       } else {
         merged.costFactura = r.costPerPack;
         merged.costFacturaImportedAt = now;
       }
+      // Campos explícitos que el propio perfil ya conozca (ej. la tarifa Repsol "con
+      // aportaciones" trae factura + neto-neto + triple-neto en la misma fila — ver
+      // ADR 0010) mandan sobre el mapeo por tariffType de arriba.
+      if (r.costNetoNeto != null) { merged.costNetoNeto = r.costNetoNeto; merged.costNetoNetoImportedAt = now; }
+      if (r.costTripleNeto != null) { merged.costTripleNeto = r.costTripleNeto; merged.costTripleNetoImportedAt = now; }
       store.put(merged);
     }
 
