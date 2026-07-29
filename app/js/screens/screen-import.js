@@ -59,6 +59,10 @@ const ScreenImport = (() => {
   function importMetaKey(gama) {
     return `import_meta_${state.supplierId}_${gama}_factura`;
   }
+  /** Cruce ref antigua↔nueva por rebranding (ver RebrandMap / ADR 0009), si hay uno cargado para este proveedor. */
+  function rebrandPairs() {
+    return RebrandMap.load(state.supplierId);
+  }
 
   /* ----- render: cuadrícula de tarjetas por marca ----- */
   function renderBrandCards() {
@@ -154,7 +158,7 @@ const ScreenImport = (() => {
     $('defaultMargin').value = state.config.defaultMargin;
     $('rounding').value = state.config.rounding;
     const previous = History.load(historyIdentifier());
-    state.diff = History.diff(state.rows, previous);
+    state.diff = History.diff(state.rows, previous, rebrandPairs());
     renderFormula();
     renderGamaTabs();
     renderFormatConfig();
@@ -210,6 +214,7 @@ const ScreenImport = (() => {
       // Chip de estado (NUEVA / vacío para estable)
       let statusChip = '';
       if (r._status === 'new') statusChip = '<span class="status-chip new">NUEVA</span>';
+      else if (r._rebrandedFrom) statusChip = `<span class="status-chip stable" title="Antes: ${escapeHtml(r._rebrandedFrom)}">REBRAND</span>`;
       else if (r._status === 'stable') statusChip = '';
       if (r._status === 'new') classes.push('status-new');
 
@@ -415,7 +420,7 @@ const ScreenImport = (() => {
 
         // Comparar contra la tarifa vigente guardada (si existe), para la gama activa
         const previous = History.load(historyIdentifier());
-        state.diff = History.diff(state.rows, previous);
+        state.diff = History.diff(state.rows, previous, rebrandPairs());
 
         $('loadStatus').innerHTML = `<small class="muted">✓ <strong>${state.allRows.length}</strong> referencias cargadas de <strong>${escapeHtml(state.supplier)}</strong> (hoja <code>${escapeHtml(result.sheetUsed)}</code>).</small>`;
         $('mainLayout').classList.remove('hidden');
@@ -511,7 +516,7 @@ const ScreenImport = (() => {
         if (state.supplier && state.rows.length > 0) {
           History.save(historyIdentifier(), state.rows, state.tariffDate);
           // Refrescar diff con el nuevo estado guardado (ahora será "sin cambios pendientes")
-          state.diff = History.diff(state.rows, History.load(historyIdentifier()));
+          state.diff = History.diff(state.rows, History.load(historyIdentifier()), rebrandPairs());
           renderHistoryBanner(); renderKpis();
         }
         $('loadStatus').classList.remove('hidden');
@@ -526,7 +531,7 @@ const ScreenImport = (() => {
       const label = state.activeGama !== 'default' ? `${state.supplier} (${GAMA_LABELS[state.activeGama] || state.activeGama})` : state.supplier;
       if (!confirm(`¿Establecer esta tarifa como la vigente para ${label}?\n\nLa próxima tarifa que cargues se comparará contra esta.`)) return;
       History.save(historyIdentifier(), state.rows, state.tariffDate);
-      state.diff = History.diff(state.rows, History.load(historyIdentifier()));
+      state.diff = History.diff(state.rows, History.load(historyIdentifier()), rebrandPairs());
       renderHistoryBanner(); renderKpis(); renderTable();
       $('loadStatus').classList.remove('hidden');
       $('loadStatus').innerHTML = `<small style="color: var(--pico-ins-color);">✓ Tarifa vigente de ${escapeHtml(label)} actualizada.</small>`;
@@ -576,10 +581,40 @@ const ScreenImport = (() => {
     });
   }
 
+  /** Carga un Excel de cruce de rebranding (ver RebrandMap) y lo guarda por marca. */
+  async function handleRebrandFile(file) {
+    if (!file) return;
+    const buf = await file.arrayBuffer();
+    const workbook = XLSX.read(buf, { type: 'array' });
+    const bySupplier = RebrandMap.readRebrandExcel(workbook, null);
+    const brands = Object.keys(bySupplier);
+    for (const brand of brands) {
+      RebrandMap.save(brand, bySupplier[brand]);
+    }
+    $('rebrandStatus').textContent = brands.length
+      ? `✓ Cargado: ${brands.map(b => `${b} (${bySupplier[b].length})`).join(', ')}.`
+      : 'No se han encontrado columnas de cruce reconocibles en ese Excel.';
+    // Si la tarifa activa es de una marca recién cargada, recalcula el diff en vivo.
+    if (state.supplierId && bySupplier[state.supplier?.toUpperCase()]) {
+      const previous = History.load(historyIdentifier());
+      state.diff = History.diff(state.rows, previous, rebrandPairs());
+      renderHistoryBanner(); renderKpis(); renderTable();
+    }
+  }
+
+  function setupRebrandLoader() {
+    const btn = $('btnLoadRebrand');
+    const input = $('rebrandFileInput');
+    if (!btn || !input) return;
+    btn.addEventListener('click', () => input.click());
+    input.addEventListener('change', (e) => handleRebrandFile(e.target.files && e.target.files[0]));
+  }
+
   function init() {
     renderBrandCards();
     setupDropZone();
     setupConfigListeners();
+    setupRebrandLoader();
     loadConfig();
     $('defaultMargin').value = state.config.defaultMargin;
     $('rounding').value = state.config.rounding;

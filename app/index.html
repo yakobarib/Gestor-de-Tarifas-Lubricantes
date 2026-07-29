@@ -13,7 +13,7 @@
 
 <header>
   <h1>Gestor de Tarifas de Lubricantes</h1>
-  <p class="subtitle">v0.4.0 · Importación → Reglas → Comparación → Exportación</p>
+  <p class="subtitle">v0.4.1 · Importación → Reglas → Comparación → Exportación</p>
 </header>
 
 <nav id="mainNav">
@@ -29,6 +29,12 @@
 <section id="screen-import" class="screen-section">
 
   <div class="brand-grid" id="brandGrid"></div>
+
+  <div style="margin-bottom:1rem;">
+    <button id="btnLoadRebrand" class="secondary-btn">Cargar mapa de rebranding (SIRDI antigua ↔ nueva)…</button>
+    <input type="file" id="rebrandFileInput" accept=".xlsx,.xls" class="hidden">
+    <div id="rebrandStatus" class="muted" style="font-size:0.85rem; margin-top:0.4rem;"></div>
+  </div>
 
   <!-- Zona de carga -->
   <section id="dropZone">
@@ -261,6 +267,7 @@
 <script src="js/core/parser.js"></script>
 <script src="js/core/pricing.js"></script>
 <script src="js/core/history.js"></script>
+<script src="js/core/rebrand-map.js"></script>
 <script src="js/core/brands.js"></script>
 <script src="js/core/db.js"></script>
 <script src="js/core/migration.js"></script>

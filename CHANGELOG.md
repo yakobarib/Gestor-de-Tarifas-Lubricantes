@@ -2,6 +2,30 @@
 
 Formato inspirado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [v0.4.1] — 2026-07-29
+
+### Añadido
+- **Soporte de rebranding Repsol**: la tarifa de agosto 2026 introdujo columnas `SIRDI
+  NUEVO`/`NOMBRE NUEVO` — productos con nueva imagen, mismo producto por dentro. El perfil
+  de Repsol ahora usa la ref/nombre nuevos cuando existen (fila a fila, 101 de 895
+  productos ya rebrandeados en esa tarifa), descartando la referencia antigua tal como
+  se pidió.
+- **`RebrandMap`** (`js/core/rebrand-map.js`): mapa persistente ref antigua↔nueva por
+  proveedor, cargado desde un Excel dedicado (botón "Cargar mapa de rebranding…" en
+  Importación). Se generó `BASE DE CONOCIMIENTO/Equivalencias Rebranding Repsol.xlsx`
+  con los 101 pares extraídos automáticamente de la tarifa de agosto.
+- `History.diff()` acepta un tercer parámetro opcional `rebrandPairs`: una ref nueva sin
+  match directo en el histórico, pero cuya ref antigua sí estaba, se trata como "estable"
+  (chip "REBRAND" con tooltip del código anterior) en vez de nueva+desaparecida.
+
+### Arreglado
+- Sin el mapa de rebranding, comparar la tarifa Repsol de mayo vs. agosto mostraba 113
+  falsas "nuevas" y 92 falsas "desaparecidas" por los productos rebrandeados. Con el mapa
+  cargado: 35 nuevas / 14 desaparecidas / 816 estables (verificado con las tarifas reales).
+
+### Documentado
+- ADR 0009 sobre el mapa de rebranding.
+
 ## [v0.4.0] — 2026-07-29
 
 ### Añadido

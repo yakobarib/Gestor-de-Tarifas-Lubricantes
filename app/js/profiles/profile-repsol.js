@@ -36,6 +36,14 @@
     const idxPeso   = col(/PESO/);
     const idxUds    = col(/UDS?\s*X?\s*CAJA|UNIDADES/);
     const idxPrecio = col(/PRECIO\s*FACTURA/);
+    // Rebranding Repsol (agosto 2026): productos con nueva imagen cambian de SIRDI y de
+    // nombre comercial, pero por dentro son el mismo producto. Cuando la fila ya trae
+    // SIRDI NUEVO relleno, esa es la referencia vigente a partir de ahora — la antigua
+    // se descataloga (sigue en Skrit pero desaparece de las tarifas nuevas). No todas
+    // las filas están rebrandeadas a la vez: en la tarifa de agosto 101 de 895 sí, el
+    // resto todavía no, así que se decide fila a fila, no por fichero.
+    const idxRefNuevo  = col(/SIRDI\s*NUEVO/);
+    const idxNameNuevo = col(/NOMBRE\s*NUEVO/);
 
     if (idxRef < 0 || idxName < 0 || idxPrecio < 0)
       throw new Error(`Faltan columnas obligatorias. Detectadas: ref=${idxRef>=0?'✓':'✗'} nombre=${idxName>=0?'✓':'✗'} precio=${idxPrecio>=0?'✓':'✗'}. Cabecera vista: ${headers.filter(Boolean).join(' | ')}`);
@@ -44,8 +52,10 @@
     for (let i = headerIdx + 1; i < raw.length; i++) {
       const r = raw[i];
       if (!r || r.length === 0) continue;
-      const ref = r[idxRef];
-      const name = r[idxName];
+      const refNuevo = idxRefNuevo >= 0 ? r[idxRefNuevo] : null;
+      const nameNuevo = idxNameNuevo >= 0 ? r[idxNameNuevo] : null;
+      const ref = refNuevo || r[idxRef];
+      const name = refNuevo ? (nameNuevo || r[idxName]) : r[idxName];
       const priceInvoice = r[idxPrecio];   // PRECIO FACTURA = precio por unidad de compra (caja)
       // Saltar filas de cabecera de sección (sin ref o sin precio numérico)
       if (!ref || ref === null) continue;
