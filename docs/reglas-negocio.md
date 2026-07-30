@@ -49,8 +49,11 @@ dividir varía por proveedor, de más a menos cómodo:
    alta un perfil para estos proveedores hay que añadir una función equivalente
    (`Parser.unitsPerBoxFromDescription()` o similar) que sí devuelva `N`, replicando en el
    perfil correspondiente la división que ya hace Repsol.
-- **Eni**: según Yako, es el único proveedor que sí da directamente el precio por unidad de
-  venta (envase individual) en su tarifa — no necesitará esta división cuando se implemente.
+- **Eni**: confirmado al implementar el perfil — su columna `TARIFA 2` (o `TARIFA 1` si no
+  hay Tarifa 2) ya es el precio por envase individual, no hace falta dividir. La trampa es
+  la columna hermana "UNIDAD DE VENTA": no es "por unidad", es justo lo contrario — el
+  precio del envase individual multiplicado por `UDS. POR ENVASE` (ver
+  [docs/proveedores/eni-live.md](proveedores/eni-live.md)).
 
 **Implementación actual**: el parser reconoce L, ML, GR, KG y el patrón NxM con unidad opcional. Detalle en [decisiones/0003-parser-litros.md](decisiones/0003-parser-litros.md).
 

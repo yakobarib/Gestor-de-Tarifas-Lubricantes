@@ -134,7 +134,12 @@ const ScreenImport = (() => {
   }
 
   /* ----- render: pestañas de gama (Normal / Standard / Sport Car…) ----- */
-  const GAMA_LABELS = { normal: 'Normal', standard: 'Standard', sportcar: 'Sport Car', default: 'General' };
+  const GAMA_LABELS = {
+    normal: 'Normal', standard: 'Standard', sportcar: 'Sport Car', default: 'General',
+    'i-sint': 'i-Sint', 'i-sigma': 'i-Sigma', rotra: 'Rotra', industria: 'Industria',
+    'i-ride': 'i-Ride', 'food-line': 'Food-Line', grasas: 'Grasas', forestal: 'Forestal',
+    anticongelantes: 'Anticongelantes'
+  };
   function renderGamaTabs() {
     const el = $('gamaTabs');
     if (!state.gamas || state.gamas.length <= 1) {

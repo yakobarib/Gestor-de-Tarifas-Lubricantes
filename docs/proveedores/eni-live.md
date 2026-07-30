@@ -1,94 +1,87 @@
 # Eni Live
 
 ## Estado
-- **Versión de app:** ⏳ pendiente (v0.4)
-- **Última tarifa disponible:** `Tarifa Eni Live - Lubricantes 13 Abril 2026.xlsx`
+- **Versión de app:** v0.8.0 (2026-07-30) — implementado
+- **Última tarifa procesada:** `Tarifa Eni Live - Lubricantes 13 Abril 2026.xlsx`
+- **Última actualización de este documento:** 2026-07-30
 
 ## Formato de la tarifa entrante
 
-Archivo Excel **multi-hoja por familia**, cabeceras en fila 6 de cada hoja:
+Archivo Excel con **una hoja por gama de producto** (9 hojas de datos + 2 informativas
+sin productos: `Capacidad palet`, `Plazo de entrega pedidos`, que se ignoran). Todas
+comparten la misma estructura de fondo, con variaciones de detalle por hoja:
 
-| Hoja | Familia | Notas |
+| Hoja (gama) | Columna litros/kg | Tiene TARIFA 2 |
 |---|---|---|
-| `i-Sint` | Aceites motor sintéticos | Estructura completa (TARIFA 0/1/2) |
-| `i-Sigma` | Aceites motor gasoil/gasolina | Estructura completa |
-| `Rotra` | Transmisiones | Añade columna PAIS, usa `LITROS / KG UNIDAD` |
-| `Industria` | Aceites industriales | Como Rotra |
-| `Forestal` | Aceites motosierra / motocultor | Como Rotra |
-| `i-Ride` | Aceites moto | Sin TARIFA 2 |
-| `Food-Line` | Grado alimentario | Sin TARIFA 2 |
-| `Grasas` | Grasas lubricantes | Sin TARIFA 2 |
-| `Anticongelantes` | Refrigerantes | Sin TARIFA 2 |
+| `i-Sint` | `LITROS UNIDAD` | Sí |
+| `i-Sigma` | `LITROS UNIDAD` | Sí |
+| `Rotra` | `LITROS UNIDAD` | **No** (usa Tarifa 1) |
+| `Industria` | `LITROS / KG UNIDAD` | Mixto fila a fila |
+| `i-Ride` | `LITROS UNIDAD` | **No** (usa Tarifa 1) |
+| `Food-Line` | `KG. UNIDAD` (solo kg) | Sí |
+| `Grasas` | `KG. UNIDAD` (solo kg) | **No** (usa Tarifa 1) |
+| `Forestal` | `LITROS / KG UNIDAD` | Sí |
+| `Anticongelantes` | `LITROS UNIDAD` (kg en algunos formatos grandes) | Sí (col. "NETO PALET (REFERENCIA) TARIFA 2") |
 
-Fila 7 contiene subtítulos de sección tipo `LUBRICANTES DE MOTOR`, `CAJAS DE CAMBIO MANUALES O ROBOTIZADAS`. Estas filas no llevan CODIGO numérico y deben saltarse.
+Cabecera real en la **fila 7** (índice 6) de cada hoja — se detecta buscando la fila
+cuya primera columna sea exactamente `CODIGO`, no por número de fila fijo (varía 1 fila
+entre hojas por comentarios sueltos en cabecera).
+
+Filas de subtítulo de sección (`LUBRICANTES DE MOTOR`, `CAJAS DE CAMBIO MANUALES O
+ROBOTIZADAS`…) solo rellenan la columna A y no tienen `PRODUCTO` — se detectan y se usan
+como valor de `FAMILIA` para las filas de producto siguientes, hasta la próxima.
 
 ## Columnas relevantes
 
-Hojas `i-Sint` / `i-Sigma`:
+| Columna Excel | Campo interno | Notas |
+|---|---|---|
+| `CODIGO` | `ref` | Alfanumérico (`G03093`, `2530G3`…), no siempre numérico puro. |
+| `PRODUCTO` | `description` (base) | Eni no incluye los litros en el nombre — se le añade el sufijo (`5L`, `400ML`…) al reconstruir `description`. Se quita el prefijo `"eni "` / `"Eni "`. |
+| `LITROS UNIDAD` / `KG. UNIDAD` / `LITROS / KG UNIDAD` | `liters` | Ver conversión kg→L abajo. |
+| `TARIFA 2` (no la variante "UNIDAD DE VENTA") | `costPerPack` | Precio final por envase individual — **el que se usa**. Si la fila no tiene Tarifa 2, se cae a `TARIFA 1` (fila a fila, no por hoja: en `Industria` hay referencias sueltas sin Tarifa 2 aunque la mayoría de la hoja sí la tenga). |
+| — (subtítulo de sección) | `fam` | Familia contextual, no un código — texto libre tal cual aparece en la tarifa. |
 
-| Columna | Campo interno |
+Columnas descartadas explícitamente (peso, EAN/DUN, P.V.P.R., UDS. POR ENVASE/CAJA,
+DESCUENTO %, STATUS, PAIS, y las variantes "UNIDAD DE VENTA" de cualquier tarifa): no
+afectan al precio final, ver [reglas de negocio](../reglas-negocio.md).
+
+**"UNIDAD DE VENTA" no es "por unidad".** Es al revés de lo que sugiere el nombre: la
+columna simple (`TARIFA 2`) ya es el precio por envase individual; `TARIFA 2 UNIDAD DE
+VENTA` es ese mismo precio multiplicado por `UDS. POR ENVASE` (el precio de la caja
+cuando varios envases pequeños se venden agrupados). Confirmado cruzando los datos reales
+de `i-Sint`: fila con `UDS. POR ENVASE=4`, `TARIFA 2=18,87` y `TARIFA 2 UNIDAD DE
+VENTA=75,47` (= 18,87 × 4).
+
+## Conversión kg → L (Food-Line, Grasas, Forestal, Industria, Anticongelantes)
+
+Varias gamas dan el formato del envase en **kg** en vez de litros. No es una conversión
+de densidad genérica: son pesos reales de envases estándar, y el mismo envase nominal
+pesa distinto según el producto (aceites de food-grade especialmente). Se resuelve por
+**rango de peso**, no por igualdad exacta — confirmado por Yako con Food-Line, donde el
+envase "grande" pesa 165, 170, 175, 180, 185 o 200 kg según el aceite y siempre son 205 L:
+
+| Peso (kg) | Envase (L) |
 |---|---|
-| `CODIGO` | `ref` |
-| `PRODUCTO` | `description` |
-| `LITROS UNIDAD` | `liters` (¡presente!) |
-| `KGS/NETO ENVASE` | Peso neto |
-| `UDS. POR ENVASE` | `unitsPerBox` |
-| `EAN 13 (Lata)` | EAN unitario |
-| `DUN 14 (caja, garrafa,...)` | EAN caja |
-| `P.V.P.R.` | PVP recomendado por Eni (por caja) |
-| `P.V.P.R. UNIDAD DE VENTA` | PVP recomendado (por envase) |
-| `TARIFA 0` | Precio bruto |
-| `TARIFA 0 UNIDAD DE VENTA` | Precio bruto por envase |
-| `TARIFA 1` | Precio con dto 1 |
-| `TARIFA 1 UNIDAD DE VENTA` | Idem por envase |
-| `TARIFA 2` | Precio con dto 2 (el más barato) |
-| `TARIFA 2 UNIDAD DE VENTA` | **Coste que va a Skrit** (más barato por envase) |
-| `STATUS` | Activo / descatalogado |
+| ≤ 2 | 0.4 (400 ml) |
+| ≤ 10 | 5 |
+| ≤ 35 | 20 |
+| ≤ 100 | 50 |
+| ≤ 500 | 205 |
+| ≤ 1200 | 1000 |
 
-## Casuísticas críticas
-
-### 1. Multi-hoja obligatorio
-
-No hay una hoja "master". Hay que recorrer las 9-11 hojas y consolidar. La app tiene que iterar sobre `workbook.SheetNames` filtrando las hojas de datos (por presencia de columna `CODIGO`).
-
-### 2. Cabecera en fila 6
-
-Distinto de Repsol (fila 0) o Castrol (fila 1). Requiere detección robusta: buscar la fila que contenga `CODIGO` + `TARIFA 0`.
-
-### 3. Tres tarifas de coste
-
-TARIFA 0 (bruto) < TARIFA 1 (dto 1) < TARIFA 2 (dto 2, el más barato). El coste que va a Skrit es **TARIFA 2 UNIDAD DE VENTA** — el más barato tras dtos comerciales.
-
-### 4. Hojas sin TARIFA 2
-
-Algunas familias (`i-Ride`, `Food-Line`, `Grasas`, `Anticongelantes`) no tienen TARIFA 2. En esos casos coger `TARIFA 1 UNIDAD DE VENTA`. Añadir aviso en UI.
-
-### 5. Columna LITROS presente
-
-A diferencia de Repsol, Eni sí trae `LITROS UNIDAD` directamente. Usarla en primera instancia; el parser sobre descripción queda como validación cruzada.
-
-### 6. Prefijo "eni" en descripción
-
-En la salida Skrit histórica, se elimina el prefijo `"eni "` del nombre del producto. Ejemplo: `"eni i-Sint 5W40 1L"` → `"i-Sint 5W40 1L"`.
-
-### 7. Formatos especiales
-
-Eni tiene formatos poco comunes (`10L`, `12L`, `50L`) además de los clásicos. El bucket de formatos en la UI debe respetarlos.
+Implementado en `KG_BUCKETS` dentro de `js/profiles/profile-eni.js`. Hay además un caso
+de formato de origen inconsistente: alguna fila trae el peso como número pelado sin
+`"kg."` (ej. `731111` en `Industria`, valor `180` a secas) o con la unidad en plural
+(`"170 kgs."` en vez de `"170 kg."`) — el parser cubre ambos casos.
 
 ## Estado en la app
 
-**No implementado todavía.** Plan (v0.4):
-
-1. Detección por nombre archivo `Eni`.
-2. Iterar todas las hojas del workbook. Filtrar por presencia de `CODIGO` numérico.
-3. Buscar cabecera en fila 6 o cercana.
-4. Extraer `TARIFA 2 UNIDAD DE VENTA` (o `TARIFA 1` si no hay `TARIFA 2`).
-5. Usar `LITROS UNIDAD` como fuente primaria; parser como fallback.
-6. Limpiar prefijo `"eni "` en la salida.
-7. Ofrecer al usuario elegir qué familias exportar (checkbox por hoja).
+**Implementado (v0.8.0).** `js/profiles/profile-eni.js`, perfil `eni`, 9 gamas activas
+en `BRANDS` (`js/core/brands.js`). Probado contra la tarifa real de abril 2026: 593
+filas, 0 sin litros detectados, 0 duplicados, import → MasterDB → Reglas → Exportación
+verificado en navegador.
 
 ## Referencias
 
-- Entrada: `EJEMPLOS TARIFAS/ENI LIVE/Ejemplo Tarifa de ENTRADA Eni Live.xlsx`
-- Salida esperada: `EJEMPLOS TARIFAS/ENI LIVE/Ejemplo Tarifa de SALIDA Eni Live para SKRIT.xlsx`
 - Tarifa actualizada: `TARIFAS ACTUALIZADAS/Eni/Tarifa Eni Live - Lubricantes 13 Abril 2026.xlsx`
+- Decisión de diseño: [ADR 0011](../decisiones/0011-perfil-eni-live.md)

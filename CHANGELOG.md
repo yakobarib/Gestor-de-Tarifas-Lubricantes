@@ -2,6 +2,23 @@
 
 Formato inspirado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [v0.8.0] — 2026-07-30
+
+### Añadido
+- **Segundo proveedor: Eni Live.** Perfil nuevo (`profile-eni.js`) que consolida las 9
+  hojas de gama de la tarifa (i-Sint, i-Sigma, Rotra, Industria, i-Ride, Food-Line,
+  Grasas, Forestal, Anticongelantes) en un solo import. Usa `TARIFA 2` como coste final
+  por envase, con fallback a `TARIFA 1` fila a fila cuando no existe (ver ADR 0011).
+- **Conversión kg→L por rango de peso** para las gamas que dan el formato en kg
+  (Food-Line, Grasas, Forestal, Industria, Anticongelantes): el mismo envase nominal
+  pesa distinto según el producto, así que se resuelve por rango en vez de por igualdad
+  exacta. Detalle en [ADR 0011](docs/decisiones/0011-perfil-eni-live.md).
+- Descripción de producto reconstruida con litros añadidos (Eni no los incluye en el
+  nombre, a diferencia del resto de proveedores auditados).
+
+### Cambiado
+- `BRANDS.eni` pasa de "próximamente" a activo, con sus 9 gamas reales.
+
 ## [v0.7.2] — 2026-07-30
 
 ### Cambiado
