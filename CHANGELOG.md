@@ -2,6 +2,31 @@
 
 Formato inspirado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [v0.5.1] — 2026-07-30
+
+### Cambiado — rediseño visual
+- **Pantalla Reglas ya no necesita scroll** para un caso típico: cada nivel de precio
+  pasa de 5 filas apiladas (label a la izquierda, campo a la derecha) a una sola fila
+  compacta con los 5 campos en columnas (label arriba, campo abajo).
+- Mismo patrón compacto en las filas de filtro de Comparación y Exportación (Marca /
+  Gama / Referencia / Nivel / Fecha en horizontal, no una fila entera por campo).
+- Navegación entre pantallas rediseñada como control segmentado tipo pill (fondo con
+  pestaña activa resaltada) en vez de pestañas subrayadas.
+- Tarjetas (marca, KPI, nivel de precio, resultado de comparación) con esquinas más
+  redondeadas y sombra suave consistente en toda la app.
+- Tipografía y espaciados más densos en general (tamaño base, padding de tarjetas,
+  márgenes) para una app más funcional a igual limpieza visual.
+- Verificado que el modo oscuro automático (`prefers-color-scheme`) sigue funcionando
+  correctamente con la nueva paleta.
+
+### Arreglado
+- Varios elementos (botón "Cargar mapa de rebranding", fórmula de margen, chips, toggle
+  de modo, botones secundarios) usaban `--pico-secondary-background` asumiendo que era
+  un gris claro sutil; en Pico v2 esa variable es en realidad un azul-gris sólido
+  (`#525f7a`) pensado para botones, y daba mal contraste como fondo de superficie.
+  Sustituido por tokens propios (`--surface-muted`, `--border-muted`, `--text-strong`)
+  con sus propios valores para modo claro y oscuro.
+
 ## [v0.5.0] — 2026-07-29
 
 ### Añadido

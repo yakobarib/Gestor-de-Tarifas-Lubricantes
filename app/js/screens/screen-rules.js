@@ -77,45 +77,47 @@ const ScreenRules = (() => {
     const canDelete = lvl.id !== 'pvp' && total > 1;
     return `
       <div class="level-card" data-index="${index}">
-        <h4>
-          ${escapeHtml(lvl.label)}
+        <div class="level-card-head">
+          <h4>${escapeHtml(lvl.label)}</h4>
           <span class="skrit-flag ${lvl.goesToSkrit ? 'yes' : 'no'}">${lvl.goesToSkrit ? 'va a Skrit' : 'no va a Skrit'}</span>
-        </h4>
-        <div class="level-row">
-          <label>Base de coste</label>
-          <select data-field="baseCost" data-index="${index}">
-            <option value="factura" ${!lvl.baseCost || lvl.baseCost === 'factura' ? 'selected' : ''}>Coste factura</option>
-            <option value="netoNeto" ${lvl.baseCost === 'netoNeto' ? 'selected' : ''}>Coste neto-neto (si está auditado)</option>
-            <option value="tripleNeto" ${lvl.baseCost === 'tripleNeto' ? 'selected' : ''}>Coste triple neto (si está auditado)</option>
-          </select>
+          ${canDelete ? `<button type="button" class="delete-level" data-action="delete-level" data-index="${index}">Eliminar</button>` : ''}
         </div>
-        <div class="level-row">
-          <label>Modo de margen</label>
-          <select data-field="mode" data-index="${index}">
-            <option value="sale" ${lvl.mode !== 'cost' ? 'selected' : ''}>Sobre venta</option>
-            <option value="cost" ${lvl.mode === 'cost' ? 'selected' : ''}>Sobre compra</option>
-          </select>
+        <div class="level-fields">
+          <div class="level-field">
+            <label>Base de coste</label>
+            <select data-field="baseCost" data-index="${index}">
+              <option value="factura" ${!lvl.baseCost || lvl.baseCost === 'factura' ? 'selected' : ''}>Coste factura</option>
+              <option value="netoNeto" ${lvl.baseCost === 'netoNeto' ? 'selected' : ''}>Coste neto-neto</option>
+              <option value="tripleNeto" ${lvl.baseCost === 'tripleNeto' ? 'selected' : ''}>Coste triple neto</option>
+            </select>
+          </div>
+          <div class="level-field">
+            <label>Modo de margen</label>
+            <select data-field="mode" data-index="${index}">
+              <option value="sale" ${lvl.mode !== 'cost' ? 'selected' : ''}>Sobre venta</option>
+              <option value="cost" ${lvl.mode === 'cost' ? 'selected' : ''}>Sobre compra</option>
+            </select>
+          </div>
+          <div class="level-field">
+            <label>Margen por defecto</label>
+            <input type="number" min="0" max="500" step="0.5" data-field="defaultMargin" data-index="${index}" value="${lvl.defaultMargin}">
+          </div>
+          <div class="level-field">
+            <label>Redondeo</label>
+            <select data-field="rounding" data-index="${index}">
+              <option value="none" ${lvl.rounding === 'none' ? 'selected' : ''}>Sin redondeo</option>
+              <option value="2dec" ${lvl.rounding === '2dec' ? 'selected' : ''}>2 decimales</option>
+              <option value="psy99" ${lvl.rounding === 'psy99' ? 'selected' : ''}>Acabado en ,99</option>
+              <option value="psy95" ${lvl.rounding === 'psy95' ? 'selected' : ''}>Acabado en ,95</option>
+              <option value="step05" ${lvl.rounding === 'step05' ? 'selected' : ''}>Múltiplo de 0,05 €</option>
+              <option value="int" ${lvl.rounding === 'int' ? 'selected' : ''}>Entero</option>
+            </select>
+          </div>
+          <div class="level-field checkbox">
+            <input type="checkbox" id="skrit-${index}" data-field="goesToSkrit" data-index="${index}" ${lvl.goesToSkrit ? 'checked' : ''}>
+            <label for="skrit-${index}">¿Va a Skrit?</label>
+          </div>
         </div>
-        <div class="level-row">
-          <label>Margen por defecto</label>
-          <input type="number" min="0" max="500" step="0.5" data-field="defaultMargin" data-index="${index}" value="${lvl.defaultMargin}">
-        </div>
-        <div class="level-row">
-          <label>Redondeo</label>
-          <select data-field="rounding" data-index="${index}">
-            <option value="none" ${lvl.rounding === 'none' ? 'selected' : ''}>Sin redondeo</option>
-            <option value="2dec" ${lvl.rounding === '2dec' ? 'selected' : ''}>2 decimales</option>
-            <option value="psy99" ${lvl.rounding === 'psy99' ? 'selected' : ''}>Acabado en ,99</option>
-            <option value="psy95" ${lvl.rounding === 'psy95' ? 'selected' : ''}>Acabado en ,95</option>
-            <option value="step05" ${lvl.rounding === 'step05' ? 'selected' : ''}>Múltiplo de 0,05 €</option>
-            <option value="int" ${lvl.rounding === 'int' ? 'selected' : ''}>Entero</option>
-          </select>
-        </div>
-        <div class="level-row">
-          <label>¿Va a Skrit?</label>
-          <input type="checkbox" data-field="goesToSkrit" data-index="${index}" ${lvl.goesToSkrit ? 'checked' : ''}>
-        </div>
-        ${canDelete ? `<button type="button" class="secondary-btn" data-action="delete-level" data-index="${index}">Eliminar nivel</button>` : ''}
       </div>
     `;
   }

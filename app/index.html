@@ -13,7 +13,7 @@
 
 <header>
   <h1>Gestor de Tarifas de Lubricantes</h1>
-  <p class="subtitle">v0.5.0 · Importación → Reglas → Comparación → Exportación</p>
+  <p class="subtitle">v0.5.1 · Importación → Reglas → Comparación → Exportación</p>
 </header>
 
 <nav id="mainNav">
@@ -50,7 +50,7 @@
 
     <!-- Panel lateral de configuración -->
     <aside class="config-panel">
-      <article style="padding: 1rem;">
+      <article>
         <h3>Configuración de margen</h3>
 
         <!-- Toggle Margen sobre Venta / sobre Compra -->
@@ -163,32 +163,37 @@
      PANTALLA: REGLAS
      ========================================================================== -->
 <section id="screen-rules" class="screen-section hidden">
-  <article style="padding: 1rem; margin-bottom: 1rem;">
+  <article style="margin-bottom: 1rem;">
     <h3>Niveles de precio por marca / gama</h3>
     <p class="muted" style="font-size:0.85rem;">
       Cada marca (y gama, si tiene varias) puede generar varios precios de salida a partir de dos posibles bases de
       coste: el coste de factura, o el coste neto-neto tras descuentos/rappels (cuando ese proveedor ya esté auditado).
       "Precios para Bonus" es un nivel de uso interno que nunca se exporta a Skrit.
     </p>
-    <div class="wide-row">
-      <label for="rulesBrandSelect">Marca</label>
-      <select id="rulesBrandSelect"></select>
-    </div>
-    <div class="wide-row">
-      <label for="rulesGamaSelect">Gama</label>
-      <select id="rulesGamaSelect"></select>
+    <div class="filter-row">
+      <div class="field">
+        <label for="rulesBrandSelect">Marca</label>
+        <select id="rulesBrandSelect"></select>
+      </div>
+      <div class="field">
+        <label for="rulesGamaSelect">Gama</label>
+        <select id="rulesGamaSelect"></select>
+      </div>
     </div>
   </article>
 
   <div id="levelsContainer"></div>
 
-  <article style="padding: 1rem;">
+  <article>
     <h4>Añadir nivel</h4>
-    <div class="wide-row">
-      <select id="newLevelPreset">
-        <option value="precio_neto_venta">Precio Neto de Venta</option>
-        <option value="precio_bonus">Precios para Bonus</option>
-      </select>
+    <div class="filter-row" style="margin-bottom: 0.6rem;">
+      <div class="field">
+        <label for="newLevelPreset">Preset</label>
+        <select id="newLevelPreset">
+          <option value="precio_neto_venta">Precio Neto de Venta</option>
+          <option value="precio_bonus">Precios para Bonus</option>
+        </select>
+      </div>
     </div>
     <button id="btnAddLevel" class="secondary-btn">Añadir nivel</button>
   </article>
@@ -198,7 +203,7 @@
      PANTALLA: COMPARACIÓN
      ========================================================================== -->
 <section id="screen-compare" class="screen-section hidden">
-  <article style="padding: 1rem; margin-bottom: 1rem;">
+  <article style="margin-bottom: 1rem;">
     <h3>Base de conocimiento de equivalencias</h3>
     <p class="muted" style="font-size:0.85rem;">
       Carga los 5 Excel de "Equivalencias" (Aceites por Marcas, Grasas, Hidráulicos, Motor Vehículo Industrial,
@@ -209,19 +214,21 @@
     <div id="kbStatus" style="margin-top:0.5rem;"></div>
   </article>
 
-  <article style="padding: 1rem;">
+  <article>
     <h3>Comparar una referencia entre marcas</h3>
-    <div class="wide-row">
-      <label for="compareBrandSelect">Marca</label>
-      <select id="compareBrandSelect"></select>
-    </div>
-    <div class="wide-row">
-      <label for="compareGamaSelect">Gama</label>
-      <select id="compareGamaSelect"></select>
-    </div>
-    <div class="wide-row">
-      <label for="compareRefSelect">Referencia</label>
-      <select id="compareRefSelect"></select>
+    <div class="filter-row">
+      <div class="field">
+        <label for="compareBrandSelect">Marca</label>
+        <select id="compareBrandSelect"></select>
+      </div>
+      <div class="field">
+        <label for="compareGamaSelect">Gama</label>
+        <select id="compareGamaSelect"></select>
+      </div>
+      <div class="field" style="flex: 2 1 260px;">
+        <label for="compareRefSelect">Referencia</label>
+        <select id="compareRefSelect"></select>
+      </div>
     </div>
     <div id="compareResult" class="compare-result"></div>
   </article>
@@ -231,27 +238,29 @@
      PANTALLA: EXPORTACIÓN
      ========================================================================== -->
 <section id="screen-export" class="screen-section hidden">
-  <article style="padding: 1rem;">
+  <article>
     <h3>Exportar a Skrit</h3>
     <p class="muted" style="font-size:0.85rem;">
       Layout unificado: MARCA, REFERENCIA, MARCA+REFERENCIA, coste factura, coste neto-neto, precio del nivel elegido,
       familia, litros y descripción — lee directamente del maestro multi-marca.
     </p>
-    <div class="wide-row">
-      <label for="exportBrandSelect">Marca</label>
-      <select id="exportBrandSelect"></select>
-    </div>
-    <div class="wide-row">
-      <label for="exportGamaSelect">Gama</label>
-      <select id="exportGamaSelect"></select>
-    </div>
-    <div class="wide-row">
-      <label for="exportLevelSelect">Nivel de precio</label>
-      <select id="exportLevelSelect"></select>
-    </div>
-    <div class="wide-row">
-      <label for="exportTariffDate">Fecha tarifa</label>
-      <input type="date" id="exportTariffDate">
+    <div class="filter-row">
+      <div class="field">
+        <label for="exportBrandSelect">Marca</label>
+        <select id="exportBrandSelect"></select>
+      </div>
+      <div class="field">
+        <label for="exportGamaSelect">Gama</label>
+        <select id="exportGamaSelect"></select>
+      </div>
+      <div class="field">
+        <label for="exportLevelSelect">Nivel de precio</label>
+        <select id="exportLevelSelect"></select>
+      </div>
+      <div class="field">
+        <label for="exportTariffDate">Fecha tarifa</label>
+        <input type="date" id="exportTariffDate">
+      </div>
     </div>
     <button id="btnDoExport">Exportar</button>
     <div id="exportStatus" style="margin-top:0.6rem;"></div>
