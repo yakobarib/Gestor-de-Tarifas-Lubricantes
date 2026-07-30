@@ -10,14 +10,14 @@
    equivalencias (que nunca llevan prefijo) con la ref real guardada en
    MasterDB. AD Parts usa 'ADP'; Repsol y el resto no prefijan. */
 const BRANDS = [
-  { id: 'repsol', label: 'Repsol', abbr: 'REP', refPrefix: '', gamas: ['default'], pending: false },
-  { id: 'ad_parts_aceite', label: 'AD Parts — Aceite', abbr: 'ADP', refPrefix: 'ADP', gamas: ['normal', 'standard', 'sportcar'], pending: false },
-  { id: 'ad_parts_quimico', label: 'AD Parts — Producto Químico', abbr: 'ADP', refPrefix: 'ADP', gamas: ['default'], pending: false },
-  { id: 'castrol', label: 'Castrol', abbr: 'CAT', refPrefix: '', gamas: ['default'], pending: true },
-  { id: 'eni', label: 'Eni Live', abbr: 'ENI', refPrefix: '', gamas: ['default'], pending: true },
-  { id: 'racing_oil', label: 'Racing Oil', abbr: 'RAC', refPrefix: '', gamas: ['default'], pending: true },
-  { id: 'krafft', label: 'Krafft', abbr: 'KRA', refPrefix: '', gamas: ['default'], pending: true },
-  { id: 'shell', label: 'Shell', abbr: 'SHL', refPrefix: '', gamas: ['default'], pending: true }
+  { id: 'repsol', label: 'Repsol', abbr: 'REP', color: '#f97316', refPrefix: '', gamas: ['default'], pending: false },
+  { id: 'ad_parts_aceite', label: 'AD Parts — Aceite', abbr: 'ADP', color: '#3b82f6', refPrefix: 'ADP', gamas: ['normal', 'standard', 'sportcar'], pending: false },
+  { id: 'ad_parts_quimico', label: 'AD Parts — Producto Químico', abbr: 'ADP', color: '#14b8a6', refPrefix: 'ADP', gamas: ['default'], pending: false },
+  { id: 'castrol', label: 'Castrol', abbr: 'CAT', color: '#8b5cf6', refPrefix: '', gamas: ['default'], pending: true },
+  { id: 'eni', label: 'Eni Live', abbr: 'ENI', color: '#eab308', refPrefix: '', gamas: ['default'], pending: true },
+  { id: 'racing_oil', label: 'Racing Oil', abbr: 'RAC', color: '#ef4444', refPrefix: '', gamas: ['default'], pending: true },
+  { id: 'krafft', label: 'Krafft', abbr: 'KRA', color: '#06b6d4', refPrefix: '', gamas: ['default'], pending: true },
+  { id: 'shell', label: 'Shell', abbr: 'SHL', color: '#f43f5e', refPrefix: '', gamas: ['default'], pending: true }
 ];
 
 function findBrand(brandId) {

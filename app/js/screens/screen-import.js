@@ -69,8 +69,9 @@ const ScreenImport = (() => {
     const el = $('brandGrid');
     if (!el) return;
     el.innerHTML = BRANDS.map(b => {
+      const icon = `<div class="brand-icon" style="background:${escapeHtml(b.color || '#94a3b8')}">${escapeHtml(b.abbr || '')}</div>`;
       if (b.pending) {
-        return `<div class="brand-card pending"><h4>${escapeHtml(b.label)}</h4><div class="line">Próximamente</div></div>`;
+        return `<div class="brand-card pending"><div class="brand-card-head">${icon}<h4>${escapeHtml(b.label)}</h4></div><div class="line">Próximamente</div></div>`;
       }
       const gamaLines = b.gamas.map(g => {
         const meta = Storage.get(`import_meta_${b.id}_${g}_factura`, null);
@@ -80,7 +81,7 @@ const ScreenImport = (() => {
           : `<span class="status-none">sin importar</span>`;
         return `<div class="line">${escapeHtml(label)}: ${status}</div>`;
       }).join('');
-      return `<div class="brand-card"><h4>${escapeHtml(b.label)}</h4>${gamaLines}</div>`;
+      return `<div class="brand-card"><div class="brand-card-head">${icon}<h4>${escapeHtml(b.label)}</h4></div>${gamaLines}</div>`;
     }).join('');
   }
 

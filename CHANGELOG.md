@@ -2,6 +2,23 @@
 
 Formato inspirado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [v0.6.0] — 2026-07-30
+
+### Cambiado — sidebar de navegación y color por marca
+- **Navegación pasa de pestañas arriba a sidebar lateral**, con un icono de color propio
+  por sección (Importación azul, Reglas morado, Comparación verde azulado, Exportación
+  naranja) — inspirado en referencias de dashboards que pidió Yako. En pantallas
+  estrechas (<860px) el sidebar colapsa a una barra horizontal arriba, icono+texto.
+- **Tarjetas de marca con icono de color** (abreviatura sobre un cuadrado de color propio
+  por marca — `BRANDS[].color` en `js/core/brands.js`) en vez de tarjetas blancas lisas,
+  para el efecto "visualmente llamativo" pedido sin perder limpieza.
+- Iconos de navegación como SVG inline minimalistas (sin librería externa, siguiendo el
+  principio de cero dependencias del ADR 0001).
+
+### Verificación
+- Confirmado en claro y oscuro, en escritorio ancho (sidebar vertical) y estrecho
+  (barra horizontal), y navegando las 4 pantallas — sin errores de consola.
+
 ## [v0.5.1] — 2026-07-30
 
 ### Cambiado — rediseño visual

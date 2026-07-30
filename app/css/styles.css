@@ -30,12 +30,58 @@
 }
 
 html, body { overflow-x: hidden; }
-body { padding: 1.1rem 1.5rem 2rem; max-width: 1760px; margin: 0 auto; box-sizing: border-box; font-size: 0.94rem; }
+body { padding: 0; margin: 0; box-sizing: border-box; font-size: 0.94rem; }
 * { box-sizing: border-box; }
 
-header { margin-bottom: 0.2rem; }
-header h1 { margin-bottom: 0.15rem; font-size: 1.35rem; font-weight: 700; letter-spacing: -0.01em; }
-header p.subtitle { color: var(--pico-muted-color); margin-top: 0; font-size: 0.85rem; }
+/* ============================================================================
+   Shell: sidebar de navegación + área de contenido
+   ============================================================================ */
+.app-shell { display: flex; align-items: stretch; min-height: 100vh; max-width: 1760px; margin: 0 auto; }
+.sidebar {
+  width: 224px; flex-shrink: 0; padding: 1.1rem 0.85rem;
+  display: flex; flex-direction: column; gap: 1.4rem;
+  border-right: 1px solid var(--pico-card-border-color);
+  position: sticky; top: 0; align-self: flex-start; height: 100vh; overflow-y: auto;
+}
+.app-main { flex: 1; min-width: 0; padding: 1.1rem 1.5rem 2rem; }
+
+.sidebar-brand { display: flex; align-items: center; gap: 0.6rem; padding: 0.2rem 0.4rem 0.2rem; }
+.sidebar-logo { font-size: 1.5rem; line-height: 1; }
+.sidebar-title { font-weight: 700; font-size: 0.92rem; line-height: 1.2; letter-spacing: -0.01em; }
+.sidebar-version { font-size: 0.7rem; color: var(--pico-muted-color); }
+
+.sidebar-nav { display: flex; flex-direction: column; gap: 0.25rem; }
+.nav-item {
+  display: flex; align-items: center; gap: 0.65rem; padding: 0.5rem 0.6rem;
+  border-radius: var(--radius-md); text-decoration: none; color: var(--text-strong);
+  font-weight: 600; font-size: 0.85rem; border-bottom: none;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.nav-item:hover { background: var(--surface-muted); }
+.nav-icon {
+  width: 28px; height: 28px; border-radius: 0.5rem; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center; color: #fff;
+}
+.nav-import .nav-icon { background: #3b82f6; }
+.nav-rules .nav-icon { background: #8b5cf6; }
+.nav-compare .nav-icon { background: #14b8a6; }
+.nav-export .nav-icon { background: #f97316; }
+.nav-import.active { background: rgba(59, 130, 246, 0.12); color: #1d4ed8; }
+.nav-rules.active { background: rgba(139, 92, 246, 0.12); color: #6d28d9; }
+.nav-compare.active { background: rgba(20, 184, 166, 0.12); color: #0f766e; }
+.nav-export.active { background: rgba(249, 115, 22, 0.12); color: #c2410c; }
+@media (prefers-color-scheme: dark) {
+  .nav-import.active { color: #93c5fd; }
+  .nav-rules.active { color: #c4b5fd; }
+  .nav-compare.active { color: #5eead4; }
+  .nav-export.active { color: #fdba74; }
+}
+@media (max-width: 860px) {
+  .app-shell { flex-direction: column; }
+  .sidebar { width: 100%; height: auto; position: static; flex-direction: row; align-items: center; gap: 0.8rem; overflow-x: auto; border-right: none; border-bottom: 1px solid var(--pico-card-border-color); }
+  .sidebar-nav { flex-direction: row; }
+  .nav-item { white-space: nowrap; }
+}
 
 /* Tarjetas genéricas (article de Pico, y las nuestras) — mismo lenguaje visual */
 article {
@@ -47,24 +93,6 @@ article {
 }
 article h3 { font-size: 1.02rem; margin-bottom: 0.5rem; }
 article h4 { font-size: 0.88rem; }
-
-/* Navegación entre las 4 pantallas — control segmentado tipo pill */
-#mainNav {
-  display: inline-flex; gap: 0.2rem; margin: 0.9rem 0 1.2rem;
-  padding: 0.25rem; background: var(--surface-muted);
-  border-radius: var(--radius-lg); border: 1px solid var(--pico-card-border-color);
-}
-#mainNav a {
-  padding: 0.45rem 1.05rem; font-size: 0.86rem; font-weight: 600;
-  color: var(--pico-muted-color); text-decoration: none;
-  border-radius: var(--radius-md); border-bottom: none;
-  transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
-}
-#mainNav a:hover { color: var(--pico-color); }
-#mainNav a.active {
-  background: var(--pico-card-background-color); color: var(--pico-primary);
-  box-shadow: var(--shadow-card);
-}
 
 /* Fila de filtros compacta (Marca / Gama / Nivel / Fecha…) — label arriba, campo abajo,
    todo en horizontal en vez de una fila entera por campo. */
@@ -83,10 +111,17 @@ article h4 { font-size: 0.88rem; }
   transition: box-shadow 0.15s ease;
 }
 .brand-card:not(.pending):hover { box-shadow: var(--shadow-card-hover); }
-.brand-card h4 { margin: 0 0 0.3rem; font-size: 0.9rem; font-weight: 650; }
+.brand-card-head { display: flex; align-items: center; gap: 0.55rem; margin-bottom: 0.5rem; }
+.brand-icon {
+  width: 34px; height: 34px; border-radius: 0.55rem; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; font-size: 0.68rem; font-weight: 700; letter-spacing: 0.02em;
+}
+.brand-card h4 { margin: 0; font-size: 0.9rem; font-weight: 650; line-height: 1.25; }
 .brand-card .line { font-size: 0.76rem; color: var(--pico-muted-color); margin: 0.15rem 0; }
 .brand-card .line strong { color: var(--pico-color); }
 .brand-card.pending { opacity: 0.5; box-shadow: none; }
+.brand-card.pending .brand-icon { background: var(--pico-muted-color) !important; }
 .brand-card .status-ok { color: #2d7a2d; }
 .brand-card .status-none { color: var(--pico-muted-color); font-style: italic; }
 
