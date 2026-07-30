@@ -64,21 +64,21 @@ body { padding: 0; margin: 0; box-sizing: border-box; font-size: 0.94rem; backgr
    ============================================================================ */
 .app-shell { display: flex; align-items: stretch; min-height: 100vh; gap: 0.75rem; padding: 0.75rem; }
 .sidebar {
-  width: 208px; flex-shrink: 0; padding: 0.9rem 0.65rem;
+  width: 244px; flex-shrink: 0; padding: 0.9rem 0.75rem;
   display: flex; flex-direction: column; gap: 1.1rem;
   background: var(--pico-card-background-color);
   border: 1px solid var(--pico-card-border-color);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-float);
   position: sticky; top: 0.75rem; align-self: flex-start;
-  height: calc(100vh - 1.5rem); overflow-y: auto;
+  height: calc(100vh - 1.5rem); overflow-y: auto; overflow-x: hidden;
 }
 .app-main { flex: 1; min-width: 0; }
 
-.sidebar-brand { display: flex; align-items: center; gap: 0.55rem; padding: 0.1rem 0.3rem 0.1rem; }
-.brand-logo { width: 30px; height: auto; flex-shrink: 0; color: var(--text-strong); }
-.sidebar-title { font-weight: 700; font-size: 0.9rem; line-height: 1.15; letter-spacing: -0.01em; white-space: nowrap; }
-.sidebar-sub { font-size: 0.62rem; color: var(--pico-muted-color); text-transform: uppercase; letter-spacing: 0.05em; white-space: nowrap; }
+.sidebar-brand { display: flex; align-items: center; gap: 0.5rem; padding: 0.1rem 0.2rem 0.1rem; min-width: 0; }
+.brand-logo { width: 28px; height: auto; flex-shrink: 0; color: var(--text-strong); }
+.sidebar-title { font-weight: 700; font-size: 0.86rem; line-height: 1.15; letter-spacing: -0.01em; white-space: nowrap; }
+.sidebar-sub { font-size: 0.6rem; color: var(--pico-muted-color); text-transform: uppercase; letter-spacing: 0.05em; white-space: nowrap; }
 
 .sidebar-nav { display: flex; flex-direction: column; gap: 0.2rem; }
 .nav-item {
@@ -115,8 +115,8 @@ body { padding: 0; margin: 0; box-sizing: border-box; font-size: 0.94rem; backgr
 :root[data-theme="light"] .nav-compare.active { color: #0f766e; }
 :root[data-theme="light"] .nav-export.active { color: #c2410c; }
 
-.sidebar-footer { margin-top: auto; padding: 0.6rem 0.3rem 0.1rem; border-top: 1px solid var(--border-muted); text-align: center; }
-.sidebar-footer p { margin: 0; font-size: 0.66rem; line-height: 1.5; color: var(--pico-muted-color); }
+.sidebar-footer { margin-top: auto; padding: 0.6rem 0 0.1rem; border-top: 1px solid var(--border-muted); text-align: center; }
+.sidebar-footer p { margin: 0; font-size: 0.64rem; line-height: 1.5; color: var(--pico-muted-color); white-space: nowrap; }
 .sidebar-footer strong { color: var(--text-strong); font-weight: 650; }
 .sidebar-footer .sidebar-version { display: block; margin-top: 0.35rem; font-size: 0.62rem; color: var(--pico-muted-color); }
 
@@ -128,12 +128,17 @@ body { padding: 0; margin: 0; box-sizing: border-box; font-size: 0.94rem; backgr
 .app-header h2 { margin: 0; font-size: 1.15rem; font-weight: 700; letter-spacing: -0.01em; }
 .header-actions { display: flex; align-items: center; gap: 0.4rem; }
 .icon-btn {
-  width: 34px; height: 34px; border-radius: var(--radius-sm);
+  width: 36px; height: 36px; border-radius: var(--radius-sm);
   display: flex; align-items: center; justify-content: center;
-  background: var(--surface-muted); border: 1px solid var(--border-muted);
-  color: var(--text-strong); cursor: pointer; transition: background 0.12s ease;
+  background: var(--pico-card-background-color); border: 1px solid var(--pico-card-border-color);
+  color: var(--text-strong); cursor: pointer; transition: box-shadow 0.12s ease, border-color 0.12s ease;
+  box-shadow: var(--shadow-card);
 }
-.icon-btn:hover { background: var(--surface-muted-hover); }
+.icon-btn:hover { box-shadow: var(--shadow-card-hover); border-color: var(--border-muted); }
+#btnThemeToggle { color: #eab308; }
+@media (prefers-color-scheme: dark) { #btnThemeToggle { color: #93c5fd; } }
+:root[data-theme="dark"] #btnThemeToggle { color: #93c5fd; }
+:root[data-theme="light"] #btnThemeToggle { color: #eab308; }
 
 .toast {
   position: fixed; bottom: 1.2rem; left: 50%; transform: translateX(-50%) translateY(0);

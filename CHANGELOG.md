@@ -2,6 +2,22 @@
 
 Formato inspirado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [v0.7.1] — 2026-07-30
+
+### Arreglado
+- Sidebar demasiado estrecho tras el v0.7.0: "Gestor de Tarifas" se cortaba y "Krafted by
+  Yakoba Moreno" se partía en dos líneas dentro de su propia línea. Ensanchado
+  (208px → 244px), padding interno ajustado y añadido `overflow-x: hidden` para que un
+  desbordamiento puntual no muestre scrollbar horizontal en el sidebar.
+- Botones del header (tema/ayuda/ajustes/login) se perdían contra el fondo gris de página
+  al ser todos del mismo gris — ahora con fondo blanco/tarjeta y sombra, igual que el
+  resto de superficies "elevadas" de la app (KPIs, tarjetas de marca). El botón de tema
+  además colorea su icono (sol ámbar en claro, luna azul en oscuro) para distinguirlo.
+
+### Cambiado
+- El logo del sidebar pasa del wordmark "AD" a la gota de aceite con "€" que ya se usaba
+  como favicon — mismo icono, dos sitios.
+
 ## [v0.7.0] — 2026-07-30
 
 ### Cambiado — pulido del sidebar y header compartido
