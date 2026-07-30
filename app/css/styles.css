@@ -7,6 +7,7 @@
   --radius-sm: 0.4rem;
   --shadow-card: 0 1px 2px rgba(15, 23, 42, 0.04), 0 4px 14px rgba(15, 23, 42, 0.05);
   --shadow-card-hover: 0 2px 4px rgba(15, 23, 42, 0.06), 0 8px 20px rgba(15, 23, 42, 0.07);
+  --shadow-float: 0 1px 3px rgba(15, 23, 42, 0.06), 0 10px 30px rgba(15, 23, 42, 0.08);
   /* Superficie "muted" propia — NO usar --pico-secondary-background: en Pico v2 esa
      variable es un azul-gris sólido pensado para botones (#525f7a), no un fondo claro
      sutil, y da mal contraste si se usa como tal (bug encontrado y corregido aquí). */
@@ -14,6 +15,7 @@
   --surface-muted-hover: #dfe2e7;
   --border-muted: #d7dade;
   --text-strong: #2b2f38;
+  --page-bg: #f2f3f5;
   --pico-form-element-spacing-vertical: 0.35rem;
   --pico-form-element-spacing-horizontal: 0.6rem;
   --pico-typography-spacing-vertical: 0.6rem;
@@ -22,44 +24,72 @@
   :root {
     --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.18), 0 4px 14px rgba(0, 0, 0, 0.22);
     --shadow-card-hover: 0 2px 4px rgba(0, 0, 0, 0.22), 0 8px 20px rgba(0, 0, 0, 0.26);
+    --shadow-float: 0 1px 3px rgba(0, 0, 0, 0.3), 0 10px 30px rgba(0, 0, 0, 0.34);
     --surface-muted: #262b36;
     --surface-muted-hover: #323847;
     --border-muted: #3a4150;
     --text-strong: #e7e9ee;
+    --page-bg: #0f1115;
   }
+}
+/* Override manual (botón de tema) — gana siempre sobre prefers-color-scheme al
+   estar declarado después y con selector de igual especificidad sobre :root. */
+:root[data-theme="light"] {
+  --shadow-card: 0 1px 2px rgba(15, 23, 42, 0.04), 0 4px 14px rgba(15, 23, 42, 0.05);
+  --shadow-card-hover: 0 2px 4px rgba(15, 23, 42, 0.06), 0 8px 20px rgba(15, 23, 42, 0.07);
+  --shadow-float: 0 1px 3px rgba(15, 23, 42, 0.06), 0 10px 30px rgba(15, 23, 42, 0.08);
+  --surface-muted: #eef0f3;
+  --surface-muted-hover: #dfe2e7;
+  --border-muted: #d7dade;
+  --text-strong: #2b2f38;
+  --page-bg: #f2f3f5;
+}
+:root[data-theme="dark"] {
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.18), 0 4px 14px rgba(0, 0, 0, 0.22);
+  --shadow-card-hover: 0 2px 4px rgba(0, 0, 0, 0.22), 0 8px 20px rgba(0, 0, 0, 0.26);
+  --shadow-float: 0 1px 3px rgba(0, 0, 0, 0.3), 0 10px 30px rgba(0, 0, 0, 0.34);
+  --surface-muted: #262b36;
+  --surface-muted-hover: #323847;
+  --border-muted: #3a4150;
+  --text-strong: #e7e9ee;
+  --page-bg: #0f1115;
 }
 
 html, body { overflow-x: hidden; }
-body { padding: 0; margin: 0; box-sizing: border-box; font-size: 0.94rem; }
+body { padding: 0; margin: 0; box-sizing: border-box; font-size: 0.94rem; background: var(--page-bg); }
 * { box-sizing: border-box; }
 
 /* ============================================================================
-   Shell: sidebar de navegación + área de contenido
+   Shell: sidebar flotante (estilo Finder) + área de contenido
    ============================================================================ */
-.app-shell { display: flex; align-items: stretch; min-height: 100vh; max-width: 1760px; margin: 0 auto; }
+.app-shell { display: flex; align-items: stretch; min-height: 100vh; gap: 0.75rem; padding: 0.75rem; }
 .sidebar {
-  width: 224px; flex-shrink: 0; padding: 1.1rem 0.85rem;
-  display: flex; flex-direction: column; gap: 1.4rem;
-  border-right: 1px solid var(--pico-card-border-color);
-  position: sticky; top: 0; align-self: flex-start; height: 100vh; overflow-y: auto;
+  width: 208px; flex-shrink: 0; padding: 0.9rem 0.65rem;
+  display: flex; flex-direction: column; gap: 1.1rem;
+  background: var(--pico-card-background-color);
+  border: 1px solid var(--pico-card-border-color);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-float);
+  position: sticky; top: 0.75rem; align-self: flex-start;
+  height: calc(100vh - 1.5rem); overflow-y: auto;
 }
-.app-main { flex: 1; min-width: 0; padding: 1.1rem 1.5rem 2rem; }
+.app-main { flex: 1; min-width: 0; }
 
-.sidebar-brand { display: flex; align-items: center; gap: 0.6rem; padding: 0.2rem 0.4rem 0.2rem; }
-.sidebar-logo { font-size: 1.5rem; line-height: 1; }
-.sidebar-title { font-weight: 700; font-size: 0.92rem; line-height: 1.2; letter-spacing: -0.01em; }
-.sidebar-version { font-size: 0.7rem; color: var(--pico-muted-color); }
+.sidebar-brand { display: flex; align-items: center; gap: 0.55rem; padding: 0.1rem 0.3rem 0.1rem; }
+.brand-logo { width: 30px; height: auto; flex-shrink: 0; color: var(--text-strong); }
+.sidebar-title { font-weight: 700; font-size: 0.9rem; line-height: 1.15; letter-spacing: -0.01em; white-space: nowrap; }
+.sidebar-sub { font-size: 0.62rem; color: var(--pico-muted-color); text-transform: uppercase; letter-spacing: 0.05em; white-space: nowrap; }
 
-.sidebar-nav { display: flex; flex-direction: column; gap: 0.25rem; }
+.sidebar-nav { display: flex; flex-direction: column; gap: 0.2rem; }
 .nav-item {
-  display: flex; align-items: center; gap: 0.65rem; padding: 0.5rem 0.6rem;
+  display: flex; align-items: center; gap: 0.6rem; padding: 0.48rem 0.55rem;
   border-radius: var(--radius-md); text-decoration: none; color: var(--text-strong);
-  font-weight: 600; font-size: 0.85rem; border-bottom: none;
+  font-weight: 600; font-size: 0.83rem; border-bottom: none;
   transition: background 0.15s ease, color 0.15s ease;
 }
 .nav-item:hover { background: var(--surface-muted); }
 .nav-icon {
-  width: 28px; height: 28px; border-radius: 0.5rem; flex-shrink: 0;
+  width: 26px; height: 26px; border-radius: 0.5rem; flex-shrink: 0;
   display: flex; align-items: center; justify-content: center; color: #fff;
 }
 .nav-import .nav-icon { background: #3b82f6; }
@@ -76,11 +106,49 @@ body { padding: 0; margin: 0; box-sizing: border-box; font-size: 0.94rem; }
   .nav-compare.active { color: #5eead4; }
   .nav-export.active { color: #fdba74; }
 }
+:root[data-theme="dark"] .nav-import.active { color: #93c5fd; }
+:root[data-theme="dark"] .nav-rules.active { color: #c4b5fd; }
+:root[data-theme="dark"] .nav-compare.active { color: #5eead4; }
+:root[data-theme="dark"] .nav-export.active { color: #fdba74; }
+:root[data-theme="light"] .nav-import.active { color: #1d4ed8; }
+:root[data-theme="light"] .nav-rules.active { color: #6d28d9; }
+:root[data-theme="light"] .nav-compare.active { color: #0f766e; }
+:root[data-theme="light"] .nav-export.active { color: #c2410c; }
+
+.sidebar-footer { margin-top: auto; padding: 0.6rem 0.3rem 0.1rem; border-top: 1px solid var(--border-muted); text-align: center; }
+.sidebar-footer p { margin: 0; font-size: 0.66rem; line-height: 1.5; color: var(--pico-muted-color); }
+.sidebar-footer strong { color: var(--text-strong); font-weight: 650; }
+.sidebar-footer .sidebar-version { display: block; margin-top: 0.35rem; font-size: 0.62rem; color: var(--pico-muted-color); }
+
+/* Header compartido: título de la pantalla activa + acciones (ajustes/ayuda/tema/login) */
+.app-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0.9rem 1.4rem; margin-bottom: 1rem;
+}
+.app-header h2 { margin: 0; font-size: 1.15rem; font-weight: 700; letter-spacing: -0.01em; }
+.header-actions { display: flex; align-items: center; gap: 0.4rem; }
+.icon-btn {
+  width: 34px; height: 34px; border-radius: var(--radius-sm);
+  display: flex; align-items: center; justify-content: center;
+  background: var(--surface-muted); border: 1px solid var(--border-muted);
+  color: var(--text-strong); cursor: pointer; transition: background 0.12s ease;
+}
+.icon-btn:hover { background: var(--surface-muted-hover); }
+
+.toast {
+  position: fixed; bottom: 1.2rem; left: 50%; transform: translateX(-50%) translateY(0);
+  background: var(--text-strong); color: var(--page-bg); padding: 0.5rem 1rem;
+  border-radius: var(--radius-md); font-size: 0.82rem; box-shadow: var(--shadow-float);
+  opacity: 0; pointer-events: none; transition: opacity 0.2s ease, transform 0.2s ease; z-index: 200;
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(-6px); }
+
 @media (max-width: 860px) {
   .app-shell { flex-direction: column; }
-  .sidebar { width: 100%; height: auto; position: static; flex-direction: row; align-items: center; gap: 0.8rem; overflow-x: auto; border-right: none; border-bottom: 1px solid var(--pico-card-border-color); }
+  .sidebar { width: 100%; height: auto; position: static; flex-direction: row; align-items: center; gap: 0.8rem; overflow-x: auto; }
   .sidebar-nav { flex-direction: row; }
   .nav-item { white-space: nowrap; }
+  .sidebar-footer { display: none; }
 }
 
 /* Tarjetas genéricas (article de Pico, y las nuestras) — mismo lenguaje visual */
@@ -249,7 +317,7 @@ table.preview th.liters, table.preview td.liters { max-width: 76px; }
 /* ============================================================================
    Pantallas REGLAS / COMPARACIÓN / EXPORTACIÓN
    ============================================================================ */
-.screen-section { margin-top: 0.4rem; }
+.screen-section { padding: 0 1.4rem 2rem; }
 
 /* Niveles de precio: cada campo en su propia columna compacta (label arriba,
    input abajo) en vez de una fila entera apilada por campo — es lo que hacía

@@ -6,6 +6,7 @@
 */
 const Router = (() => {
   const SCREENS = ['import', 'rules', 'compare', 'export'];
+  const TITLES = { import: 'Importación', rules: 'Reglas', compare: 'Comparación', export: 'Exportación' };
 
   function show(screen) {
     for (const s of SCREENS) {
@@ -15,6 +16,8 @@ const Router = (() => {
     document.querySelectorAll('#mainNav [data-screen]').forEach(a => {
       a.classList.toggle('active', a.dataset.screen === screen);
     });
+    const titleEl = document.getElementById('screenTitle');
+    if (titleEl) titleEl.textContent = TITLES[screen] || '';
     if (location.hash.slice(1) !== screen) location.hash = screen;
     Store.emit('screen:changed', screen);
   }

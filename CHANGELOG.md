@@ -2,6 +2,28 @@
 
 Formato inspirado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [v0.7.0] — 2026-07-30
+
+### Cambiado — pulido del sidebar y header compartido
+- **Sidebar flotante estilo Finder de macOS**: esquinas redondeadas en las 4, sombra
+  propia, separado del borde de la ventana en vez de pegado con línea recta.
+- Reducido el padding interno del sidebar y quitado el `max-width` centrado del shell
+  (creaba un hueco vacío a la izquierda en pantallas anchas); ahora ocupa el ancho real
+  con un margen pequeño y deliberado alrededor.
+- "Gestor de Tarifas" ya cabe en una sola línea (antes se partía en dos).
+- **Header compartido en la zona de contenido**: título de la pantalla activa a la
+  izquierda (se actualiza solo al navegar), y a la derecha botones de tema claro/oscuro
+  (funcional), ayuda, ajustes y login (estos tres últimos son placeholders visuales —
+  "que se lo pondremos" más adelante).
+- **Toggle de tema manual**: además del automático por `prefers-color-scheme`, un botón
+  en el header fija `data-theme` en `<html>` y lo recuerda entre sesiones (`js/core/theme.js`).
+- **Logotipo real de AD / Recambios Ibiza** en el sidebar (mismo SVG que ya usa
+  "Gestor de Rapels y Puntos", el proyecto hermano) + subtítulo "RECAMBIOS IBIZA",
+  en vez del emoji genérico de bidón.
+- **Crédito en el pie del sidebar** en dos líneas — "Krafted by **Yakoba Moreno**" /
+  "Designed in **Claude Code**" — con la versión debajo, mismo texto que ya usa el
+  proyecto hermano.
+
 ## [v0.6.0] — 2026-07-30
 
 ### Cambiado — sidebar de navegación y color por marca
