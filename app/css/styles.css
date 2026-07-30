@@ -128,17 +128,14 @@ body { padding: 0; margin: 0; box-sizing: border-box; font-size: 0.94rem; backgr
 .app-header h2 { margin: 0; font-size: 1.15rem; font-weight: 700; letter-spacing: -0.01em; }
 .header-actions { display: flex; align-items: center; gap: 0.4rem; }
 .icon-btn {
-  width: 36px; height: 36px; border-radius: var(--radius-sm);
+  width: 44px; height: 44px; border-radius: var(--radius-md);
   display: flex; align-items: center; justify-content: center;
   background: var(--pico-card-background-color); border: 1px solid var(--pico-card-border-color);
   color: var(--text-strong); cursor: pointer; transition: box-shadow 0.12s ease, border-color 0.12s ease;
   box-shadow: var(--shadow-card);
 }
 .icon-btn:hover { box-shadow: var(--shadow-card-hover); border-color: var(--border-muted); }
-#btnThemeToggle { color: #eab308; }
-@media (prefers-color-scheme: dark) { #btnThemeToggle { color: #93c5fd; } }
-:root[data-theme="dark"] #btnThemeToggle { color: #93c5fd; }
-:root[data-theme="light"] #btnThemeToggle { color: #eab308; }
+.icon-btn svg { width: 22px; height: 22px; }
 
 .toast {
   position: fixed; bottom: 1.2rem; left: 50%; transform: translateX(-50%) translateY(0);

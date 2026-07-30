@@ -2,6 +2,14 @@
 
 Formato inspirado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [v0.7.2] — 2026-07-30
+
+### Cambiado
+- Botones del header más grandes (36px → 44px) y sus iconos bastante más grandes
+  (16px → 22px) — apenas se distinguían antes.
+- Revertido el color amarillo/azul del icono de tema que se había añadido en v0.7.1:
+  todos los iconos del header se quedan en gris neutro, sin excepción.
+
 ## [v0.7.1] — 2026-07-30
 
 ### Arreglado
