@@ -63,7 +63,7 @@ const ExcelReader = (() => {
         return result;
       }
     }
-    throw new Error('No se reconoce el formato de esta tarifa. Proveedores soportados: Repsol, AD Parts (Normal / Standard / Sport Car / Químicos), Eni Live y Racing Oil.');
+    throw new Error('No se reconoce el formato de esta tarifa. Proveedores soportados: Repsol, AD Parts (Normal / Standard / Sport Car / Químicos), Eni Live, Racing Oil y Shell.');
   }
 
   return { read, registerProfile, sheetRows, findRefHeader };

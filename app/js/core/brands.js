@@ -13,7 +13,7 @@ const BRANDS = [
   { id: 'ad_parts_aceite', label: 'AD Parts', abbr: 'ADP', color: '#3b82f6', refPrefix: 'ADP', gamas: ['normal', 'standard', 'sportcar', 'quimico'], pending: false },
   { id: 'repsol', label: 'Repsol', abbr: 'REP', color: '#f97316', refPrefix: '', gamas: ['automocion', 'industria', 'productos-de-mantenimiento', 'marinos', 'grasas', 'alimentarios'], pending: false },
   { id: 'castrol', label: 'Castrol', abbr: 'CAT', color: '#8b5cf6', refPrefix: '', gamas: ['default'], pending: true },
-  { id: 'shell', label: 'Shell', abbr: 'SHL', color: '#f43f5e', refPrefix: '', gamas: ['default'], pending: true },
+  { id: 'shell', label: 'Shell', abbr: 'SHL', color: '#f43f5e', refPrefix: '', gamas: ['advance', 'air-tool', 'corena', 'diala', 'gadinia', 'gadus', 'heat-transfer', 'helix', 'hydraulic', 'morlina', 'omala', 'ondina', 'paper-mach', 'refrigeration', 'rimula', 'sirius', 'spirax', 'tegula', 'tellus', 'tonna', 'transmission', 'turbo', 'vacuum-pump'], pending: false },
   { id: 'eni', label: 'Eni Live', abbr: 'ENI', color: '#eab308', refPrefix: '', gamas: ['i-sint', 'i-sigma', 'rotra', 'industria', 'i-ride', 'food-line', 'grasas', 'forestal', 'anticongelantes'], pending: false },
   { id: 'racing_oil', label: 'Racing Oil', abbr: 'RAC', color: '#ef4444', refPrefix: '', gamas: ['v-ligero', 'v-pesado', 'agricola', 'transmision', 'hidraulicos', 'industria', 'grasa', 'moto', 'classic', 'marina', 'anticogelante', 'aditivos'], pending: false }
 ];
@@ -34,6 +34,6 @@ const EQUIV_BRAND_ALIASES = {
   'REPSOL': 'repsol:automocion',
   'CASTROL': 'castrol:default',
   'ENI': 'eni:i-sint',
-  'SHELL': 'shell:default',
+  'SHELL': 'shell:helix',
   'RACING OIL': 'racing_oil:v-ligero'
 };

@@ -143,7 +143,13 @@ const ScreenImport = (() => {
     marinos: 'Marinos', alimentarios: 'Alimentarios',
     'v-ligero': 'V. Ligero', 'v-pesado': 'V. Pesado', agricola: 'Agrícola', transmision: 'Transmisión',
     hidraulicos: 'Hidráulicos', grasa: 'Grasa', moto: 'Moto', classic: 'Classic',
-    marina: 'Marina', anticogelante: 'Anticongelante', aditivos: 'Aditivos'
+    marina: 'Marina', anticogelante: 'Anticongelante', aditivos: 'Aditivos',
+    advance: 'Advance', 'air-tool': 'Air Tool', corena: 'Corena', diala: 'Diala',
+    gadinia: 'Gadinia', gadus: 'Gadus', 'heat-transfer': 'Heat Transfer', helix: 'Helix',
+    hydraulic: 'Hydraulic', morlina: 'Morlina', omala: 'Omala', ondina: 'Ondina',
+    'paper-mach': 'Paper Mach', refrigeration: 'Refrigeration', rimula: 'Rimula',
+    sirius: 'Sirius', spirax: 'Spirax', tegula: 'Tegula', tellus: 'Tellus', tonna: 'Tonna',
+    transmission: 'Transmission', turbo: 'Turbo', 'vacuum-pump': 'Vacuum Pump'
   };
   function renderGamaTabs() {
     const el = $('gamaTabs');

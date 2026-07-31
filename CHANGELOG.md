@@ -2,6 +2,26 @@
 
 Formato inspirado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [v0.9.0] — 2026-07-31
+
+### Añadido
+- **Cuarto proveedor: Shell.** Perfil nuevo (`profile-shell.js`), 23 gamas (Advance,
+  Helix, Rimula, Spirax, Omala, Gadus, Tellus, Corena…), una sola hoja, sin
+  secciones. Ver [ADR 0018](docs/decisiones/0018-perfil-shell.md).
+
+### Nota
+- La columna de precio de Shell es **€/litro**, no por envase (a pesar de la
+  descripción inicial) — confirmado cruzando los números reales contra la
+  cabecera de la columna ("Precio €/lt"). `costPerPack` se calcula
+  multiplicando por los litros del envase.
+- Descripción de producto de Shell (código SAP interno, ej. "Adv4TUlt10W40
+  SPMA2") sigue pendiente de una tabla de referencias que Yako va a aportar
+  para reconstruirla correctamente — solución provisional documentada en la
+  ficha de proveedor.
+- Fórmula de PVP histórica de Yako para Shell (margen por formato 60-70%
+  según envase) documentada como referencia para configurar en Reglas —
+  equivalente exacto al modelo de margen sobre venta que ya usa la app.
+
 ## [v0.8.9] — 2026-07-31
 
 ### Arreglado
