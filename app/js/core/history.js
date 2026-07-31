@@ -41,6 +41,7 @@ const History = (() => {
     const newToOld = new Map((rebrandPairs || []).map(p => [p.newRef, p.oldRef]));
 
     if (!previous || !Array.isArray(previous.refs)) {
+      for (const row of currentRows) row._status = 'new';
       return {
         hasPrevious: false,
         previousDate: null,
