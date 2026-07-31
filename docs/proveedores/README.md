@@ -7,7 +7,7 @@ Documentación por proveedor. Cada archivo cubre: formato de entrada, casuístic
 | Proveedor | Archivo | Estado |
 |---|---|---|
 | AD Parts | [ad-parts.md](ad-parts.md) | ✅ Implementado (v0.3.0) — Normal / Standard / Sport Car / Químicos, una sola tarjeta |
-| Repsol | [repsol.md](repsol.md) | ✅ Implementado (v0.8.3) — 6 gamas por color de sección |
+| Repsol | [repsol.md](repsol.md) | ✅ Implementado (v0.8.4) — 6 gamas por color de sección |
 | Castrol | [castrol.md](castrol.md) | ⏳ Planificado (v0.3) |
 | Shell | [shell.md](shell.md) | ⏳ Pendiente auditar |
 | Eni Live | [eni-live.md](eni-live.md) | ✅ Implementado (v0.8.0) |

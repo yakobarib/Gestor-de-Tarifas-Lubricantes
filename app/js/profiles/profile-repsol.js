@@ -21,6 +21,56 @@
     return String(s).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
   }
 
+  /** "" / null / "-" (guion suelto) cuentan como "sin valor real" — Repsol marca así
+   *  las filas sin rebranding en las columnas SIRDI NUEVO / NOMBRE NUEVO. */
+  function isRealValue(v) {
+    if (v == null) return false;
+    const s = String(v).trim();
+    return s !== '' && s !== '-';
+  }
+
+  // Equivalencias KG/GR → L confirmadas por Yako, SOLO para renombrar la descripción de
+  // salida a Skrit — nunca para el cálculo de litros/margen, que sigue usando el peso
+  // real (ver ADR 0013). No es una tabla de densidad genérica: son los envases estándar
+  // de Repsol. Valores no listados (ej. 5kg, 16kg vistos en la tarifa real) se dejan sin
+  // convertir — mejor no inventar un equivalente que Yako no ha confirmado.
+  const KG_TO_L_DESC = { 18: '20L', 45: '50L', 180: '208L', 2: '2L' };
+  const GR_TO_ML_DESC = { 400: '400ML' };
+
+  /**
+   * Limpia la descripción de producto de Repsol para la salida a Skrit:
+   * quita la referencia a la unidad de compra (deja solo el envase), el guion de la
+   * viscosidad (5W-40 → 5W40) y colapsa espacios múltiples. Solo afecta al texto — el
+   * campo `liters` usado para el cálculo se deriva ANTES de esta limpieza, sobre el
+   * texto original (ver ADR 0013).
+   */
+  function cleanRepsolDescription(cleanedName) {
+    let s = cleanedName.replace(/(\d+)W-(\d+)/gi, '$1W$2');
+    const tokens = s.split(' ');
+    if (!tokens.length) return s;
+    const last = tokens[tokens.length - 1];
+    let replaced = null;
+    let m;
+    if ((m = /^(\d+)[xX]Bi[Bb]-?(\d+(?:[.,]\d+)?)\s*(ML|MLS|L|LT|LTR)?$/i.exec(last))) {
+      replaced = `BIB ${m[2]}L`;
+    } else if ((m = /^(\d+)[xX]T-(\d+)$/i.exec(last))) {
+      replaced = `${m[2]}ML`;
+    } else if ((m = /^(\d+)[xX]PT-(\d+)\s*(ML|MLS)?$/i.exec(last))) {
+      replaced = `${m[2]}ML`;
+    } else if ((m = /^(\d+)[xX](\d+(?:[.,]\d+)?)\s*(KGS?|GRS?|G)$/i.exec(last))) {
+      const num = parseFloat(m[2].replace(',', '.'));
+      const isGram = /^G/i.test(m[3]);
+      replaced = isGram ? (GR_TO_ML_DESC[num] || `${m[2]}GR`) : (KG_TO_L_DESC[num] || `${m[2]}KG`);
+    } else if ((m = /^(\d+)[xX](\d+(?:[.,]\d+)?)\s*(ML|MLS|L|LT|LTR)$/i.exec(last))) {
+      replaced = `${m[2]}${/ML/i.test(m[3]) ? 'ML' : 'L'}`;
+    } else if ((m = /^(\d+(?:[.,]\d+)?)\s*(ML|MLS|L|LT|LTR)$/i.exec(last))) {
+      // Ya viene sin el "Nx" delante (ej. tras "24xAEROSOL 125ml") — solo normaliza mayúsculas.
+      replaced = `${m[1]}${/ML/i.test(m[2]) ? 'ML' : 'L'}`;
+    }
+    if (replaced) tokens[tokens.length - 1] = replaced;
+    return tokens.join(' ');
+  }
+
   /** Lee un workbook de Repsol y devuelve array de filas estandarizadas. */
   function readRepsol(workbook) {
     // Prioridad: hoja "DATOS" (limpia) > "Hoja1" (con presentación)
@@ -91,10 +141,15 @@
     for (let i = headerIdx + 1; i < raw.length; i++) {
       const r = raw[i];
       if (!r || r.length === 0) continue;
-      const refNuevo = idxRefNuevo >= 0 ? r[idxRefNuevo] : null;
-      const nameNuevo = idxNameNuevo >= 0 ? r[idxNameNuevo] : null;
-      const ref = refNuevo || r[idxRef];
-      const name = refNuevo ? (nameNuevo || r[idxName]) : r[idxName];
+      // "-" (guion suelto) en SIRDI NUEVO/NOMBRE NUEVO marca "sin rebranding" — no es una
+      // referencia real. Confirmado por Yako: esas filas no tienen producto nuevo, hay que
+      // quedarse con las columnas antiguas (A/B), igual que las filas que ni siquiera
+      // tienen SIRDI NUEVO relleno.
+      const refNuevoRaw = idxRefNuevo >= 0 ? r[idxRefNuevo] : null;
+      const nameNuevoRaw = idxNameNuevo >= 0 ? r[idxNameNuevo] : null;
+      const hasRebrand = isRealValue(refNuevoRaw);
+      const ref = hasRebrand ? refNuevoRaw : r[idxRef];
+      const name = hasRebrand ? (isRealValue(nameNuevoRaw) ? nameNuevoRaw : r[idxName]) : r[idxName];
       const priceInvoice = r[idxPrecio];   // PRECIO FACTURA = precio por unidad de compra (caja)
       // Fila de cabecera de sección (sin ref o sin precio numérico) — puede ser
       // gama o subcategoría, se clasifica por color; si no es ninguna de las
@@ -111,8 +166,12 @@
         continue;
       }
 
-      const description = Parser.cleanDescription(name);
-      const liters = Parser.extractLiters(description);
+      // El cálculo de litros/margen usa el nombre tal cual (sin el renombrado de Skrit
+      // de abajo) — el renombrado es solo presentación, nunca debe mover a un producto
+      // de banda de formato (ver ADR 0013).
+      const nameForCalc = Parser.cleanDescription(name);
+      const liters = Parser.extractLiters(nameForCalc);
+      const description = cleanRepsolDescription(nameForCalc);
 
       // CRÍTICO: Repsol factura por CAJA (unidad de compra), no por envase.
       // Ejemplo: "5W-40 12X1L" con UDS X CAJA=12 y PRECIO FACTURA=102,17 €

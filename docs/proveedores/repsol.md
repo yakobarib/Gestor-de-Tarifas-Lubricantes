@@ -1,7 +1,7 @@
 # Repsol
 
 ## Estado
-- **Versión de app:** v0.8.3 (2026-07-31)
+- **Versión de app:** v0.8.4 (2026-07-31)
 - **Última tarifa procesada:** `Tarifa Repsol Lubricants 1 agosto 2026.xlsx`
 - **Última actualización de este documento:** 2026-07-31
 
@@ -68,9 +68,10 @@ proveedores.
 - **Precio factura = precio por caja, no por envase.** Repsol vende siempre la caja como unidad mínima de compra (no venden garrafas ni botellas sueltas). El coste que Skrit necesita es el del envase individual = `PRECIO FACTURA / UDS X CAJA`. Con formatos como `12X1L` esto divide entre 12; con `5X4L` entre 5. Con `1X208L` o `1X1000L` la unidad de compra ya es un solo envase y no cambia nada. En la tarifa Repsol mayo 2026, unas 295 de 830 refs (36%) tienen UDS X CAJA > 1 y requieren esta división. Regla aplicada en v0.2.2 tras corregir un bug que trataba el precio factura como si fuera por envase.
 - **Sin descuentos en cascada**: Repsol ya da el precio neto final. Una sola columna de precio. Ver comparación con Castrol en su ficha.
 - **Muchos productos "no aceite"**: Repsol vende lubricantes automoción/moto, pero también químicos (WIZARD, GUARD, SMARTER, QUALIFIER…) con envases pequeños (100ml, 300ml, 500ml). Todos van en la misma tarifa.
-- **Grasas en kilos**: la línea `PROTECTOR ... KG` usa formatos 18KG, 45KG, 180KG. En Skrit se registran como si fueran litros equivalentes (densidad ≈ 1).
+- **Grasas en kilos**: la línea `PROTECTOR ... KG` usa formatos 18KG, 45KG, 180KG, 45KG. **No es densidad ≈ 1** — son envases estándar con equivalencia real en litros confirmada por Yako (18KG=20L, 45KG=50L, 180KG=208L, 400GR=400ML, 2KG=2L), aplicada **solo al renombrado de la descripción para Skrit**, nunca al cálculo de litros/margen (que sigue usando el peso real de origen) — ver [ADR 0013](../decisiones/0013-limpieza-descripcion-repsol.md). Dos pesos vistos en la tarifa real no tienen equivalencia confirmada todavía: **5kg** (8 refs, Grasas) y **16kg** (1 ref) — se dejan sin convertir (`5KG`/`16KG`) hasta que Yako los confirme.
 - **Casos con inconsistencia detectada**: en la salida Skrit histórica de Yako, 2 refs de grasa 180KG aparecen como `LITROS = 208` en lugar de `180`. Parece error humano previo, no del parser actual.
-- **13 filas con SIRDI = `"-"` (literal)** en la subcategoría MOTO de la tarifa de agosto 2026: son productos reales distintos que comparten el mismo valor de referencia (un guion, no un código real). Como el maestro persiste por `marca::gama::ref`, estas 13 filas colisionan entre sí y solo la última sobrevive (864 filas leídas → 851 en el maestro). No es un bug del parser: el dato de origen no tiene forma de distinguirlas sin una referencia real. Pendiente de confirmar con Yako/Repsol qué SIRDI llevan realmente esas 13 filas.
+- **"-" (guion suelto) en SIRDI NUEVO/NOMBRE NUEVO no es rebranding real** — 13 filas de la subcategoría MOTO lo traían así en vez de estar vacío, y al ser un string no vacío se trataban como si tuvieran una referencia nueva válida, colisionando entre sí en el maestro (864 filas leídas → 851 antes de corregirlo). Confirmado por Yako: hay que quedarse con las columnas antiguas (SIRDI/NOMBRE, A/B) cuando la columna nueva es solo un guion. Corregido en v0.8.4 — ver ADR 0013.
+- **Descripción limpia para Skrit** (v0.8.4): se quita la unidad de compra (`12x1L`→`1L`, `1xBiB-20L`→`BIB 20L`, `12xT-150`→`150ML`…), el guion de la viscosidad (`5W-40`→`5W40`) y los espacios dobles. Solo afecta al texto — el cálculo de litros/margen sigue viendo el nombre original. Detalle completo en [ADR 0013](../decisiones/0013-limpieza-descripcion-repsol.md).
 
 ## Notas de negocio
 
@@ -95,6 +96,11 @@ proveedores.
 **Implementado en v0.8.3:**
 - Gamas y subcategorías detectadas automáticamente por color de sección (ver arriba) —
   6 pestañas de gama en Importación, igual que AD Parts o Eni Live.
+
+**Implementado en v0.8.4:**
+- Fix: "-" en SIRDI NUEVO ya no se trata como rebranding real (ver Casuísticas).
+- Descripción limpia para Skrit: quita unidad de compra, guion de viscosidad y espacios
+  dobles; kg/gr a litros/ml solo en el texto, nunca en el cálculo.
 
 **No implementado (pendiente si aparece necesidad):**
 - Detección de refs descatalogadas.

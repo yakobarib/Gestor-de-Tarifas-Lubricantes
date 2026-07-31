@@ -2,6 +2,27 @@
 
 Formato inspirado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [v0.8.4] — 2026-07-31
+
+### Arreglado
+- Repsol: filas con `SIRDI NUEVO` = `"-"` (guion suelto) se trataban como si tuvieran
+  rebranding real, colisionando entre sí en el maestro (13 filas de la subcategoría MOTO
+  se pisaban unas a otras: 864 filas leídas → 851 en el maestro). Un guion es un string
+  no vacío, así que un check `truthy` simple lo confundía con una referencia nueva válida.
+  Ahora se exige un valor real (no vacío, no solo un guion) para considerarlo rebranding.
+
+### Añadido
+- Repsol: descripción limpia para la salida a Skrit — quita la unidad de compra
+  (`12x1L`→`1L`, `1xBiB-20L`→`BIB 20L`, `12xT-150`→`150ML`, `6xPT-500`→`500ML`…), el
+  guion de la viscosidad (`5W-40`→`5W40`) y colapsa espacios múltiples. Los formatos en
+  kg/gr se convierten a litros/ml solo en el texto (18KG=20L, 45KG=50L, 180KG=208L,
+  400GR=400ML, 2KG=2L) — el cálculo de litros/margen sigue usando el peso real de
+  origen, sin cambios. Ver [ADR 0013](docs/decisiones/0013-limpieza-descripcion-repsol.md).
+
+### Nota
+- Dos pesos vistos en la tarifa real no tienen equivalencia en litros confirmada: 5kg (8
+  refs de Grasas) y 16kg (1 ref). Se dejan sin convertir hasta confirmarlo.
+
 ## [v0.8.3] — 2026-07-31
 
 ### Añadido
