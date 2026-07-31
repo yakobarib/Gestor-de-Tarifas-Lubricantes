@@ -59,10 +59,14 @@ cambio aditivo, cero regresión.
 
 ### UI
 
-Botón "Cargar mapa de rebranding…" en la pantalla Importación (junto a la cuadrícula de
-marcas), que llama a `RebrandMap.readRebrandExcel` + `RebrandMap.save` por cada marca
-detectada en el fichero. Las filas rebrandeadas muestran un chip "REBRAND" (con tooltip
-"Antes: `<oldRef>`") en vez del hueco vacío que ya tenían las estables.
+**v0.8.2**: no hay control separado — se soltaba en un botón "Cargar mapa de rebranding…"
+propio junto a la cuadrícula de marcas, pero Yako pidió integrarlo en el mismo dropzone de
+la tarifa (un solo sitio donde arrastrar cualquier Excel). `handleFiles()` en
+`screen-import.js` prueba primero si el fichero soltado tiene la forma de un mapa de
+rebranding (`RebrandMap.readRebrandExcel` devuelve algo no vacío); si es así, se guarda con
+`RebrandMap.save` por cada marca detectada y se corta ahí — si no, se procesa como tarifa
+normal con `ExcelReader.read`. Las filas rebrandeadas muestran un chip "REBRAND" (con
+tooltip "Antes: `<oldRef>`") en vez del hueco vacío que ya tenían las estables.
 
 ## Verificación
 

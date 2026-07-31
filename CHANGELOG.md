@@ -2,6 +2,18 @@
 
 Formato inspirado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [v0.8.2] — 2026-07-31
+
+### Cambiado
+- **Orden de las tarjetas de marca** en Importación: AD Parts, Repsol, Castrol, Shell,
+  Eni Live, Racing Oil.
+- **Mapa de rebranding integrado en el mismo dropzone de la tarifa**: se quita el botón
+  "Cargar mapa de rebranding…" — ahora se arrastra al mismo sitio que cualquier tarifa y
+  la app detecta sola si el Excel es un mapa de rebranding o una tarifa de proveedor (ver
+  [ADR 0009](docs/decisiones/0009-rebrand-map.md)).
+- **Exportación**: el selector de marca añade una opción "Ninguna", seleccionada por
+  defecto — ya no se auto-selecciona la primera marca al entrar en la pantalla.
+
 ## [v0.8.1] — 2026-07-31
 
 ### Quitado

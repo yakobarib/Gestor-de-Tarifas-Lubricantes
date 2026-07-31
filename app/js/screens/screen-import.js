@@ -415,6 +415,17 @@ const ScreenImport = (() => {
     $('loadStatus').innerHTML = `<small class="muted">Leyendo <strong>${escapeHtml(file.name)}</strong>…</small>`;
     const reader = new FileReader();
     reader.onload = (e) => {
+      // Un mismo drop puede ser la tarifa o el Excel de cruce de rebranding
+      // (SIRDI antigua ↔ nueva) — se detecta por columnas, no hace falta un
+      // control separado (ver ADR 0009).
+      try {
+        const testWb = XLSX.read(e.target.result, { type: 'array' });
+        const bySupplier = RebrandMap.readRebrandExcel(testWb, null);
+        if (Object.keys(bySupplier).length) {
+          applyRebrandMap(bySupplier, file.name);
+          return;
+        }
+      } catch (err) { /* no es un Excel de rebranding legible, se prueba como tarifa */ }
       try {
         const result = ExcelReader.read(e.target.result, file.name);
         state.supplier = result.supplier;
@@ -587,19 +598,15 @@ const ScreenImport = (() => {
     });
   }
 
-  /** Carga un Excel de cruce de rebranding (ver RebrandMap) y lo guarda por marca. */
-  async function handleRebrandFile(file) {
-    if (!file) return;
-    const buf = await file.arrayBuffer();
-    const workbook = XLSX.read(buf, { type: 'array' });
-    const bySupplier = RebrandMap.readRebrandExcel(workbook, null);
+  /** Guarda un Excel de cruce de rebranding (ver RebrandMap) ya parseado por marca. */
+  function applyRebrandMap(bySupplier, filename) {
     const brands = Object.keys(bySupplier);
     for (const brand of brands) {
       RebrandMap.save(brand, bySupplier[brand]);
     }
-    $('rebrandStatus').textContent = brands.length
-      ? `✓ Cargado: ${brands.map(b => `${b} (${bySupplier[b].length})`).join(', ')}.`
-      : 'No se han encontrado columnas de cruce reconocibles en ese Excel.';
+    $('loadStatus').innerHTML = brands.length
+      ? `<small class="muted">✓ Mapa de rebranding cargado de <strong>${escapeHtml(filename)}</strong>: ${escapeHtml(brands.map(b => `${b} (${bySupplier[b].length})`).join(', '))}.</small>`
+      : `<small style="color: var(--pico-del-color);">❌ No se han encontrado columnas de cruce reconocibles en <strong>${escapeHtml(filename)}</strong>.</small>`;
     // Si la tarifa activa es de una marca recién cargada, recalcula el diff en vivo.
     if (state.supplierId && bySupplier[state.supplier?.toUpperCase()]) {
       const previous = History.load(historyIdentifier());
@@ -608,19 +615,10 @@ const ScreenImport = (() => {
     }
   }
 
-  function setupRebrandLoader() {
-    const btn = $('btnLoadRebrand');
-    const input = $('rebrandFileInput');
-    if (!btn || !input) return;
-    btn.addEventListener('click', () => input.click());
-    input.addEventListener('change', (e) => handleRebrandFile(e.target.files && e.target.files[0]));
-  }
-
   function init() {
     renderBrandCards();
     setupDropZone();
     setupConfigListeners();
-    setupRebrandLoader();
     loadConfig();
     $('defaultMargin').value = state.config.defaultMargin;
     $('rounding').value = state.config.rounding;

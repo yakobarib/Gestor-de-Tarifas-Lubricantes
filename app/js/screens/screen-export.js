@@ -8,7 +8,7 @@
 */
 const ScreenExport = (() => {
   const $ = (id) => document.getElementById(id);
-  let currentBrandId = null;
+  let currentBrandId = '';
   let currentGama = 'default';
 
   function escapeHtml(s) {
@@ -38,8 +38,9 @@ const ScreenExport = (() => {
 
   function renderBrandSelect() {
     const sel = $('exportBrandSelect');
-    sel.innerHTML = BRANDS.filter(b => !b.pending).map(b => `<option value="${b.id}">${escapeHtml(b.label)}</option>`).join('');
-    if (!currentBrandId) currentBrandId = sel.value;
+    const options = ['<option value="">Ninguna</option>']
+      .concat(BRANDS.filter(b => !b.pending).map(b => `<option value="${b.id}">${escapeHtml(b.label)}</option>`));
+    sel.innerHTML = options.join('');
     sel.value = currentBrandId;
     renderGamaSelect();
   }
@@ -47,7 +48,11 @@ const ScreenExport = (() => {
   function renderGamaSelect() {
     const brand = findBrand(currentBrandId);
     const sel = $('exportGamaSelect');
-    if (!brand || brand.gamas.length <= 1) {
+    if (!brand) {
+      sel.innerHTML = `<option value="default">—</option>`;
+      sel.disabled = true;
+      currentGama = 'default';
+    } else if (brand.gamas.length <= 1) {
       sel.innerHTML = `<option value="default">General</option>`;
       sel.disabled = true;
       currentGama = 'default';
@@ -63,6 +68,10 @@ const ScreenExport = (() => {
 
   function renderLevelSelect() {
     const sel = $('exportLevelSelect');
+    if (!currentBrandId) {
+      sel.innerHTML = '<option value="">Elige una marca primero</option>';
+      return;
+    }
     const levels = loadLevels(currentBrandId, currentGama).filter(l => l.goesToSkrit);
     if (!levels.length) {
       sel.innerHTML = '<option value="">Sin niveles exportables a Skrit para esta marca/gama</option>';
@@ -73,10 +82,11 @@ const ScreenExport = (() => {
 
   async function doExport() {
     const brand = findBrand(currentBrandId);
+    if (!brand) { alert('Elige una marca antes de exportar.'); return; }
     const levels = loadLevels(currentBrandId, currentGama).filter(l => l.goesToSkrit);
     const levelIdx = parseInt($('exportLevelSelect').value, 10);
     const level = levels[levelIdx];
-    if (!brand || !level) { alert('Elige marca, gama y nivel de precio.'); return; }
+    if (!level) { alert('Elige marca, gama y nivel de precio.'); return; }
     const rows = await MasterDB.getByBrand(currentBrandId, currentGama);
     if (!rows.length) { alert('No hay tarifa importada para esta marca/gama en el maestro.'); return; }
     const tariffDate = $('exportTariffDate').value || new Date().toISOString().slice(0, 10);
