@@ -73,6 +73,13 @@ const Pricing = (() => {
     const manual = manualMap[row.ref];
     const isManual = typeof manual === 'number' && isFinite(manual) && manual > 0;
 
+    // Niveles restringidos a ciertos formatos (ej. "Bidones y Cubas Neto", solo
+    // envases ~200L/1000L) — fuera de esos formatos no hay precio, no un PVP al
+    // margen por defecto (0%). Ver ADR 0015.
+    if (cfg.onlyFormats && !cfg.onlyFormats.includes(row.formatKey) && !isManual) {
+      return { marginPct: null, mode: cfg.marginMode || cfg.mode || 'sale', pvp: null, gain: null, realMarginPct: null, isManual: false, noCost: true };
+    }
+
     if (cost == null && !isManual) {
       return { marginPct: null, mode: cfg.marginMode || cfg.mode || 'sale', pvp: null, gain: null, realMarginPct: null, isManual: false, noCost: true };
     }

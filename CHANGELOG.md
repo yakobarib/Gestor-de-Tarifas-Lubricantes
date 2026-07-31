@@ -2,6 +2,17 @@
 
 Formato inspirado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [v0.8.6] — 2026-07-31
+
+### Añadido
+- **Nivel de precio "Bidones y Cubas Neto"**: nuevo preset en Reglas — coste factura,
+  20% de margen sobre venta para envases ~200L (185/200/205/208/209L según proveedor) y
+  15% para cubas de 1000L. Fuera de esos dos formatos no genera precio (los formatos
+  pequeños siguen con el PVP normal). Exportable a Skrit igual que cualquier otro nivel.
+  Ver [ADR 0015](docs/decisiones/0015-nivel-bidones-cubas-neto.md).
+- `Pricing.compute` acepta `onlyFormats` en un nivel — restringe el nivel a formatos
+  concretos sin inventar un precio a 0% de margen para el resto.
+
 ## [v0.8.5] — 2026-07-31
 
 ### Añadido

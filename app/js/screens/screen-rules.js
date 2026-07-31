@@ -12,9 +12,17 @@ const ScreenRules = (() => {
   let currentBrandId = null;
   let currentGama = 'default';
 
+  // Bidones ~200L (185/200/205/208/209 según proveedor) al 20% sobre venta, cubas
+  // ~1000L al 15% sobre venta — confirmado por Yako 2026-07-31. `onlyFormats` hace que
+  // Pricing.compute devuelva "sin coste" (no un PVP a 0% de margen) para cualquier
+  // formato que no sea bidón o cuba — este nivel no tiene precio fuera de esos dos.
+  const CUBAS_FORMATS = ['185', '200', '205', '208', '209', '1000'];
+  const CUBAS_MARGIN_BY_FORMAT = { '185': 20, '200': 20, '205': 20, '208': 20, '209': 20, '1000': 15 };
+
   const PRESETS = {
     precio_neto_venta: { id: 'precio_neto_venta', label: 'Precio Neto de Venta', baseCost: 'netoNeto', baseCostField: 'costNetoNeto', mode: 'sale', defaultMargin: 15, byFormat: {}, rounding: 'int', manualOverride: {}, goesToSkrit: true },
-    precio_bonus: { id: 'precio_bonus', label: 'Precios para Bonus', baseCost: 'factura', baseCostField: 'costPerPack', mode: 'cost', defaultMargin: 10, byFormat: {}, rounding: 'none', manualOverride: {}, goesToSkrit: false }
+    precio_bonus: { id: 'precio_bonus', label: 'Precios para Bonus', baseCost: 'factura', baseCostField: 'costPerPack', mode: 'cost', defaultMargin: 10, byFormat: {}, rounding: 'none', manualOverride: {}, goesToSkrit: false },
+    cubas_neto: { id: 'cubas_neto', label: 'Bidones y Cubas Neto', baseCost: 'factura', baseCostField: 'costPerPack', mode: 'sale', defaultMargin: 20, onlyFormats: CUBAS_FORMATS, byFormat: CUBAS_MARGIN_BY_FORMAT, rounding: '2dec', manualOverride: {}, goesToSkrit: true }
   };
 
   function escapeHtml(s) {
