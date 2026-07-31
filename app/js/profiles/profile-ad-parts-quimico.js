@@ -1,12 +1,14 @@
 /* ==========================================================================
    PERFIL: AD Parts — Producto Químico
-   Estructura distinta a la de aceites: hoja "Coste" (+ opcional "Coste-SC")
-   organizada en secciones por familia (fila con descripción y ref vacía =
-   cabecera de sección) seguidas de filas de producto. Sin columna de
-   litros — se extraen de la descripción con el parser genérico. Hoja "PVP"
-   trae precios escalonados por cantidad (1 ud / cajas…); solo interesa el
-   precio base, que no se necesita para el cálculo de margen en la app
-   (se recalcula desde el coste), así que no se lee.
+   Se registra bajo el mismo id que AD Parts Aceite ('ad_parts_aceite'), gama
+   'quimico' — misma tarjeta de marca en la UI, una gama más (ver decisión de
+   fusionar ambas tarjetas). Estructura distinta a la de aceites: hoja "Coste"
+   (+ opcional "Coste-SC") organizada en secciones por familia (fila con
+   descripción y ref vacía = cabecera de sección) seguidas de filas de
+   producto. Sin columna de litros — se extraen de la descripción con el
+   parser genérico. Hoja "PVP" trae precios escalonados por cantidad (1 ud /
+   cajas…); solo interesa el precio base, que no se necesita para el cálculo
+   de margen en la app (se recalcula desde el coste), así que no se lee.
    ========================================================================== */
 (() => {
   const sheetRows = ExcelReader.sheetRows;
@@ -41,8 +43,8 @@
         liters,
         formatKey: Parser.formatKey(liters),
         costPerPack: cost,
-        familia,
-        gama: 'default',
+        fam: familia,
+        gama: 'quimico',
         litersDetected: liters != null
       });
     }
@@ -50,7 +52,7 @@
   }
 
   ExcelReader.registerProfile({
-    id: 'ad_parts_quimico',
+    id: 'ad_parts_aceite',
     name: 'AD Parts Producto Químico',
     detect(filename, workbook) {
       const f = (filename || '').toLowerCase();
@@ -63,7 +65,7 @@
         ...readADPartsQuimicoSheet(workbook, 'Coste'),
         ...readADPartsQuimicoSheet(workbook, 'Coste-SC')
       ];
-      return { supplier: 'AD Parts Producto Químico', gamas: ['default'], rows, sheetUsed: 'Coste / Coste-SC' };
+      return { supplier: 'AD Parts', gamas: ['quimico'], rows, sheetUsed: 'Coste / Coste-SC' };
     }
   });
 })();

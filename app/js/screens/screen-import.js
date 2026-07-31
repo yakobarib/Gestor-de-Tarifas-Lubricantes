@@ -12,8 +12,8 @@ const ScreenImport = (() => {
 
   const state = {
     supplier: null,
-    supplierId: null,    // id del perfil (repsol, ad_parts_aceite, ad_parts_quimico…) — clave de storage
-    gamas: ['default'],  // gamas presentes en la tarifa cargada (normal/standard/sportcar/default)
+    supplierId: null,    // id del perfil (repsol, ad_parts_aceite, eni…) — clave de storage
+    gamas: ['default'],  // gamas presentes en la tarifa cargada (normal/standard/sportcar/quimico/default)
     activeGama: 'default',
     allRows: [],          // todas las filas leídas, de todas las gamas
     rows: [],            // filas de la gama activa (lo que ya consumen render/pricing/export)
@@ -75,7 +75,7 @@ const ScreenImport = (() => {
       }
       const gamaLines = b.gamas.map(g => {
         const meta = Storage.get(`import_meta_${b.id}_${g}_factura`, null);
-        const label = g === 'default' ? 'General' : g.charAt(0).toUpperCase() + g.slice(1);
+        const label = GAMA_LABELS[g] || (g.charAt(0).toUpperCase() + g.slice(1));
         const status = meta
           ? `<span class="status-ok">${meta.rowCount} refs · ${escapeHtml(meta.tariffDate || meta.importedAt)}</span>`
           : `<span class="status-none">sin importar</span>`;
@@ -135,7 +135,7 @@ const ScreenImport = (() => {
 
   /* ----- render: pestañas de gama (Normal / Standard / Sport Car…) ----- */
   const GAMA_LABELS = {
-    normal: 'Normal', standard: 'Standard', sportcar: 'Sport Car', default: 'General',
+    normal: 'Normal', standard: 'Standard', sportcar: 'Sport Car', quimico: 'Químicos', default: 'General',
     'i-sint': 'i-Sint', 'i-sigma': 'i-Sigma', rotra: 'Rotra', industria: 'Industria',
     'i-ride': 'i-Ride', 'food-line': 'Food-Line', grasas: 'Grasas', forestal: 'Forestal',
     anticongelantes: 'Anticongelantes'

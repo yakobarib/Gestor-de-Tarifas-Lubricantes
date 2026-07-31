@@ -2,6 +2,20 @@
 
 Formato inspirado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [v0.8.1] — 2026-07-31
+
+### Quitado
+- Krafft eliminado del catálogo de marcas (`BRANDS`) — desaparece de Importación,
+  Reglas, Comparación y Exportación.
+
+### Cambiado
+- **AD Parts Aceite y AD Parts Producto Químico se fusionan en una sola tarjeta
+  "AD Parts"**, con 4 gamas (Normal / Standard / Sport Car / Químicos) en vez de dos
+  marcas separadas. El perfil de químico (`profile-ad-parts-quimico.js`) sigue leyendo
+  el mismo tipo de fichero, pero ahora registra sus filas bajo la gama `quimico` del
+  mismo brand id `ad_parts_aceite` — una sola tarjeta en las 4 pantallas, historial y
+  configuración de margen independientes por gama como ya ocurría entre Normal/Standard.
+
 ## [v0.8.0] — 2026-07-30
 
 ### Añadido

@@ -84,7 +84,7 @@ El catálogo de refrigerantes AD forma parte del mismo flujo aunque técnicament
 
 ### 3. Producto químico AD Parts
 
-Existe una **tarifa separada** para producto químico AD Parts (`Tarifa AD Producto Químico Mayo 2026.xlsx`). Se procesa igual pero es un archivo distinto.
+Existe una **tarifa separada** para producto químico AD Parts (`Tarifa AD Producto Químico Mayo 2026.xlsx`) — archivo distinto, perfil de lectura distinto (`profile-ad-parts-quimico.js`), pero se registra bajo la **misma tarjeta de marca** que Aceite (`ad_parts_aceite` en `BRANDS`), como una gama más (`quimico`) junto a Normal/Standard/Sport Car — una sola tarjeta "AD Parts" en Importación, Reglas, Comparación y Exportación.
 
 ### 4. Dos tarifas de coste
 

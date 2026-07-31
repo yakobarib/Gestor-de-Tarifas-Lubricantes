@@ -75,7 +75,7 @@
       ...readGamaSheet('AD STANDARD', 'standard')
     ];
     const gamas = ['normal', 'standard'].filter(g => rows.some(r => r.gama === g));
-    return { supplier: 'AD Parts Aceite', gamas, rows, sheetUsed: 'AD NORMAL / AD STANDARD (+ Tarifa)' };
+    return { supplier: 'AD Parts', gamas, rows, sheetUsed: 'AD NORMAL / AD STANDARD (+ Tarifa)' };
   }
 
   function readADPartsAceiteWorking(workbook) {
@@ -165,7 +165,7 @@
     }
 
     const gamas = ['normal', 'standard', 'sportcar'].filter(g => rows.some(r => r.gama === g));
-    return { supplier: 'AD Parts Aceite', gamas, rows, sheetUsed: 'Coste / ADStandard / CosteSC' };
+    return { supplier: 'AD Parts', gamas, rows, sheetUsed: 'Coste / ADStandard / CosteSC' };
   }
 
   ExcelReader.registerProfile({

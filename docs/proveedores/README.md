@@ -7,7 +7,7 @@ Documentación por proveedor. Cada archivo cubre: formato de entrada, casuístic
 | Proveedor | Archivo | Estado |
 |---|---|---|
 | Repsol | [repsol.md](repsol.md) | ✅ Implementado (v0.1) |
-| AD Parts | [ad-parts.md](ad-parts.md) | ⏳ Planificado (v0.2) — prioridad alta (marca propia) |
+| AD Parts | [ad-parts.md](ad-parts.md) | ✅ Implementado (v0.3.0) — Normal / Standard / Sport Car / Químicos, una sola tarjeta |
 | Castrol | [castrol.md](castrol.md) | ⏳ Planificado (v0.3) |
 | Eni Live | [eni-live.md](eni-live.md) | ✅ Implementado (v0.8.0) |
 | Racing Oil | [racing-oil.md](racing-oil.md) | ⏳ Planificado (v0.5) |

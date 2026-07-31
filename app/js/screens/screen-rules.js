@@ -59,7 +59,7 @@ const ScreenRules = (() => {
       currentGama = 'default';
     } else {
       sel.disabled = false;
-      const labels = { normal: 'Normal', standard: 'Standard', sportcar: 'Sport Car', default: 'General' };
+      const labels = { normal: 'Normal', standard: 'Standard', sportcar: 'Sport Car', quimico: 'Químicos', default: 'General' };
       sel.innerHTML = brand.gamas.map(g => `<option value="${g}">${escapeHtml(labels[g] || g)}</option>`).join('');
       currentGama = brand.gamas[0];
       sel.value = currentGama;
