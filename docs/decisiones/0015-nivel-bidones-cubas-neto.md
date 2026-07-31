@@ -57,16 +57,13 @@ salen las de 208L (20%) y 1000L (15%) — 180 de las ~525 filas totales. Verific
 cálculo exacto en 2 filas: coste 7.837,65€ (1000L) → PVP 9.220,77€ (÷0,85, 15%); coste
 1.499,58€ (208L) → PVP 1.874,48€ (÷0,80, 20%).
 
-## Pendiente
+## Resuelto después
 
-- **Netos Bonus**: Yako dio la fórmula (precio del premio: 50€ bidones / 100€ cubas,
-  incrementado al coste, + 20%/15% sobre venta igual que Cubas Neto) pero hay una
-  contradicción sin resolver con la explicación anterior (que decía que partía de
-  triple-neto, no de "precio de compra") — preguntado, sin implementar todavía.
-- **Netos Especiales**: según Yako, se improvisan moviendo reglas y márgenes en el
-  momento — probablemente no necesitan código nuevo, ya cubierto por "Añadir nivel"
-  (nivel personalizado) + export PVP existente. Confirmando con Yako antes de darlo
-  por cerrado.
+- **Netos Bonus**: implementado en [ADR 0016](0016-nivel-netos-bonus.md) — coste en
+  cascada (triple-neto → neto-neto → factura) + precio del premio (50€/100€) + mismo
+  20%/15% que este nivel.
+- **Netos Especiales**: Yako confirmó que no hace falta — se cubre con un nivel
+  personalizado en Reglas + export PVP existente, sin código nuevo.
 
 ## Referencias
 

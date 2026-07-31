@@ -64,10 +64,26 @@ const Pricing = (() => {
    * veces formatos grandes) en AD Parts. Se respeta tal cual lo escribe el
    * usuario, sin redondeo.
    */
+  /**
+   * Coste base de la fila para este nivel. Si el nivel trae `costCascade` (lista de
+   * campos en orden de preferencia — ej. Netos Bonus: triple-neto si existe, si no
+   * neto-neto, si no factura, "siempre el precio más bajo disponible" según Yako),
+   * se usa el primero que la fila tenga; si no, el campo único `baseCostField` de
+   * siempre.
+   */
+  function resolveCost(row, cfg) {
+    if (cfg.costCascade && cfg.costCascade.length) {
+      for (const field of cfg.costCascade) {
+        if (typeof row[field] === 'number' && isFinite(row[field])) return row[field];
+      }
+      return null;
+    }
+    return row[cfg.baseCostField || 'costPerPack'];
+  }
+
   function compute(row, levelConfig) {
     const cfg = levelConfig || {};
-    const costField = cfg.baseCostField || 'costPerPack';
-    const cost = row[costField];
+    const cost = resolveCost(row, cfg);
 
     const manualMap = cfg.manualOverride || cfg.manualPvp || {};
     const manual = manualMap[row.ref];
@@ -89,20 +105,26 @@ const Pricing = (() => {
       : cfg.defaultMargin;
     const mode = cfg.marginMode || cfg.mode || 'sale';
 
+    // "Precio del premio" (ej. Netos Bonus: 50€ bidones / 100€ cubas) — un importe
+    // fijo que se suma al coste ANTES de aplicar el margen, no un coste real de la
+    // fila. Ver ADR 0016.
+    const premium = (cfg.premiumByFormat && cfg.premiumByFormat[row.formatKey]) || 0;
+    const costWithPremium = cost != null ? cost + premium : cost;
+
     let pvp;
     if (isManual) {
       pvp = manual;
     } else {
-      const pvpRaw = pvpFromMargin(cost, marginPct, mode);
+      const pvpRaw = pvpFromMargin(costWithPremium, marginPct, mode);
       pvp = round(pvpRaw, cfg.rounding);
     }
-    const gain = cost != null ? pvp - cost : null;
+    const gain = costWithPremium != null ? pvp - costWithPremium : null;
     return {
       marginPct,
       mode,
       pvp,
       gain,
-      realMarginPct: cost != null ? realMargin(cost, pvp) : null,
+      realMarginPct: costWithPremium != null ? realMargin(costWithPremium, pvp) : null,
       isManual,
       noCost: false
     };

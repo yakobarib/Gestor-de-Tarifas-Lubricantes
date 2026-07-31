@@ -39,9 +39,9 @@ Yako describió el propósito real de cada uno:
 | PVP | Skrit (9 columnas) | La que ya existía — margen configurado en Reglas sobre `priceLevels`. |
 | Neto Factura | Listado simple | El propio `costFactura`, sin margen — "para imprimir un listado por si es necesario". |
 | Neto-Neto | Listado simple | El propio `costNetoNeto`, sin margen — mismo uso. |
-| Bidones y Cubas Neto | Skrit | **Pendiente de aclarar** — la explicación se cortó a mitad ("se saca del neto compra factura + en bidones..."). No implementado todavía. |
-| Netos Bonus | Sin definir formato | Se saca de triple-neto + "precio del premio" (no está en el modelo de datos hoy, habría que introducirlo a mano) + margen deseado. **Pendiente de aclarar** cómo se introduce el precio del premio. No implementado. |
-| Netos Especiales | Sin definir | Yako no llegó a explicar la lógica. No implementado. |
+| Bidones y Cubas Neto | Skrit | Factura + 20% (bidones ~200L) / 15% (cubas 1000L) sobre venta. Implementado — [ADR 0015](0015-nivel-bidones-cubas-neto.md). |
+| Netos Bonus | Skrit | Coste más bajo disponible (triple-neto→neto-neto→factura) + precio del premio (50€/100€) + mismo 20%/15%. Implementado — [ADR 0016](0016-nivel-netos-bonus.md). |
+| Netos Especiales | — | Descartado por Yako: se cubre con un nivel personalizado en Reglas + export PVP, sin código nuevo. |
 
 Se implementan los dos tipos claros y sin ambigüedad (Neto Factura, Neto-Neto) como
 **listados simples**, deliberadamente NO con el formato Skrit de 9 columnas — Yako los

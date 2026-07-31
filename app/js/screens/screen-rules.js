@@ -4,8 +4,8 @@
    Selección de marca + gama, y edición de sus "niveles de precio"
    (`priceLevels`, ver ADR 0008 y Migration): cada nivel tiene una base de
    coste (factura / neto-neto), un modo de margen, y si va o no a Skrit.
-   Presets: PVP (siempre existe), Precio Neto de Venta, Precios para Bonus
-   (nunca va a Skrit — uso interno de Yako para ventas especiales).
+   Presets: PVP (siempre existe), Precio Neto de Venta, Bidones y Cubas Neto,
+   Netos Bonus (ver ADR 0015/0016).
 */
 const ScreenRules = (() => {
   const $ = (id) => document.getElementById(id);
@@ -16,13 +16,19 @@ const ScreenRules = (() => {
   // ~1000L al 15% sobre venta — confirmado por Yako 2026-07-31. `onlyFormats` hace que
   // Pricing.compute devuelva "sin coste" (no un PVP a 0% de margen) para cualquier
   // formato que no sea bidón o cuba — este nivel no tiene precio fuera de esos dos.
+  // Netos Bonus usa el mismo desglose de formato/margen, con un "precio del premio"
+  // (50€ bidones / 100€ cubas) sumado al coste antes de aplicar el margen — ver ADR 0016.
   const CUBAS_FORMATS = ['185', '200', '205', '208', '209', '1000'];
   const CUBAS_MARGIN_BY_FORMAT = { '185': 20, '200': 20, '205': 20, '208': 20, '209': 20, '1000': 15 };
+  const BONUS_PREMIUM_BY_FORMAT = { '185': 50, '200': 50, '205': 50, '208': 50, '209': 50, '1000': 100 };
 
   const PRESETS = {
     precio_neto_venta: { id: 'precio_neto_venta', label: 'Precio Neto de Venta', baseCost: 'netoNeto', baseCostField: 'costNetoNeto', mode: 'sale', defaultMargin: 15, byFormat: {}, rounding: 'int', manualOverride: {}, goesToSkrit: true },
-    precio_bonus: { id: 'precio_bonus', label: 'Precios para Bonus', baseCost: 'factura', baseCostField: 'costPerPack', mode: 'cost', defaultMargin: 10, byFormat: {}, rounding: 'none', manualOverride: {}, goesToSkrit: false },
-    cubas_neto: { id: 'cubas_neto', label: 'Bidones y Cubas Neto', baseCost: 'factura', baseCostField: 'costPerPack', mode: 'sale', defaultMargin: 20, onlyFormats: CUBAS_FORMATS, byFormat: CUBAS_MARGIN_BY_FORMAT, rounding: '2dec', manualOverride: {}, goesToSkrit: true }
+    cubas_neto: { id: 'cubas_neto', label: 'Bidones y Cubas Neto', baseCost: 'factura', baseCostField: 'costPerPack', mode: 'sale', defaultMargin: 20, onlyFormats: CUBAS_FORMATS, byFormat: CUBAS_MARGIN_BY_FORMAT, rounding: '2dec', manualOverride: {}, goesToSkrit: true },
+    // "Siempre el precio más bajo disponible" (Yako): triple-neto si existe, si no
+    // neto-neto, si no factura. costCascade ya usa los nombres de campo del maestro
+    // (MasterDB) porque este nivel solo tiene sentido en Comparación/Exportación.
+    netos_bonus: { id: 'netos_bonus', label: 'Netos Bonus', baseCost: 'tripleNeto', baseCostField: 'costTripleNeto', costCascade: ['costTripleNeto', 'costNetoNeto', 'costFactura'], mode: 'sale', defaultMargin: 20, onlyFormats: CUBAS_FORMATS, byFormat: CUBAS_MARGIN_BY_FORMAT, premiumByFormat: BONUS_PREMIUM_BY_FORMAT, rounding: '2dec', manualOverride: {}, goesToSkrit: true }
   };
 
   function escapeHtml(s) {

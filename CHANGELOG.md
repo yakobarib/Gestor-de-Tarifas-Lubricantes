@@ -2,6 +2,22 @@
 
 Formato inspirado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [v0.8.7] — 2026-07-31
+
+### Añadido
+- **Nivel de precio "Netos Bonus"**: coste más bajo disponible (triple-neto si existe,
+  si no neto-neto, si no factura) + "precio del premio" fijo (50€ bidones / 100€ cubas) +
+  el mismo 20%/15% sobre venta de Bidones y Cubas Neto. Exportable a Skrit. Ver
+  [ADR 0016](docs/decisiones/0016-nivel-netos-bonus.md).
+- `Pricing.compute` acepta `costCascade` (coste en cascada por varios campos, el primero
+  que exista) y `premiumByFormat` (importe fijo sumado al coste antes del margen).
+
+### Quitado
+- Preset "Precios para Bonus" (10% sobre compra, nunca a Skrit) — era una suposición
+  provisional anterior a conocer la fórmula real de Netos Bonus, sustituida por él.
+- Nivel "Netos Especiales": descartado por Yako, se cubre con un nivel personalizado en
+  Reglas sin necesidad de código nuevo.
+
 ## [v0.8.6] — 2026-07-31
 
 ### Añadido
