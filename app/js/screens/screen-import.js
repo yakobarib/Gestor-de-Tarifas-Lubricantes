@@ -140,7 +140,10 @@ const ScreenImport = (() => {
     'i-ride': 'i-Ride', 'food-line': 'Food-Line', grasas: 'Grasas', forestal: 'Forestal',
     anticongelantes: 'Anticongelantes',
     automocion: 'Automoción', 'productos-de-mantenimiento': 'Productos de Mantenimiento',
-    marinos: 'Marinos', alimentarios: 'Alimentarios'
+    marinos: 'Marinos', alimentarios: 'Alimentarios',
+    'v-ligero': 'V. Ligero', 'v-pesado': 'V. Pesado', agricola: 'Agrícola', transmision: 'Transmisión',
+    hidraulicos: 'Hidráulicos', grasa: 'Grasa', moto: 'Moto', classic: 'Classic',
+    marina: 'Marina', anticogelante: 'Anticongelante', aditivos: 'Aditivos'
   };
   function renderGamaTabs() {
     const el = $('gamaTabs');

@@ -11,7 +11,7 @@ Documentación por proveedor. Cada archivo cubre: formato de entrada, casuístic
 | Castrol | [castrol.md](castrol.md) | ⏳ Planificado (v0.3) |
 | Shell | [shell.md](shell.md) | ⏳ Pendiente auditar |
 | Eni Live | [eni-live.md](eni-live.md) | ✅ Implementado (v0.8.0) |
-| Racing Oil | [racing-oil.md](racing-oil.md) | ⏳ Planificado (v0.5) |
+| Racing Oil | [racing-oil.md](racing-oil.md) | ✅ Implementado (v0.8.8) — 12 gamas |
 
 ## Estructura común
 

@@ -15,7 +15,7 @@ const BRANDS = [
   { id: 'castrol', label: 'Castrol', abbr: 'CAT', color: '#8b5cf6', refPrefix: '', gamas: ['default'], pending: true },
   { id: 'shell', label: 'Shell', abbr: 'SHL', color: '#f43f5e', refPrefix: '', gamas: ['default'], pending: true },
   { id: 'eni', label: 'Eni Live', abbr: 'ENI', color: '#eab308', refPrefix: '', gamas: ['i-sint', 'i-sigma', 'rotra', 'industria', 'i-ride', 'food-line', 'grasas', 'forestal', 'anticongelantes'], pending: false },
-  { id: 'racing_oil', label: 'Racing Oil', abbr: 'RAC', color: '#ef4444', refPrefix: '', gamas: ['default'], pending: true }
+  { id: 'racing_oil', label: 'Racing Oil', abbr: 'RAC', color: '#ef4444', refPrefix: '', gamas: ['v-ligero', 'v-pesado', 'agricola', 'transmision', 'hidraulicos', 'industria', 'grasa', 'moto', 'classic', 'marina', 'anticogelante', 'aditivos'], pending: false }
 ];
 
 function findBrand(brandId) {
@@ -34,5 +34,6 @@ const EQUIV_BRAND_ALIASES = {
   'REPSOL': 'repsol:automocion',
   'CASTROL': 'castrol:default',
   'ENI': 'eni:i-sint',
-  'SHELL': 'shell:default'
+  'SHELL': 'shell:default',
+  'RACING OIL': 'racing_oil:v-ligero'
 };

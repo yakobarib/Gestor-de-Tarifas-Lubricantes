@@ -2,6 +2,23 @@
 
 Formato inspirado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [v0.8.8] — 2026-07-31
+
+### Añadido
+- **Tercer proveedor: Racing Oil.** Perfil nuevo (`profile-racing-oil.js`), 12 gamas
+  (V.Ligero, V.Pesado, Agrícola, Transmisión, Hidráulicos, Industria, Grasa, Moto,
+  Classic, Marina, Anticongelante, Aditivos), una hoja por gama igual que Eni Live.
+  Cabecera repartida en 2 filas (fusionadas dinámicamente), precio ya por envase
+  (sin dividir por unidades por caja), y override de precios especiales para AD
+  Ibiza aplicado por referencia sobre cualquier gama. Ver
+  [ADR 0017](docs/decisiones/0017-perfil-racing-oil.md).
+
+### Nota
+- Envases en kg/g (Grasa) convertidos a la escala de litros propia de Racing Oil
+  (0,4/5/20/50/200/1000) — inferido, pendiente de confirmación explícita.
+- 18 referencias de la hoja HIDRÁULICOS están duplicadas entre la línea "Premier" y
+  la normal del mismo producto — dato de origen, pendiente de aclarar con Yako.
+
 ## [v0.8.7] — 2026-07-31
 
 ### Añadido
