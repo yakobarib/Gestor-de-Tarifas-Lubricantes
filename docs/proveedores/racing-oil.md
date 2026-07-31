@@ -48,17 +48,18 @@ cae a esa posición fija cuando el texto no aparece.
 ## Envases en kg/g (Grasa y algunos Aditivos)
 
 Igual patrón que Repsol/Eni Live: el peso real no es la escala nominal de litros que usa
-Racing Oil en el resto de la tarifa (1/5/20/50/200/1000). Inferido cruzando los propios
-valores de Racing Oil (que ya usa esa escala en sus hojas en litros) — **pendiente de
-confirmación explícita de Yako**:
+Racing Oil en el resto de la tarifa (1/5/20/50/200/1000). Confirmado por Yako:
 
-| Peso | Envase (L) |
+| Peso | Envase |
 |---|---|
-| 0,400 g | 0,4 L |
+| 0,400 g | **400 GR** (se muestra en gramos, no convertido a ml/L — es un cartucho de grasa, no un líquido) |
 | 5 kg | 5 L |
 | 20 kg | 20 L |
 | 45 kg | 50 L |
 | 185 kg | 200 L |
+
+El valor de `liters` usado para el cálculo/agrupación por formato sigue siendo 0,4 para
+el cartucho de 400g — solo cambia el texto mostrado en la descripción.
 
 `ADITIVOS` tiene además unos pocos productos realmente sólidos/en unidades (polvo
 absorbente, ceras en pasta, bolsas de perfume — `"20KG"`, `"5KG"`, `"40 un."`) donde no
@@ -74,16 +75,17 @@ Se lee aparte y se aplica como override por `ref` después de leer todas las gam
 confirmado con la referencia `1 0018 0204` (HIDRA HLP-46 200L): 257,96€ en la hoja
 `HIDRÁULICOS`, 243€ en la hoja de precios especiales — se usa 243€.
 
-## Hallazgo pendiente de confirmar: referencias duplicadas
+## Referencias duplicadas (error de origen, confirmado)
 
 18 códigos `COD. FABRI` de la hoja `HIDRÁULICOS` están usados dos veces para **productos
 distintos** (36 filas en total): la línea "PREMIER" y la línea normal del mismo producto
 comparten código. Ejemplos: `1 0017` (HIDRA HLP-32 PREMIER *y* HIDRA HLP-32), `1 0018`
 (HLP-46 PREMIER y HLP-46), `1 0019` (HLP-68 PREMIER y HLP-68), `1 0020/0021/0022` (HV-32/
-46/68 PREMIER y sus versiones normales). Como el maestro persiste por `marca::gama::ref`,
-solo sobrevive la última fila leída de cada par — **pendiente de que Yako confirme cómo
-distinguirlas** (parece un error de copiado en la propia tarifa de Racing Oil al crear la
-línea Premier a partir de la normal).
+46/68 PREMIER y sus versiones normales). Yako confirmó: es un error de la propia tarifa
+de Racing Oil (copiaron la línea normal para crear la Premier sin cambiar el código), no
+algo que la app deba resolver. Como el maestro persiste por `marca::gama::ref`, de cada
+par solo sobrevive la última fila leída (la variante sin "PREMIER", al venir después en
+la hoja) — asumido, no corregido en código.
 
 ## Estado en la app
 

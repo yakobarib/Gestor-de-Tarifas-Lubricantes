@@ -30,7 +30,7 @@
 
   // Envases de grasa (GRASA/ADITIVOS) en kg/g — mismo patrón que Repsol/Eni: el
   // peso real no es la escala nominal de litros que usa Racing Oil en el resto
-  // de la tarifa (1/5/20/50/200/1000). Confirmado por Yako.
+  // de la tarifa (1/5/20/50/200/1000). Confirmado por Yako 2026-07-31.
   const KG_TO_L_DESC = { 0.4: 0.4, 5: 5, 20: 20, 45: 50, 185: 200 };
 
   function normalizeHeader(h) {
@@ -46,7 +46,14 @@
     const num = parseFloat(m[1].replace(',', '.'));
     const unit = m[2].toLowerCase();
     if (unit === 'ml' || unit === 'mls' || unit === 'cc') return { liters: num / 1000, suffix: formatLitersSuffix(num / 1000) };
-    if (unit[0] === 'k' || unit[0] === 'g') {
+    // "0,400g" es en realidad 0,4 kg (400 g) escrito con el sufijo "g" en vez de
+    // "kg" — Yako confirma que este tamaño se muestra en gramos (400GR), no
+    // convertido a ml/L, a diferencia del resto de envases de grasa.
+    if (unit[0] === 'g') {
+      const liters = KG_TO_L_DESC[num];
+      return { liters: liters != null ? liters : null, suffix: `${Math.round(num * 1000)}GR` };
+    }
+    if (unit[0] === 'k') {
       const liters = KG_TO_L_DESC[num];
       return liters != null ? { liters, suffix: formatLitersSuffix(liters) } : { liters: null, suffix: s.toUpperCase() };
     }

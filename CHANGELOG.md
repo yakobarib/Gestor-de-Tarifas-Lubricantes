@@ -2,6 +2,13 @@
 
 Formato inspirado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [v0.8.9] — 2026-07-31
+
+### Arreglado
+- Racing Oil: el cartucho de grasa de 400g se mostraba como "400ML" — Yako confirmó
+  que debe mostrarse como "400GR" (es un cartucho, no un líquido). El valor de
+  litros usado para el cálculo (0,4) no cambia.
+
 ## [v0.8.8] — 2026-07-31
 
 ### Añadido
@@ -12,12 +19,13 @@ Formato inspirado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/)
   (sin dividir por unidades por caja), y override de precios especiales para AD
   Ibiza aplicado por referencia sobre cualquier gama. Ver
   [ADR 0017](docs/decisiones/0017-perfil-racing-oil.md).
+- Envases en kg (Grasa) convertidos a la escala de litros propia de Racing Oil
+  (5/20/45/185kg → 5/20/50/200L), confirmado por Yako.
 
 ### Nota
-- Envases en kg/g (Grasa) convertidos a la escala de litros propia de Racing Oil
-  (0,4/5/20/50/200/1000) — inferido, pendiente de confirmación explícita.
 - 18 referencias de la hoja HIDRÁULICOS están duplicadas entre la línea "Premier" y
-  la normal del mismo producto — dato de origen, pendiente de aclarar con Yako.
+  la normal del mismo producto — confirmado como error de la propia tarifa de
+  Racing Oil, no se corrige en código.
 
 ## [v0.8.7] — 2026-07-31
 

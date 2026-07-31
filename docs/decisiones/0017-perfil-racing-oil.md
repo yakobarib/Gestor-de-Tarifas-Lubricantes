@@ -38,8 +38,11 @@ formatos (1L y 5L de `ACTIVE 0W20 C5 508/509`): sale igual en ambos, confirmando
 pero `GRASA` (y algún producto suelto de `ADITIVOS`) lo da en kg/g. Igual que en Repsol
 (ADR 0013) y Eni Live (perfil), el peso no es la escala nominal — se convierte a la
 escala de litros que el propio Racing Oil usa en el resto de la tarifa (1/5/20/50/200/
-1000): 0,4kg→0,4L, 5kg→5L, 20kg→20L, 45kg→50L, 185kg→200L. **Inferido** por Yako no haber
-dado la tabla explícita para este proveedor — pendiente de confirmación.
+1000): 5kg→5L, 20kg→20L, 45kg→50L, 185kg→200L (tabla inferida cruzando los propios
+números de Racing Oil, confirmada por Yako). **Excepción**: el cartucho de `"0,400g"`
+(400 gramos) se muestra como `400GR` — Yako confirmó que este tamaño se etiqueta en
+gramos, no convertido a ml/L, a diferencia del resto de la escala. El valor de `liters`
+usado para el cálculo (0,4) no cambia — solo el texto de la descripción.
 
 Unos pocos productos de `ADITIVOS` traen el envase en kg o en unidades sueltas (polvo
 absorbente, cera en pasta, bolsa de perfumes) donde no hay litros que interpretar — se
@@ -52,13 +55,13 @@ override de `costPerPack` sobre las filas ya leídas de las demás gamas, buscan
 `ref` exacto. Confirmado con la ref `1 0018 0204` (HIDRA HLP-46 200L): 257,96€ en
 `HIDRÁULICOS`, 243€ en la hoja especial — prevalece el especial, tal como pidió Yako.
 
-## Hallazgo durante la verificación: refs duplicadas en HIDRÁULICOS
+## Refs duplicadas en HIDRÁULICOS (error de origen, confirmado)
 
 18 códigos `COD. FABRI` (36 filas) se usan para dos productos distintos: la variante
 "PREMIER" y la variante normal del mismo producto comparten código en la tarifa de
-origen. No es un bug del parser — es un dato de origen ambiguo. Documentado en la ficha
-de proveedor, pendiente de que Yako confirme cómo distinguirlas (probablemente error de
-copiado de Racing Oil al crear la línea Premier).
+origen. Yako confirmó que es un error de la propia tarifa de Racing Oil (copiaron la
+línea normal para crear la Premier sin cambiar el código) — no se corrige en código; de
+cada par, el maestro se queda con la última fila leída (la variante sin "Premier").
 
 ## Verificación
 
