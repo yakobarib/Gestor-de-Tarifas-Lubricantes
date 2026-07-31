@@ -166,12 +166,13 @@
         continue;
       }
 
-      // El cálculo de litros/margen usa el nombre tal cual (sin el renombrado de Skrit
-      // de abajo) — el renombrado es solo presentación, nunca debe mover a un producto
-      // de banda de formato (ver ADR 0013).
-      const nameForCalc = Parser.cleanDescription(name);
-      const liters = Parser.extractLiters(nameForCalc);
-      const description = cleanRepsolDescription(nameForCalc);
+      // `description` es el nombre original (solo espacios limpios) — se mantiene
+      // intacto en pantalla y en el maestro. `descriptionExport` es la versión
+      // renombrada que se usa SIEMPRE que se genera una tarifa de salida (Skrit o
+      // cualquier otro export), nunca para el cálculo de litros/margen (ver ADR 0013).
+      const description = Parser.cleanDescription(name);
+      const liters = Parser.extractLiters(description);
+      const descriptionExport = cleanRepsolDescription(description);
 
       // CRÍTICO: Repsol factura por CAJA (unidad de compra), no por envase.
       // Ejemplo: "5W-40 12X1L" con UDS X CAJA=12 y PRECIO FACTURA=102,17 €
@@ -188,6 +189,7 @@
       const row = {
         ref: String(ref).trim(),
         description,
+        descriptionExport,
         liters,
         formatKey: Parser.formatKey(liters),
         unitsPerBox,                 // usado para el cálculo; no se muestra en UI

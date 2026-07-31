@@ -1,7 +1,7 @@
 # Repsol
 
 ## Estado
-- **Versión de app:** v0.8.4 (2026-07-31)
+- **Versión de app:** v0.8.5 (2026-07-31)
 - **Última tarifa procesada:** `Tarifa Repsol Lubricants 1 agosto 2026.xlsx`
 - **Última actualización de este documento:** 2026-07-31
 
@@ -71,7 +71,7 @@ proveedores.
 - **Grasas en kilos**: la línea `PROTECTOR ... KG` usa formatos 18KG, 45KG, 180KG, 45KG. **No es densidad ≈ 1** — son envases estándar con equivalencia real en litros confirmada por Yako (18KG=20L, 45KG=50L, 180KG=208L, 400GR=400ML, 2KG=2L), aplicada **solo al renombrado de la descripción para Skrit**, nunca al cálculo de litros/margen (que sigue usando el peso real de origen) — ver [ADR 0013](../decisiones/0013-limpieza-descripcion-repsol.md). Dos pesos vistos en la tarifa real no tienen equivalencia confirmada todavía: **5kg** (8 refs, Grasas) y **16kg** (1 ref) — se dejan sin convertir (`5KG`/`16KG`) hasta que Yako los confirme.
 - **Casos con inconsistencia detectada**: en la salida Skrit histórica de Yako, 2 refs de grasa 180KG aparecen como `LITROS = 208` en lugar de `180`. Parece error humano previo, no del parser actual.
 - **"-" (guion suelto) en SIRDI NUEVO/NOMBRE NUEVO no es rebranding real** — 13 filas de la subcategoría MOTO lo traían así en vez de estar vacío, y al ser un string no vacío se trataban como si tuvieran una referencia nueva válida, colisionando entre sí en el maestro (864 filas leídas → 851 antes de corregirlo). Confirmado por Yako: hay que quedarse con las columnas antiguas (SIRDI/NOMBRE, A/B) cuando la columna nueva es solo un guion. Corregido en v0.8.4 — ver ADR 0013.
-- **Descripción limpia para Skrit** (v0.8.4): se quita la unidad de compra (`12x1L`→`1L`, `1xBiB-20L`→`BIB 20L`, `12xT-150`→`150ML`…), el guion de la viscosidad (`5W-40`→`5W40`) y los espacios dobles. Solo afecta al texto — el cálculo de litros/margen sigue viendo el nombre original. Detalle completo en [ADR 0013](../decisiones/0013-limpieza-descripcion-repsol.md).
+- **Descripción limpia para cualquier tarifa de salida** (v0.8.4/v0.8.5): se quita la unidad de compra (`12x1L`→`1L`, `1xBiB-20L`→`BIB 20L`, `12xT-150`→`150ML`…), el guion de la viscosidad (`5W-40`→`5W40`) y los espacios dobles. Se guarda en un campo aparte, `descriptionExport` — la `description` que se ve en Importación/Comparación y el maestro es siempre el nombre original, intacto; `descriptionExport` solo la usan las funciones de export (Skrit, Neto Factura, Neto-Neto…). El cálculo de litros/margen también usa el nombre original, nunca el renombrado. Detalle completo en [ADR 0013](../decisiones/0013-limpieza-descripcion-repsol.md) y [ADR 0014](../decisiones/0014-exports-neto-y-descripcion-separada.md).
 
 ## Notas de negocio
 

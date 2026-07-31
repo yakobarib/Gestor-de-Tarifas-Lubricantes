@@ -2,6 +2,23 @@
 
 Formato inspirado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [v0.8.5] — 2026-07-31
+
+### Añadido
+- **Exportación: nuevo selector "Tipo de exportación"** — además de PVP (formato Skrit,
+  igual que antes), dos listados simples nuevos: **Neto Factura** y **Neto-Neto**. Son
+  para imprimir un listado de precios netos, no para Skrit: MARCA, REFERENCIA,
+  MARCA+REFERENCIA, LITROS, DESCRIPCION y el coste tal cual, sin ningún cálculo de
+  margen. El selector de "Nivel de precio" se oculta para estos dos tipos.
+- Pendientes de definir por Yako (no implementados todavía): Bidones y Cubas Neto,
+  Netos Bonus, Netos Especiales.
+
+### Cambiado
+- La limpieza de descripción de Repsol (ADR 0013) ahora se aplica a **cualquier tarifa
+  de salida** (Skrit o los nuevos listados), no solo al export a Skrit — y la descripción
+  original queda intacta en Importación, Comparación y el maestro (`descriptionExport`
+  como campo aparte). Ver [ADR 0014](docs/decisiones/0014-exports-neto-y-descripcion-separada.md).
+
 ## [v0.8.4] — 2026-07-31
 
 ### Arreglado

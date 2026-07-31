@@ -57,6 +57,9 @@ const MasterDB = (() => {
         {
           description: r.description || (existing && existing.description) || '',
           descriptionRaw: r.description || (existing && existing.descriptionRaw) || '',
+          // Solo algunos perfiles (Repsol) traen una versión renombrada para exports —
+          // el resto no la trae, y las tarifas de salida caen de vuelta a `description`.
+          descriptionExport: r.descriptionExport || (existing ? existing.descriptionExport : null),
           liters: r.liters != null ? r.liters : (existing ? existing.liters : null),
           formatKey: r.formatKey || (existing ? existing.formatKey : '?'),
           fam: r.fam != null ? r.fam : (existing ? existing.fam : null),

@@ -10,6 +10,14 @@ const ScreenExport = (() => {
   const $ = (id) => document.getElementById(id);
   let currentBrandId = '';
   let currentGama = 'default';
+  let currentExportType = 'pvp';
+
+  // "Neto Factura" / "Neto-Neto" son listados simples (sin cálculo de margen, ver
+  // conversación con Yako 2026-07-31) — no usan `priceLevels`, solo el coste tal cual.
+  const PRICE_LIST_TYPES = {
+    neto_factura: { costField: 'costFactura', label: 'Neto Factura' },
+    neto_neto: { costField: 'costNetoNeto', label: 'Neto-Neto' }
+  };
 
   function escapeHtml(s) {
     return String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -66,6 +74,12 @@ const ScreenExport = (() => {
     renderLevelSelect();
   }
 
+  /** El selector de "nivel de precio" solo aplica al tipo PVP — los listados de
+   *  Neto Factura/Neto-Neto no tienen margen que elegir. */
+  function renderExportTypeUI() {
+    $('exportLevelField').classList.toggle('hidden', currentExportType !== 'pvp');
+  }
+
   function renderLevelSelect() {
     const sel = $('exportLevelSelect');
     if (!currentBrandId) {
@@ -83,13 +97,23 @@ const ScreenExport = (() => {
   async function doExport() {
     const brand = findBrand(currentBrandId);
     if (!brand) { alert('Elige una marca antes de exportar.'); return; }
+    const rows = await MasterDB.getByBrand(currentBrandId, currentGama);
+    if (!rows.length) { alert('No hay tarifa importada para esta marca/gama en el maestro.'); return; }
+    const tariffDate = $('exportTariffDate').value || new Date().toISOString().slice(0, 10);
+
+    if (currentExportType !== 'pvp') {
+      const spec = PRICE_LIST_TYPES[currentExportType];
+      const withCost = rows.filter(r => typeof r[spec.costField] === 'number' && isFinite(r[spec.costField]));
+      if (!withCost.length) { alert(`Ninguna referencia de esta marca/gama tiene "${spec.label}" auditado todavía.`); return; }
+      const fname = ExcelWriter.exportPriceList(rows, brand.abbr, spec.costField, spec.label, tariffDate);
+      $('exportStatus').innerHTML = `<small style="color: var(--pico-ins-color);">✓ Exportado: <strong>${escapeHtml(fname)}</strong> (${withCost.length} filas).</small>`;
+      return;
+    }
+
     const levels = loadLevels(currentBrandId, currentGama).filter(l => l.goesToSkrit);
     const levelIdx = parseInt($('exportLevelSelect').value, 10);
     const level = levels[levelIdx];
     if (!level) { alert('Elige marca, gama y nivel de precio.'); return; }
-    const rows = await MasterDB.getByBrand(currentBrandId, currentGama);
-    if (!rows.length) { alert('No hay tarifa importada para esta marca/gama en el maestro.'); return; }
-    const tariffDate = $('exportTariffDate').value || new Date().toISOString().slice(0, 10);
     const fname = ExcelWriter.exportSkritV2(rows, brand.abbr, level, tariffDate);
     $('exportStatus').innerHTML = `<small style="color: var(--pico-ins-color);">✓ Exportado: <strong>${escapeHtml(fname)}</strong> (${rows.length} filas, nivel "${escapeHtml(level.label)}").</small>`;
   }
@@ -97,6 +121,7 @@ const ScreenExport = (() => {
   function setupListeners() {
     $('exportBrandSelect').addEventListener('change', (e) => { currentBrandId = e.target.value; renderGamaSelect(); });
     $('exportGamaSelect').addEventListener('change', (e) => { currentGama = e.target.value; renderLevelSelect(); });
+    $('exportTypeSelect').addEventListener('change', (e) => { currentExportType = e.target.value; renderExportTypeUI(); });
     $('btnDoExport').addEventListener('click', doExport);
     Store.on('rules:changed', ({ brandId, gama }) => {
       if (brandId === currentBrandId && gama === currentGama) renderLevelSelect();
@@ -106,6 +131,7 @@ const ScreenExport = (() => {
 
   function init() {
     $('exportTariffDate').value = new Date().toISOString().slice(0, 10);
+    renderExportTypeUI();
     renderBrandSelect();
     setupListeners();
   }

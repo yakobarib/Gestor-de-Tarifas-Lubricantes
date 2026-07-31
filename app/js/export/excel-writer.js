@@ -11,6 +11,12 @@
    ============================================================================ */
 const ExcelWriter = (() => {
 
+  /** Descripción para cualquier tarifa de salida: usa la renombrada del perfil si
+   *  existe (hoy solo Repsol la trae — ver ADR 0013), si no la original tal cual. */
+  function exportDescription(r) {
+    return r.descriptionExport || r.description || '';
+  }
+
   function exportSkrit(rows, config, supplier, tariffDate) {
     // AD Parts añade una columna FAM (código de familia) que Repsol no tiene.
     const hasFam = rows.some(r => r.fam != null);
@@ -22,7 +28,7 @@ const ExcelWriter = (() => {
     for (const r of rows) {
       if (!r.costPerPack || r.costPerPack <= 0) continue;
       const c = Pricing.compute(r, config);
-      const row = [r.ref, r.description, r.liters || '', r.costPerPack, c.pvp];
+      const row = [r.ref, exportDescription(r), r.liters || '', r.costPerPack, c.pvp];
       if (hasFam) row.push(r.fam || '');
       row.push('');
       data.push(row);
@@ -73,7 +79,7 @@ const ExcelWriter = (() => {
         c.pvp,
         r.fam || '',
         r.liters || '',
-        r.description || ''
+        exportDescription(r)
       ]);
     }
     const ws = XLSX.utils.aoa_to_sheet(data);
@@ -97,5 +103,36 @@ const ExcelWriter = (() => {
     return filename;
   }
 
-  return { exportSkrit, exportSkritV2 };
+  /**
+   * Listado simple de precio neto (Factura o Neto-Neto) — para imprimir, no para Skrit:
+   * REF, MARCA+REFERENCIA, PRODUCTO, LITROS, el propio coste tal cual, sin ningún
+   * cálculo de margen. `costField` es 'costFactura' o 'costNetoNeto'.
+   */
+  function exportPriceList(rows, brandAbbr, costField, label, tariffDate) {
+    const header = ['MARCA', 'REFERENCIA', 'MARCA+REFERENCIA', 'LITROS', 'DESCRIPCION', label.toUpperCase()];
+    const data = [header];
+    for (const r of rows) {
+      const cost = r[costField];
+      if (typeof cost !== 'number' || !isFinite(cost)) continue; // sin este coste auditado todavía
+      const bare = r.ref.startsWith(brandAbbr) ? r.ref.slice(brandAbbr.length) : r.ref;
+      data.push([brandAbbr, bare, brandAbbr + bare, r.liters || '', exportDescription(r), cost]);
+    }
+    const ws = XLSX.utils.aoa_to_sheet(data);
+    ws['!cols'] = [{ wch: 8 }, { wch: 14 }, { wch: 16 }, { wch: 8 }, { wch: 50 }, { wch: 14 }];
+    const range = XLSX.utils.decode_range(ws['!ref']);
+    for (let R = 1; R <= range.e.r; ++R) {
+      const cell = ws[XLSX.utils.encode_cell({ r: R, c: 5 })];
+      if (cell && typeof cell.v === 'number') cell.z = '#,##0.00 €';
+    }
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, label.slice(0, 31));
+
+    const dateStr = (tariffDate || new Date().toISOString().slice(0, 10));
+    const labelSlug = label.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+    const filename = `listado-${labelSlug}-${brandAbbr.toLowerCase()}-${dateStr}.xlsx`;
+    XLSX.writeFile(wb, filename);
+    return filename;
+  }
+
+  return { exportSkrit, exportSkritV2, exportPriceList };
 })();

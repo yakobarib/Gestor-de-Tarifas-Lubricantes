@@ -52,7 +52,7 @@
     <div class="sidebar-footer">
       <p>Krafted by <strong>Yakoba Moreno</strong></p>
       <p>Designed in <strong>Claude Code</strong></p>
-      <span class="sidebar-version">v0.8.4</span>
+      <span class="sidebar-version">v0.8.5</span>
     </div>
   </aside>
 
@@ -304,6 +304,14 @@
         <select id="exportGamaSelect"></select>
       </div>
       <div class="field">
+        <label for="exportTypeSelect">Tipo de exportación</label>
+        <select id="exportTypeSelect">
+          <option value="pvp">PVP (formato Skrit)</option>
+          <option value="neto_factura">Neto Factura (listado)</option>
+          <option value="neto_neto">Neto-Neto (listado)</option>
+        </select>
+      </div>
+      <div class="field" id="exportLevelField">
         <label for="exportLevelSelect">Nivel de precio</label>
         <select id="exportLevelSelect"></select>
       </div>
