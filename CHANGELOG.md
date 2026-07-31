@@ -2,6 +2,24 @@
 
 Formato inspirado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [v0.8.3] — 2026-07-31
+
+### Añadido
+- **Gamas de Repsol reflejadas en Importación**, igual que AD Parts o Eni Live: Automoción,
+  Industria, Productos de Mantenimiento, Marinos, Grasas, Alimentarios. Repsol mete todo el
+  catálogo en una sola hoja dividida verticalmente por filas de sección — se detectan por
+  **color de relleno** de celda (naranja = gama, rojo = subcategoría), no por texto, porque
+  el texto solo no permite distinguir una gama de una subcategoría. Ver
+  [ADR 0012](docs/decisiones/0012-gamas-repsol-por-color.md).
+- La subcategoría (ej. "ENGRANAJES" dentro de Industria) se guarda como FAMILIA en el
+  export, igual que ya hacía Eni Live.
+
+### Nota
+- Verificación encontró 13 filas de la tarifa de Repsol con SIRDI = "-" (literal) en vez de
+  una referencia real — colisionan entre sí en el maestro (864 filas leídas → 851
+  persistidas). No es un bug de la app; pendiente de aclarar con Repsol qué referencia
+  llevan realmente esos 13 productos.
+
 ## [v0.8.2] — 2026-07-31
 
 ### Cambiado

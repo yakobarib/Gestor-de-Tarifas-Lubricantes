@@ -138,7 +138,9 @@ const ScreenImport = (() => {
     normal: 'Normal', standard: 'Standard', sportcar: 'Sport Car', quimico: 'Químicos', default: 'General',
     'i-sint': 'i-Sint', 'i-sigma': 'i-Sigma', rotra: 'Rotra', industria: 'Industria',
     'i-ride': 'i-Ride', 'food-line': 'Food-Line', grasas: 'Grasas', forestal: 'Forestal',
-    anticongelantes: 'Anticongelantes'
+    anticongelantes: 'Anticongelantes',
+    automocion: 'Automoción', 'productos-de-mantenimiento': 'Productos de Mantenimiento',
+    marinos: 'Marinos', alimentarios: 'Alimentarios'
   };
   function renderGamaTabs() {
     const el = $('gamaTabs');

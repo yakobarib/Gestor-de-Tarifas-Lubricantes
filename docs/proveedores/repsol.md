@@ -1,9 +1,9 @@
 # Repsol
 
 ## Estado
-- **Versión de app:** v0.1 (2026-07-20)
-- **Última tarifa procesada:** `Tarifa Repsol Lubricants - 06 mayo 2026.xlsx`
-- **Última actualización de este documento:** 2026-07-21
+- **Versión de app:** v0.8.3 (2026-07-31)
+- **Última tarifa procesada:** `Tarifa Repsol Lubricants 1 agosto 2026.xlsx`
+- **Última actualización de este documento:** 2026-07-31
 
 ## Formato de la tarifa entrante
 
@@ -29,6 +29,40 @@ Cambios entre versiones de tarifa:
 | `PRECIO FACTURA` | `costPerBox` | **Precio de la unidad de compra (la caja)**, no del envase individual. Ejemplo: `12X1L` con `UDS X CAJA=12` y `PRECIO FACTURA=102,17` significa que la caja de 12 botellas cuesta 102,17 €. La botella individual cuesta 8,51 €. Skrit espera este último. |
 | — (calculado) | `costPerPack` | **Coste real por envase individual**: `costPerBox / unitsPerBox`. Es lo que va a Skrit. |
 
+## Gamas y subcategorías (una sola hoja, división vertical)
+
+A diferencia de AD Parts o Eni Live (una hoja/gama), Repsol mete **todo el catálogo en
+`Hoja1`**, dividido verticalmente por filas de cabecera de sección intercaladas entre las
+filas de producto — igual idea que Eni Live, pero en vertical en vez de en pestañas.
+
+El texto de estas filas de cabecera **no es fiable como señal de jerarquía** (a simple
+vista "AUTOMOCION" e "INDUSTRIA" no se distinguen de "MOTO" o "ENGRANAJES" salvo por el
+propio nombre, y no hay una lista cerrada de nombres válidos). La señal real es el
+**color de relleno** de la celda: naranja `FFC000` = gama, rojo `FF0000` = subcategoría
+dentro de la gama activa. Verificado en las 3 tarifas reales disponibles (mayo, agosto y
+agosto "con aportaciones"): siempre exactamente estos 2 colores, sin variación.
+
+6 gamas detectadas en la tarifa de agosto 2026:
+
+| Gama | Subcategorías (fam) |
+|---|---|
+| AUTOMOCION | MOTO, NÁUTICO, MASTER, ELITE, LEADER, DRIVER, EV FLUIDS, GIANT, TRANSMISIONES Y CAJAS |
+| INDUSTRIA | ENGRANAJES, ENGRASE GENERAL, HIDRÁULICOS, TURBINAS Y COMPRESORES, COGENERACIÓN GAS, DIELECTRICOS, OTROS LUBRICANTES INDUSTRIALES, COJINETES Y LAMINADORAS, MECANIZADO, DESMOLDEANTES |
+| PRODUCTOS DE MANTENIMIENTO | (ninguna) |
+| MARINOS | (ninguna) |
+| GRASAS | (ninguna) |
+| ALIMENTARIOS | (ninguna) |
+
+La columna donde cae el texto de cabecera **varía entre variantes de la misma tarifa**:
+columna A en la normal, columna E en la "con aportaciones" (las columnas M→Z de aportes
+se insertan a la izquierda de los datos habituales en esa variante). El perfil localiza
+el texto dinámicamente (primera celda no vacía de la fila), no por índice fijo — ver
+[ADR 0012](../decisiones/0012-gamas-repsol-por-color.md).
+
+La subcategoría se guarda como `fam` (texto libre, igual que en Eni Live), no como gama
+propia — mantiene la granularidad de gama en 2 niveles como máximo, igual que el resto de
+proveedores.
+
 ## Casuísticas
 
 - **Precio factura = precio por caja, no por envase.** Repsol vende siempre la caja como unidad mínima de compra (no venden garrafas ni botellas sueltas). El coste que Skrit necesita es el del envase individual = `PRECIO FACTURA / UDS X CAJA`. Con formatos como `12X1L` esto divide entre 12; con `5X4L` entre 5. Con `1X208L` o `1X1000L` la unidad de compra ya es un solo envase y no cambia nada. En la tarifa Repsol mayo 2026, unas 295 de 830 refs (36%) tienen UDS X CAJA > 1 y requieren esta división. Regla aplicada en v0.2.2 tras corregir un bug que trataba el precio factura como si fuera por envase.
@@ -36,6 +70,7 @@ Cambios entre versiones de tarifa:
 - **Muchos productos "no aceite"**: Repsol vende lubricantes automoción/moto, pero también químicos (WIZARD, GUARD, SMARTER, QUALIFIER…) con envases pequeños (100ml, 300ml, 500ml). Todos van en la misma tarifa.
 - **Grasas en kilos**: la línea `PROTECTOR ... KG` usa formatos 18KG, 45KG, 180KG. En Skrit se registran como si fueran litros equivalentes (densidad ≈ 1).
 - **Casos con inconsistencia detectada**: en la salida Skrit histórica de Yako, 2 refs de grasa 180KG aparecen como `LITROS = 208` en lugar de `180`. Parece error humano previo, no del parser actual.
+- **13 filas con SIRDI = `"-"` (literal)** en la subcategoría MOTO de la tarifa de agosto 2026: son productos reales distintos que comparten el mismo valor de referencia (un guion, no un código real). Como el maestro persiste por `marca::gama::ref`, estas 13 filas colisionan entre sí y solo la última sobrevive (864 filas leídas → 851 en el maestro). No es un bug del parser: el dato de origen no tiene forma de distinguirlas sin una referencia real. Pendiente de confirmar con Yako/Repsol qué SIRDI llevan realmente esas 13 filas.
 
 ## Notas de negocio
 
@@ -57,8 +92,11 @@ Cambios entre versiones de tarifa:
 - Configuración de margen sobre venta por formato.
 - Export a Skrit con las 5 columnas + fecha.
 
+**Implementado en v0.8.3:**
+- Gamas y subcategorías detectadas automáticamente por color de sección (ver arriba) —
+  6 pestañas de gama en Importación, igual que AD Parts o Eni Live.
+
 **No implementado (pendiente si aparece necesidad):**
-- Diferenciación automática entre gama automoción vs. gama industria (hoy todo va junto; Yako puede filtrar por texto).
 - Detección de refs descatalogadas.
 - Enlace con la política PVP oficial de Repsol para comparar.
 

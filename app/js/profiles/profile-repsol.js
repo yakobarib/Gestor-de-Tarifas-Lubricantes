@@ -1,7 +1,26 @@
 /* ============================================================================
    PERFIL: Repsol
+   ============================================================================
+   Repsol mete todas las gamas en una sola hoja, separadas verticalmente por
+   filas de cabecera de sección — igual que Eni Live pero en vertical en vez
+   de en hojas distintas. No se distinguen por texto (serían demasiado
+   variables) sino por el color de relleno de la celda: naranja (FFC000) =
+   gama (AUTOMOCION, INDUSTRIA, PRODUCTOS DE MANTENIMIENTO, MARINOS, GRASAS,
+   ALIMENTARIOS), rojo (FF0000) = subcategoría dentro de la gama activa
+   (MOTO, ENGRANAJES, ENGRASE GENERAL…) — se guarda como `fam`, no como gama
+   propia, igual que las familias de Eni. La columna donde cae el texto de
+   cabecera varía entre variantes de la tarifa (columna A en la normal,
+   columna E en la "con aportaciones"), así que se localiza dinámicamente
+   como la primera celda no vacía de la fila, no por índice fijo.
    ============================================================================ */
 (() => {
+  const GAMA_FILL = 'FFC000';
+  const FAM_FILL = 'FF0000';
+
+  function slugify(s) {
+    return String(s).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+  }
+
   /** Lee un workbook de Repsol y devuelve array de filas estandarizadas. */
   function readRepsol(workbook) {
     // Prioridad: hoja "DATOS" (limpia) > "Hoja1" (con presentación)
@@ -67,6 +86,8 @@
       throw new Error(`Faltan columnas obligatorias. Detectadas: ref=${idxRef>=0?'✓':'✗'} nombre=${idxName>=0?'✓':'✗'} precio=${idxPrecio>=0?'✓':'✗'}. Cabecera vista: ${headers.filter(Boolean).join(' | ')}`);
 
     const rows = [];
+    let currentGama = 'default';
+    let currentFam = null;
     for (let i = headerIdx + 1; i < raw.length; i++) {
       const r = raw[i];
       if (!r || r.length === 0) continue;
@@ -75,9 +96,20 @@
       const ref = refNuevo || r[idxRef];
       const name = refNuevo ? (nameNuevo || r[idxName]) : r[idxName];
       const priceInvoice = r[idxPrecio];   // PRECIO FACTURA = precio por unidad de compra (caja)
-      // Saltar filas de cabecera de sección (sin ref o sin precio numérico)
-      if (!ref || ref === null) continue;
-      if (typeof priceInvoice !== 'number' || !isFinite(priceInvoice)) continue;
+      // Fila de cabecera de sección (sin ref o sin precio numérico) — puede ser
+      // gama o subcategoría, se clasifica por color; si no es ninguna de las
+      // dos (ej. producto real "* Novedad" aún sin precio) simplemente se salta.
+      if (!ref || typeof priceInvoice !== 'number' || !isFinite(priceInvoice)) {
+        const labelIdx = r.findIndex(v => v != null);
+        if (labelIdx >= 0) {
+          const label = String(r[labelIdx]).trim();
+          const cell = sheet[XLSX.utils.encode_cell({ r: i, c: labelIdx })];
+          const fillColor = cell && cell.s && cell.s.fgColor && cell.s.fgColor.rgb;
+          if (fillColor === GAMA_FILL) { currentGama = slugify(label); currentFam = null; }
+          else if (fillColor === FAM_FILL) { currentFam = label; }
+        }
+        continue;
+      }
 
       const description = Parser.cleanDescription(name);
       const liters = Parser.extractLiters(description);
@@ -103,7 +135,8 @@
         costPerBox: priceInvoice,    // precio factura original (por caja) — trazabilidad
         netWeight: (idxPeso >= 0 && typeof r[idxPeso] === 'number') ? r[idxPeso] : null,
         costPerPack,                 // precio real por envase individual (lo que espera Skrit)
-        gama: 'default',
+        gama: currentGama,
+        fam: currentFam,
         litersDetected: liters !== null
       };
       // Ya vienen por envase/caja en la propia hoja de Repsol — no hace falta dividir
@@ -113,7 +146,8 @@
 
       rows.push(row);
     }
-    return { supplier: 'Repsol', gamas: ['default'], rows, sheetUsed: sheetName };
+    const gamas = [...new Set(rows.map(r => r.gama))];
+    return { supplier: 'Repsol', gamas, rows, sheetUsed: sheetName };
   }
 
   ExcelReader.registerProfile({

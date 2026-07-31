@@ -53,7 +53,9 @@ const ExcelReader = (() => {
 
   /** Punto de entrada: itera los perfiles registrados hasta encontrar uno que detecte el Excel. */
   function read(arrayBuffer, filename) {
-    const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+    // cellStyles: algunos perfiles (Repsol) distinguen gama/subcategoría por
+    // color de relleno de las filas de cabecera de sección, no por texto.
+    const workbook = XLSX.read(arrayBuffer, { type: 'array', cellStyles: true });
     for (const profile of PROFILES) {
       if (profile.detect(filename, workbook)) {
         const result = profile.read(workbook);
