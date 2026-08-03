@@ -9,8 +9,14 @@
    ADR 0007/0008) — necesario para reconciliar la ref "bare" de los ficheros de
    equivalencias (que nunca llevan prefijo) con la ref real guardada en
    MasterDB. AD Parts usa 'ADP'; Repsol y el resto no prefijan. */
+/* `separateFiles`: la tarjeta de Importación muestra una línea de estado por
+   gama en vez de una sola "Tarifa general" — solo tiene sentido cuando esas
+   gamas llegan de verdad en ficheros sueltos y en fechas distintas (AD Parts:
+   Normal/Standard/Sport Car/Químicos). El resto de proveedores con varias
+   gamas (Repsol, Eni Live, Racing Oil, Shell) siempre llegan en un único
+   Excel con una pestaña por gama, así que se resumen en una sola línea. */
 const BRANDS = [
-  { id: 'ad_parts_aceite', label: 'AD Parts', abbr: 'ADP', color: '#3b82f6', refPrefix: 'ADP', gamas: ['normal', 'standard', 'sportcar', 'quimico'], pending: false },
+  { id: 'ad_parts_aceite', label: 'AD Parts', abbr: 'ADP', color: '#3b82f6', refPrefix: 'ADP', gamas: ['normal', 'standard', 'sportcar', 'quimico'], separateFiles: true, pending: false },
   { id: 'repsol', label: 'Repsol', abbr: 'REP', color: '#f97316', refPrefix: '', gamas: ['automocion', 'industria', 'productos-de-mantenimiento', 'marinos', 'grasas', 'alimentarios'], pending: false },
   { id: 'castrol', label: 'Castrol', abbr: 'CAT', color: '#8b5cf6', refPrefix: '', gamas: ['default'], pending: true },
   { id: 'shell', label: 'Shell', abbr: 'SHL', color: '#f43f5e', refPrefix: '', gamas: ['advance', 'air-tool', 'corena', 'diala', 'gadinia', 'gadus', 'heat-transfer', 'helix', 'hydraulic', 'morlina', 'omala', 'ondina', 'paper-mach', 'refrigeration', 'rimula', 'sirius', 'spirax', 'tegula', 'tellus', 'tonna', 'transmission', 'turbo', 'vacuum-pump'], pending: false },

@@ -2,6 +2,17 @@
 
 Formato inspirado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [v0.9.1] — 2026-08-03
+
+### Cambiado
+- Tarjetas de marca en Importación: los proveedores cuyas gamas siempre llegan
+  juntas en el mismo Excel (Repsol, Eni Live, Racing Oil, Shell) ahora muestran
+  una sola línea "Tarifa general" en vez de una línea por gama — las tarjetas
+  se habían vuelto enormes (Shell con 23 gamas). AD Parts mantiene el desglose
+  por gama (Normal/Standard/Sport Car/Químicos) porque esas sí llegan en
+  ficheros sueltos y en fechas distintas. Nuevo flag `separateFiles` en
+  `BRANDS` controla cuál de los dos comportamientos aplica.
+
 ## [v0.9.0] — 2026-07-31
 
 ### Añadido

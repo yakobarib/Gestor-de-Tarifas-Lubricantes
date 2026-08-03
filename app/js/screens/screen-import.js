@@ -73,14 +73,32 @@ const ScreenImport = (() => {
       if (b.pending) {
         return `<div class="brand-card pending"><div class="brand-card-head">${icon}<h4>${escapeHtml(b.label)}</h4></div><div class="line">Próximamente</div></div>`;
       }
-      const gamaLines = b.gamas.map(g => {
-        const meta = Storage.get(`import_meta_${b.id}_${g}_factura`, null);
-        const label = GAMA_LABELS[g] || (g.charAt(0).toUpperCase() + g.slice(1));
-        const status = meta
-          ? `<span class="status-ok">${meta.rowCount} refs · ${escapeHtml(meta.tariffDate || meta.importedAt)}</span>`
-          : `<span class="status-none">sin importar</span>`;
-        return `<div class="line">${escapeHtml(label)}: ${status}</div>`;
-      }).join('');
+      const gamaLines = b.separateFiles
+        ? b.gamas.map(g => {
+            const meta = Storage.get(`import_meta_${b.id}_${g}_factura`, null);
+            const label = GAMA_LABELS[g] || (g.charAt(0).toUpperCase() + g.slice(1));
+            const status = meta
+              ? `<span class="status-ok">${meta.rowCount} refs · ${escapeHtml(meta.tariffDate || meta.importedAt)}</span>`
+              : `<span class="status-none">sin importar</span>`;
+            return `<div class="line">${escapeHtml(label)}: ${status}</div>`;
+          }).join('')
+        : (() => {
+            // Todas las gamas llegan juntas en el mismo Excel (una pestaña por
+            // gama) — una sola línea resumen en vez de una por gama.
+            let totalRows = 0, latestDate = null, anyImported = false;
+            for (const g of b.gamas) {
+              const meta = Storage.get(`import_meta_${b.id}_${g}_factura`, null);
+              if (!meta) continue;
+              anyImported = true;
+              totalRows += meta.rowCount || 0;
+              const d = meta.tariffDate || meta.importedAt;
+              if (d && (!latestDate || d > latestDate)) latestDate = d;
+            }
+            const status = anyImported
+              ? `<span class="status-ok">${totalRows} refs · ${escapeHtml(latestDate || '')}</span>`
+              : `<span class="status-none">sin importar</span>`;
+            return `<div class="line">Tarifa general: ${status}</div>`;
+          })();
       return `<div class="brand-card"><div class="brand-card-head">${icon}<h4>${escapeHtml(b.label)}</h4></div>${gamaLines}</div>`;
     }).join('');
   }
