@@ -20,11 +20,16 @@ Plan acordado con Yako en la sesión del **2026-05-14** y actualizado según ava
 - ✅ **v0.1 · Repsol** — implementado y validado (99,8% acierto parser).
 - ✅ **v0.1.x · Formalizar Supplier Profile como interfaz** — hecho en v0.3.0 (más tarde de lo previsto, ver nota de numeración más abajo).
 - ✅ **AD Parts (marca propia, prioridad)** — implementado en **v0.3.0**: Gama Normal + Gama Standard (+ Sport Car cuando el fichero la trae) como pestañas independientes, Producto Químico como perfil separado, PVP manual editable por fila (no limitado a 5L).
-- ⏳ **Castrol** (siguiente) — descuentos en cascada (Pronto Pago + Dto Logístico + Rappel FA) o consumo directo de la hoja `DATOS` ya consolidada.
-- ⏳ **Eni Live** — multi-hoja por familia; coste = `TARIFA 2 UNIDAD DE VENTA`.
-- ⏳ **Racing Oil** — cabecera bipartita (row 12 + row 13), litros como string ("1L", "5L") a parsear.
-- ⏳ **Krafft + Shell** — auditar tarifas reales y decidir tratamiento.
-- ⏳ **Detección automática de proveedor** — por firma de columnas, no solo por nombre de archivo.
+- ✅ **Eni Live** — implementado en **v0.5.0**, 9 gamas.
+- ✅ **Racing Oil** — implementado en **v0.8.8**, 12 gamas.
+- ✅ **Shell** — implementado en **v0.9.0**, 23 gamas (precio por litro, no por envase).
+- ✅ **Castrol** — implementado en **v0.9.2**, 9 gamas (precio por litro, cascada de descuentos con neto-neto ya calculado por Yako). Ver [ADR 0019](decisiones/0019-perfil-castrol.md).
+- ✅ **Krafft** — descartado del catálogo (decisión de Yako, ya no se comercializa).
+- ✅ **Detección automática de proveedor** — por firma de columnas (`ExcelReader.registerProfile` + `detect()`), no solo por nombre de archivo. Todos los perfiles registrados verifican cabecera real, no solo nombre de hoja (ver ADR 0019 para dos bugs de colisión encontrados y corregidos).
+
+Con Castrol, los 6 proveedores del roadmap inicial están implementados — Fase 1 cerrada
+en la práctica salvo pulido menor (25kg sin mapear en Castrol, tabla de descripciones
+pendiente en Shell).
 
 > **Nota sobre la numeración (2026-07-28):** este roadmap marcaba AD Parts como el hito
 > **v0.2**, pero el trabajo real publicado como v0.2/v0.2.1/v0.2.2 se dedicó a la
@@ -73,8 +78,8 @@ Plan acordado con Yako en la sesión del **2026-05-14** y actualizado según ava
 |---|---|---|
 | v0.1 Repsol funcional | 2026-07-20 | ✅ Cumplido |
 | v0.3.0 AD Parts (Aceite + Químico) | 2026-07-28 | ✅ Cumplido |
-| Castrol | 2026-08-15 | Próximo |
-| Fase 1 completa (7 proveedores) | 2026-10-31 | Planificado |
+| v0.9.2 Castrol (último proveedor del roadmap inicial) | 2026-08-03 | ✅ Cumplido |
+| Fase 1 completa (6 proveedores) | 2026-08-03 | ✅ Cumplido |
 | Fase 2 (comparador + tasas) | 2026-Q4 | Planificado |
 | Fase 3 (maestro) | 2027-Q1 | Planificado |
 | Fase 4 (Electron + PDF) | 2027-Q2 | Planificado |

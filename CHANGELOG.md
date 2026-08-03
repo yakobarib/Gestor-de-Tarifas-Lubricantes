@@ -2,6 +2,31 @@
 
 Formato inspirado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [v0.9.2] — 2026-08-03
+
+### Añadido
+- **Sexto y último proveedor del roadmap inicial: Castrol.** Perfil nuevo
+  (`profile-castrol.js`), 9 gamas (Other, CRB, EDGE, GTX, GTX 5W, Magnatec,
+  Castrol ON, Transmax, Vecton), `refPrefix: 'CAT'`. Ver
+  [ADR 0019](docs/decisiones/0019-perfil-castrol.md).
+
+### Arreglado
+- Colisión de auto-detección de proveedor: el fichero de Castrol se clasificaba
+  primero como Repsol (ambos usan una hoja `DATOS` creada a mano por Yako) y
+  luego como Shell (ambos comparten columnas `Material`/`Gama`) antes de llegar
+  a Castrol. `detect()` de Repsol ahora exige la cabecera real ("PRECIO
+  FACTURA" + ref + nombre), y `detect()` de Shell descarta cabeceras con
+  "PRONTO PAGO" (exclusiva de Castrol).
+
+### Nota
+- La columna de precio de Castrol también es **€/litro**, no por envase, igual
+  que Shell (ADR 0018) — `costFactura = precioUnitarioLitro × liters`.
+- Fila `CAT15EEF3` ("CLS Grease, 25K B5") se descarta silenciosamente del
+  import: 25kg no tiene equivalencia en la tabla kg→L de Castrol — pendiente
+  de confirmar con Yako.
+- "Sustituye a" duplica la fila bajo la ref antigua salvo cuando el valor es
+  literalmente "NUEVO" (placeholder de producto nuevo, no de sustitución).
+
 ## [v0.9.1] — 2026-08-03
 
 ### Cambiado

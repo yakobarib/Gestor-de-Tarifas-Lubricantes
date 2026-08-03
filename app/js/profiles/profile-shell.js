@@ -102,6 +102,9 @@
       if (!sheet) return false;
       const raw = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: null, blankrows: false });
       const header = (raw[0] || []).map(x => String(x || '').toUpperCase());
+      // "MATERIAL" + "GAMA" también aparecen en la tarifa Castrol (misma convención de
+      // columnas) — "PRONTO PAGO" es exclusivo de Castrol, así que descarta el falso positivo.
+      if (header.some(h => h.includes('PRONTO PAGO'))) return false;
       return header.some(h => h.includes('MATERIAL')) && header.some(h => h === 'GAMA' || h.includes('GAMA'));
     },
     read: readShell

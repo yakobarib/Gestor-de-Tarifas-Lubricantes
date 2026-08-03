@@ -216,7 +216,21 @@
     name: 'Repsol',
     detect(filename, workbook) {
       const lower = (filename || '').toLowerCase();
-      return lower.includes('repsol') || workbook.SheetNames.includes('DATOS');
+      if (lower.includes('repsol')) return true;
+      // "DATOS"/"Hoja1" son nombres de hoja genéricos que otros proveedores también usan
+      // como hoja de trabajo manual (ej. Castrol) — no basta con que exista la hoja, hay
+      // que comprobar que de verdad tiene la cabecera de Repsol (PRECIO FACTURA + ref + nombre).
+      const sheetName = workbook.SheetNames.find(n => /^DATOS$/i.test(n)) || workbook.SheetNames.find(n => /^Hoja1$/i.test(n));
+      if (!sheetName) return false;
+      const raw = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { header: 1, defval: null, blankrows: false });
+      for (let i = 0; i < Math.min(10, raw.length); i++) {
+        const row = raw[i].map(x => String(x || '').toUpperCase());
+        const hasPrecio = row.some(c => c.includes('PRECIO FACTURA'));
+        const hasRef    = row.some(c => /\b(SIRDI|REF|REFERENCIA|CODIGO)\b/.test(c));
+        const hasNombre = row.some(c => c.includes('NOMBRE') || c.includes('PRODUCTO') || c.includes('DESCRIP'));
+        if (hasPrecio && hasRef && hasNombre) return true;
+      }
+      return false;
     },
     read: readRepsol
   });

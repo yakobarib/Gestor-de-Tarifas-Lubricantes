@@ -167,7 +167,9 @@ const ScreenImport = (() => {
     hydraulic: 'Hydraulic', morlina: 'Morlina', omala: 'Omala', ondina: 'Ondina',
     'paper-mach': 'Paper Mach', refrigeration: 'Refrigeration', rimula: 'Rimula',
     sirius: 'Sirius', spirax: 'Spirax', tegula: 'Tegula', tellus: 'Tellus', tonna: 'Tonna',
-    transmission: 'Transmission', turbo: 'Turbo', 'vacuum-pump': 'Vacuum Pump'
+    transmission: 'Transmission', turbo: 'Turbo', 'vacuum-pump': 'Vacuum Pump',
+    other: 'Other', crb: 'CRB', edge: 'EDGE', gtx: 'GTX', 'gtx-5w': 'GTX 5W',
+    magnatec: 'Magnatec', 'castrol-on': 'Castrol ON', transmax: 'Transmax', vecton: 'Vecton'
   };
   function renderGamaTabs() {
     const el = $('gamaTabs');
