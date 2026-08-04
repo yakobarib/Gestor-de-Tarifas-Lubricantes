@@ -1,18 +1,23 @@
 /* ============================================================================
    PANTALLA: TARIFAS
    ============================================================================
-   Muestra la tarifa recién cargada en Importación (`LoadedTariff`): tabla de
-   preview, filtros, comparación contra la tarifa vigente anterior (KPIs) y
-   edición de PVP manual por fila. El margen/nivel de precio (PVP, Bidones y
-   Cubas Neto, Netos Bonus…) YA NO se configura aquí — vive solo en Reglas
-   (mismo `priceLevels` que usan Comparación y Exportación, ver ADR pendiente
-   de "Tarifas" screen); esta pantalla solo LEE el nivel "pvp" vigente de esa
-   marca/gama para calcular el PVP y guardar los overrides manuales por ref.
+   Selección de marca + gama (como Reglas/Comparación/Exportación) y lectura
+   directa del maestro (MasterDB) — NO depende de haber importado algo en esta
+   misma sesión: sirve para volver a ver la tarifa de cualquier marca ya
+   importada en cualquier momento anterior, no solo la última. `LoadedTariff`
+   (ver `loaded-tariff.js`) se usa solo como atajo de conveniencia: si se
+   acaba de soltar un fichero en Importación, Tarifas salta automáticamente a
+   esa marca/gama al llegar.
 
-   Pestaña de gama "Todas": distinto de las demás pantallas porque aquí cada
-   gama puede tener el nivel "pvp" con un margen distinto — al ver "Todas" el
-   PVP de cada fila se calcula con el nivel de SU PROPIA gama real, no con uno
-   compartido (ver `levelForRealGama`).
+   El margen/nivel de precio (PVP, Bidones y Cubas Neto, Netos Bonus…) YA NO
+   se configura aquí — vive solo en Reglas (mismo `priceLevels` que usan
+   Comparación y Exportación); esta pantalla solo LEE el nivel "pvp" vigente
+   de esa marca/gama para calcular el PVP mostrado y guardar los overrides
+   manuales por ref (ver ADR 0020).
+
+   Pestaña de gama "Todas": cada gama puede tener el nivel "pvp" con un
+   margen distinto — al ver "Todas" el PVP de cada fila se calcula con el
+   nivel de SU PROPIA gama real, no con uno compartido (ver `levelForRow`).
 */
 const ScreenTarifas = (() => {
   const $ = (id) => document.getElementById(id);
@@ -37,8 +42,8 @@ const ScreenTarifas = (() => {
     magnatec: 'Magnatec', 'castrol-on': 'Castrol ON', transmax: 'Transmax', vecton: 'Vecton'
   };
 
-  let activeGama = 'default';      // gama real para "Establecer como vigente" cuando no se ve "Todas"
-  let tableFilterGama = 'default'; // gama mostrada en la tabla — '__all__' = todas
+  let currentBrandId = '';
+  let currentGama = 'default'; // gama real, o '__all__'
   let filter = { text: '', format: '', status: '' };
   let diff = null;
   let rows = [];
@@ -52,14 +57,28 @@ const ScreenTarifas = (() => {
   }
   function truncate(s, n) { return s.length > n ? s.slice(0, n - 1) + '…' : s; }
 
-  function configKeyFor(supplierId, gama) {
-    return gama === 'default' ? `config_${supplierId}` : `config_${supplierId}_${gama}`;
+  function configKeyFor(brandId, gama) {
+    return gama === 'default' ? `config_${brandId}` : `config_${brandId}_${gama}`;
+  }
+  function importMetaKey(brandId, gama) {
+    return `import_meta_${brandId}_${gama}_factura`;
+  }
+  function historyIdentifierFor(brand, gama) {
+    return gama === 'default' ? brand.label : `${brand.label} ${gama}`;
+  }
+  function tariffDateFor(brandId, gama) {
+    const meta = Storage.get(importMetaKey(brandId, gama), null);
+    return (meta && (meta.tariffDate || meta.importedAt)) || new Date().toISOString().slice(0, 10);
   }
 
   /** Nivel "pvp" vigente de una marca/gama concreta — el mismo que edita Reglas. Se
-   *  sintetiza (y persiste) si esa marca/gama todavía no tiene config guardada. */
-  function loadPvpLevel(supplierId, gama) {
-    const key = configKeyFor(supplierId, gama);
+   *  sintetiza (y persiste) si esa marca/gama todavía no tiene config guardada.
+   *  Devuelve el nivel SIN remapear — usar `forMaster()` antes de pasarlo a
+   *  Pricing.compute, ya que aquí las filas vienen del maestro (costFactura, no
+   *  costPerPack). Editar/guardar el override manual se hace sobre este objeto tal cual
+   *  (mismo shape que persiste Reglas). */
+  function loadPvpLevel(brandId, gama) {
+    const key = configKeyFor(brandId, gama);
     let cfg = Storage.get(key);
     let isNew = false;
     if (!cfg) { cfg = { defaultMargin: 30, byFormat: {}, rounding: '2dec', marginMode: 'sale', manualPvp: {} }; isNew = true; }
@@ -70,37 +89,32 @@ const ScreenTarifas = (() => {
     return { cfg, level, key };
   }
 
-  function saveManualOverride(supplierId, gama, ref, value) {
-    const { cfg, level, key } = loadPvpLevel(supplierId, gama);
+  /** Las filas del maestro usan costFactura/costNetoNeto/costTripleNeto, no
+   *  costPerPack — se remapea baseCostField a partir de baseCost. */
+  function forMaster(level) {
+    const baseCostField = level.baseCost === 'tripleNeto' ? 'costTripleNeto'
+                        : level.baseCost === 'netoNeto' ? 'costNetoNeto'
+                        : 'costFactura';
+    return Object.assign({}, level, { baseCostField });
+  }
+
+  function saveManualOverride(brandId, gama, ref, value) {
+    const { cfg, level, key } = loadPvpLevel(brandId, gama);
     if (!level.manualOverride) level.manualOverride = {};
     if (value == null) delete level.manualOverride[ref];
     else level.manualOverride[ref] = value;
     Storage.set(key, cfg);
-    Store.emit('rules:changed', { brandId: supplierId, gama });
-  }
-
-  function saveLitersEdit(row) {
-    // Los litros son propiedad de la fila (LoadedTariff.allRows), no del nivel de precio
-    // — no hace falta tocar Storage, solo re-renderizar con el nuevo formatKey.
-    row.formatKey = Parser.formatKey(row.liters);
-    row.litersDetected = row.liters != null;
-  }
-
-  function historyIdentifier(loaded, gama) {
-    return gama === 'default' ? loaded.supplier : `${loaded.supplier} ${gama}`;
-  }
-  function rebrandPairs(loaded) {
-    return RebrandMap.load(loaded.supplierId);
+    Store.emit('rules:changed', { brandId, gama });
   }
 
   /** Diff agregado sumando el de cada gama real — usado solo en la vista "Todas", donde
    *  no hay una única "tarifa anterior" con la que comparar de golpe. */
-  function computeAllGamasDiff(loaded) {
+  async function computeAllGamasDiff(brand) {
     let total = 0, stable = 0, neu = 0, obsolete = 0, obsoleteRefs = [], hasPrevious = false;
-    for (const g of loaded.gamas) {
-      const gRows = loaded.allRows.filter(r => r.gama === g);
-      const previous = History.load(historyIdentifier(loaded, g));
-      const d = History.diff(gRows, previous, rebrandPairs(loaded));
+    for (const g of brand.gamas) {
+      const gRows = await fetchMasterRows(brand.id, g);
+      const previous = History.load(historyIdentifierFor(brand, g));
+      const d = History.diff(gRows, previous, RebrandMap.load(brand.id));
       total += d.total; stable += d.stable; neu += d.new; obsolete += d.obsolete;
       obsoleteRefs = obsoleteRefs.concat(d.obsoleteRefs || []);
       if (d.hasPrevious) hasPrevious = true;
@@ -108,19 +122,36 @@ const ScreenTarifas = (() => {
     return { total, stable, new: neu, obsolete, obsoleteRefs, hasPrevious, combined: true };
   }
 
+  /** Filas del maestro para una marca/gama, con un alias `costPerPack` = `costFactura`
+   *  (History.save/diff siguen comparando por ese campo, igual que en el resto de la
+   *  app — ver ADR 0008/0020). */
+  async function fetchMasterRows(brandId, gama) {
+    const raw = await MasterDB.getByBrand(brandId, gama);
+    return raw.map(r => Object.assign({}, r, { costPerPack: r.costFactura }));
+  }
+
+  /* ----- render: selects de marca/gama ----- */
+  function renderBrandSelect() {
+    const sel = $('tarifasBrandSelect');
+    sel.innerHTML = BRANDS.filter(b => !b.pending).map(b => `<option value="${b.id}">${escapeHtml(b.label)}</option>`).join('');
+    if (!currentBrandId) currentBrandId = sel.value;
+    sel.value = currentBrandId;
+    loadTariffData();
+  }
+
   /* ----- render: pestañas de gama (+ "Todas") ----- */
   function renderGamaTabs() {
     const el = $('gamaTabs');
-    const loaded = LoadedTariff.get();
-    if (!loaded || !loaded.gamas || loaded.gamas.length <= 1) {
+    const brand = findBrand(currentBrandId);
+    if (!brand || !brand.gamas || brand.gamas.length <= 1) {
       el.classList.add('hidden');
       el.innerHTML = '';
       return;
     }
     el.classList.remove('hidden');
-    const allBtn = `<button type="button" class="mode-btn ${tableFilterGama === '__all__' ? 'active' : ''}" data-gama="__all__" aria-pressed="${tableFilterGama === '__all__'}">Todas</button>`;
-    const gamaBtns = loaded.gamas.map(g => `
-      <button type="button" class="mode-btn ${g === tableFilterGama ? 'active' : ''}" data-gama="${escapeHtml(g)}" aria-pressed="${g === tableFilterGama}">
+    const allBtn = `<button type="button" class="mode-btn ${currentGama === '__all__' ? 'active' : ''}" data-gama="__all__" aria-pressed="${currentGama === '__all__'}">Todas</button>`;
+    const gamaBtns = brand.gamas.map(g => `
+      <button type="button" class="mode-btn ${g === currentGama ? 'active' : ''}" data-gama="${escapeHtml(g)}" aria-pressed="${g === currentGama}">
         ${escapeHtml(GAMA_LABELS[g] || g)}
       </button>
     `).join('');
@@ -128,25 +159,12 @@ const ScreenTarifas = (() => {
   }
 
   function switchGama(gama) {
-    const loaded = LoadedTariff.get();
-    if (!loaded || gama === tableFilterGama) return;
-    if (gama === '__all__') {
-      tableFilterGama = '__all__';
-      rows = loaded.allRows.slice();
-      diff = computeAllGamasDiff(loaded);
-    } else {
-      if (!loaded.gamas.includes(gama)) return;
-      activeGama = gama;
-      tableFilterGama = gama;
-      rows = loaded.allRows.filter(r => r.gama === gama);
-      const previous = History.load(historyIdentifier(loaded, gama));
-      diff = History.diff(rows, previous, rebrandPairs(loaded));
-    }
-    renderGamaTabs();
-    renderFormatFilter();
-    renderHistoryBanner();
-    renderTable();
-    renderKpis();
+    if (gama === currentGama) return;
+    const brand = findBrand(currentBrandId);
+    if (!brand) return;
+    if (gama !== '__all__' && !brand.gamas.includes(gama)) return;
+    currentGama = gama;
+    loadTariffData();
   }
 
   /* ----- filtrado ----- */
@@ -179,8 +197,6 @@ const ScreenTarifas = (() => {
 
   /* ----- render: tabla preview ----- */
   function renderTable() {
-    const loaded = LoadedTariff.get();
-    if (!loaded) return;
     const tbody = $('previewBody');
     const visible = visibleRows();
     $('visibleCount').textContent = visible.length;
@@ -191,17 +207,17 @@ const ScreenTarifas = (() => {
 
     // Nivel "pvp" por gama real — cacheado por render para no releer Storage por fila.
     const levelCache = {};
-    const levelFor = (gama) => levelCache[gama] || (levelCache[gama] = loadPvpLevel(loaded.supplierId, gama).level);
+    const levelFor = (gama) => levelCache[gama] || (levelCache[gama] = loadPvpLevel(currentBrandId, gama).level);
 
     const frag = document.createDocumentFragment();
     for (const r of slice) {
-      const level = levelFor(tableFilterGama === '__all__' ? r.gama : activeGama);
-      const c = Pricing.compute(r, level);
+      const level = levelFor(currentGama === '__all__' ? r.gama : currentGama);
+      const c = Pricing.compute(r, forMaster(level));
       const tr = document.createElement('tr');
 
       const classes = [];
       if (!r.litersDetected) classes.push('warn');
-      if (!r.costPerPack || r.costPerPack <= 0) classes.push('err');
+      if (!r.costFactura || r.costFactura <= 0) classes.push('err');
       if (r.liters != null) {
         const band = r.liters >= 500 ? 1000 : r.liters >= 100 ? 208 : r.liters >= 30 ? 60 : r.liters >= 10 ? 20 : r.liters >= 3 ? 5 : 1;
         classes.push('fmt-' + band);
@@ -223,7 +239,7 @@ const ScreenTarifas = (() => {
         <td>${statusChip}</td>
         <td title="${escapeHtml(r.description)}">${escapeHtml(truncate(r.description, 60))}</td>
         <td class="num liters"><input type="number" step="0.01" value="${r.liters ?? ''}" data-ref="${escapeHtml(r.ref)}" data-field="liters"></td>
-        <td class="num" title="${escapeHtml(costTitle)}">${formatEur(r.costPerPack)}</td>
+        <td class="num" title="${escapeHtml(costTitle)}">${formatEur(r.costFactura)}</td>
         <td class="num">${c.marginPct != null ? c.marginPct.toFixed(1) + '%' : '—'}</td>
         <td class="num" title="${escapeHtml(pvpTitle)}"><strong${c.isManual ? ' style="color:#1a6bcf;"' : ''}>${formatEur(c.pvp)}</strong></td>
         <td class="num"><input type="number" step="0.01" value="${manualVal ?? ''}" placeholder="auto" data-ref="${escapeHtml(r.ref)}" data-gama="${escapeHtml(r.gama)}" data-field="manualPvp" style="width:74px;text-align:right;padding:0.1rem 0.3rem;margin:0;font-size:0.8rem;"></td>
@@ -242,7 +258,8 @@ const ScreenTarifas = (() => {
         const row = rows.find(r => r.ref === ref);
         if (row) {
           row.liters = isFinite(v) ? v : null;
-          saveLitersEdit(row);
+          row.formatKey = Parser.formatKey(row.liters);
+          row.litersDetected = row.liters != null;
           renderFormatFilter();
           renderTable();
           renderKpis();
@@ -260,7 +277,7 @@ const ScreenTarifas = (() => {
           const parsed = parseFloat(raw);
           if (isFinite(parsed) && parsed > 0) v = parsed;
         }
-        saveManualOverride(loaded.supplierId, gama, ref, v);
+        saveManualOverride(currentBrandId, gama, ref, v);
         renderTable();
         renderKpis();
       });
@@ -278,20 +295,20 @@ const ScreenTarifas = (() => {
   /* ----- render: banner de contexto histórico ----- */
   function renderHistoryBanner() {
     const b = $('historyBanner');
-    const loaded = LoadedTariff.get();
-    if (!loaded || !diff) { b.classList.add('hidden'); return; }
-    if (tableFilterGama === '__all__') {
+    const brand = findBrand(currentBrandId);
+    if (!brand || !diff) { b.classList.add('hidden'); return; }
+    if (currentGama === '__all__') {
       b.className = 'history-banner';
       b.innerHTML = diff.hasPrevious
-        ? `📊 Vista combinada de todas las gamas de <strong>${escapeHtml(loaded.supplier)}</strong> (cada gama comparada contra su propia tarifa vigente anterior).`
-        : `⚠ Vista combinada de todas las gamas de <strong>${escapeHtml(loaded.supplier)}</strong>. Ninguna tiene todavía tarifa anterior guardada — todas las referencias se marcan como nuevas.`;
+        ? `📊 Vista combinada de todas las gamas de <strong>${escapeHtml(brand.label)}</strong> (cada gama comparada contra su propia tarifa vigente anterior).`
+        : `⚠ Vista combinada de todas las gamas de <strong>${escapeHtml(brand.label)}</strong>. Ninguna tiene todavía tarifa anterior guardada — todas las referencias se marcan como nuevas.`;
     } else if (!diff.hasPrevious) {
       b.className = 'history-banner first-time';
-      b.innerHTML = `⚠ Sin tarifa anterior guardada para <strong>${escapeHtml(loaded.supplier)}</strong>. Todas las referencias se marcan como nuevas. Al pulsar "Establecer como vigente" esta tarifa quedará como referencia para futuras comparaciones.`;
+      b.innerHTML = `⚠ Sin tarifa anterior guardada para <strong>${escapeHtml(brand.label)}</strong>. Todas las referencias se marcan como nuevas. Al pulsar "Establecer como vigente" esta tarifa quedará como referencia para futuras comparaciones.`;
     } else {
       b.className = 'history-banner';
       const dt = diff.previousTariffDate || diff.previousDate;
-      b.innerHTML = `📊 Comparando con la tarifa vigente de <strong>${escapeHtml(loaded.supplier)}</strong> del <strong>${escapeHtml(dt)}</strong>.`;
+      b.innerHTML = `📊 Comparando con la tarifa vigente de <strong>${escapeHtml(brand.label)}</strong> del <strong>${escapeHtml(dt)}</strong>.`;
     }
     b.classList.remove('hidden');
   }
@@ -347,23 +364,30 @@ const ScreenTarifas = (() => {
     $('modalObsolete').classList.remove('hidden');
   };
 
-  /* ----- carga/refresco desde LoadedTariff ----- */
-  function refreshFromLoaded() {
-    const loaded = LoadedTariff.get();
-    if (!loaded) {
-      $('tarifasEmpty').classList.remove('hidden');
-      $('tarifasContent').classList.add('hidden');
-      return;
+  /* ----- carga desde el maestro (MasterDB) para la marca/gama actuales ----- */
+  async function loadTariffData() {
+    const brand = findBrand(currentBrandId);
+    if (!brand) return;
+    $('tarifasTitle').textContent = brand.label;
+
+    if (currentGama === '__all__') {
+      const chunks = await Promise.all(brand.gamas.map(g => fetchMasterRows(brand.id, g)));
+      rows = chunks.flat();
+      diff = await computeAllGamasDiff(brand);
+      $('tariffDateTarifas').disabled = true;
+    } else {
+      rows = await fetchMasterRows(brand.id, currentGama);
+      const previous = History.load(historyIdentifierFor(brand, currentGama));
+      diff = History.diff(rows, previous, RebrandMap.load(brand.id));
+      $('tariffDateTarifas').disabled = false;
+      $('tariffDateTarifas').value = tariffDateFor(brand.id, currentGama);
     }
-    $('tarifasEmpty').classList.add('hidden');
-    $('tarifasContent').classList.remove('hidden');
-    $('tarifasTitle').textContent = loaded.supplier;
-    $('tariffDateTarifas').value = loaded.tariffDate || new Date().toISOString().slice(0, 10);
-    activeGama = loaded.gamas[0];
-    tableFilterGama = activeGama;
-    rows = loaded.allRows.filter(r => r.gama === activeGama);
-    const previous = History.load(historyIdentifier(loaded, activeGama));
-    diff = History.diff(rows, previous, rebrandPairs(loaded));
+
+    const empty = rows.length === 0;
+    $('tarifasEmpty').classList.toggle('hidden', !empty);
+    $('tarifasContent').classList.toggle('hidden', empty);
+    if (empty) return;
+
     renderGamaTabs();
     renderFormatFilter();
     renderHistoryBanner();
@@ -372,7 +396,26 @@ const ScreenTarifas = (() => {
     $('loadStatusTarifas').classList.add('hidden');
   }
 
+  /** Si se acaba de cargar una tarifa en Importación, salta directamente a esa marca/gama
+   *  — solo la primera vez que se visita Tarifas tras esa carga (se consume y se limpia),
+   *  para no forzar el salto de vuelta si el usuario ya eligió ver otra marca/gama. */
+  function jumpToLoaded() {
+    const loaded = LoadedTariff.get();
+    if (!loaded) return;
+    LoadedTariff.clear();
+    currentBrandId = loaded.supplierId;
+    currentGama = loaded.gamas[0];
+    $('tarifasBrandSelect').value = currentBrandId;
+    loadTariffData();
+  }
+
   function setupListeners() {
+    $('tarifasBrandSelect').addEventListener('change', (e) => {
+      currentBrandId = e.target.value;
+      const brand = findBrand(currentBrandId);
+      currentGama = brand && brand.gamas.length ? brand.gamas[0] : 'default';
+      loadTariffData();
+    });
     $('gamaTabs').addEventListener('click', (e) => {
       const btn = e.target.closest('button[data-gama]');
       if (!btn) return;
@@ -382,49 +425,50 @@ const ScreenTarifas = (() => {
     $('formatFilter').addEventListener('change', (e) => { filter.format = e.target.value; renderTable(); });
     $('statusFilter').addEventListener('change', (e) => { filter.status = e.target.value; renderTable(); });
     $('tariffDateTarifas').addEventListener('change', (e) => {
-      const loaded = LoadedTariff.get();
-      if (loaded) loaded.tariffDate = e.target.value;
+      if (currentGama === '__all__') return;
+      const meta = Storage.get(importMetaKey(currentBrandId, currentGama), { rowCount: rows.length });
+      meta.tariffDate = e.target.value;
+      Storage.set(importMetaKey(currentBrandId, currentGama), meta);
     });
 
-    $('btnSetCurrent').addEventListener('click', () => {
-      const loaded = LoadedTariff.get();
-      if (!loaded || !rows.length) return;
-      const combined = tableFilterGama === '__all__';
+    $('btnSetCurrent').addEventListener('click', async () => {
+      const brand = findBrand(currentBrandId);
+      if (!brand || !rows.length) return;
+      const combined = currentGama === '__all__';
       const label = combined
-        ? `${loaded.supplier} (todas las gamas)`
-        : (activeGama !== 'default' ? `${loaded.supplier} (${GAMA_LABELS[activeGama] || activeGama})` : loaded.supplier);
+        ? `${brand.label} (todas las gamas)`
+        : (currentGama !== 'default' ? `${brand.label} (${GAMA_LABELS[currentGama] || currentGama})` : brand.label);
       if (!confirm(`¿Establecer esta tarifa como la vigente para ${label}?\n\nLa próxima tarifa que cargues se comparará contra esta.`)) return;
-      const gamasToSave = combined ? loaded.gamas : [activeGama];
+      const gamasToSave = combined ? brand.gamas : [currentGama];
       for (const g of gamasToSave) {
-        const gRows = loaded.allRows.filter(r => r.gama === g);
-        History.save(historyIdentifier(loaded, g), gRows, loaded.tariffDate);
+        const gRows = combined ? await fetchMasterRows(brand.id, g) : rows;
+        History.save(historyIdentifierFor(brand, g), gRows, tariffDateFor(brand.id, g));
       }
-      diff = combined ? computeAllGamasDiff(loaded) : History.diff(rows, History.load(historyIdentifier(loaded, activeGama)), rebrandPairs(loaded));
+      diff = combined ? await computeAllGamasDiff(brand) : History.diff(rows, History.load(historyIdentifierFor(brand, currentGama)), RebrandMap.load(brand.id));
       renderHistoryBanner(); renderKpis(); renderTable();
       $('loadStatusTarifas').classList.remove('hidden');
       $('loadStatusTarifas').innerHTML = `<small style="color: var(--pico-ins-color);">✓ Tarifa vigente de ${escapeHtml(label)} actualizada.</small>`;
     });
 
     $('btnBackToImport').addEventListener('click', () => {
-      LoadedTariff.clear();
       Router.show('import');
     });
 
-    Store.on('tariff:loaded', () => { if (Router.current() === 'tarifas') refreshFromLoaded(); });
-    Store.on('screen:changed', (screen) => { if (screen === 'tarifas') refreshFromLoaded(); });
+    Store.on('tariff:loaded', () => { if (Router.current() === 'tarifas') jumpToLoaded(); });
+    Store.on('screen:changed', (screen) => { if (screen === 'tarifas') jumpToLoaded(); });
     // Si se carga un mapa de rebranding para la marca que se está viendo, recalcula el
     // diff en vivo (los rebrands afectan a qué refs cuentan como "nuevas").
-    Store.on('rebrand:loaded', (brands) => {
-      const loaded = LoadedTariff.get();
-      if (!loaded || !brands.includes((loaded.supplier || '').toUpperCase())) return;
-      diff = tableFilterGama === '__all__' ? computeAllGamasDiff(loaded) : History.diff(rows, History.load(historyIdentifier(loaded, activeGama)), rebrandPairs(loaded));
+    Store.on('rebrand:loaded', async (brands) => {
+      const brand = findBrand(currentBrandId);
+      if (!brand || !brands.includes(brand.label.toUpperCase())) return;
+      diff = currentGama === '__all__' ? await computeAllGamasDiff(brand) : History.diff(rows, History.load(historyIdentifierFor(brand, currentGama)), RebrandMap.load(brand.id));
       renderHistoryBanner(); renderKpis(); renderTable();
     });
   }
 
   function init() {
     setupListeners();
-    refreshFromLoaded();
+    renderBrandSelect();
   }
 
   return { init };

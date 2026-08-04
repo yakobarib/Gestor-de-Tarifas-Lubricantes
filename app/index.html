@@ -56,7 +56,7 @@
     <div class="sidebar-footer">
       <p>Krafted by <strong>Yakoba Moreno</strong></p>
       <p>Designed in <strong>Claude Code</strong></p>
-      <span class="sidebar-version">v0.9.5</span>
+      <span class="sidebar-version">v0.9.6</span>
     </div>
   </aside>
 
@@ -105,16 +105,26 @@
      ========================================================================== -->
 <section id="screen-tarifas" class="screen-section hidden">
 
-  <div id="tarifasEmpty">
-    <p class="muted">Todavía no has cargado ninguna tarifa en esta sesión. Ve a
-      <a href="#import">Importación</a> y suelta un fichero en la tarjeta de una marca.</p>
+  <div class="filter-row">
+    <div class="field">
+      <label for="tarifasBrandSelect">Marca</label>
+      <select id="tarifasBrandSelect"></select>
+    </div>
+    <div class="field">
+      <label for="tariffDateTarifas">Fecha tarifa</label>
+      <input type="date" id="tariffDateTarifas" title="Fecha de la tarifa">
+    </div>
   </div>
 
-  <div id="tarifasContent" class="hidden">
+  <div id="tarifasEmpty" class="hidden">
+    <p class="muted">Sin tarifa importada para esta marca/gama todavía. Ve a
+      <a href="#import">Importación</a> y suelta un fichero en su tarjeta.</p>
+  </div>
+
+  <div id="tarifasContent">
     <div class="tarifas-toolbar">
       <h3 id="tarifasTitle">—</h3>
       <div class="tarifas-actions">
-        <input type="date" id="tariffDateTarifas" title="Fecha de la tarifa">
         <button id="btnSetCurrent" class="secondary-btn" title="Guarda esta tarifa como la nueva vigente para comparar con la próxima">Establecer como vigente</button>
         <button id="btnBackToImport" class="secondary-btn">Cargar otra tarifa</button>
       </div>

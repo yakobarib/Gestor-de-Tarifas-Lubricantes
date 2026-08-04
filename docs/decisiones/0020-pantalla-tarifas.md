@@ -15,14 +15,37 @@ tarjetas + carga) y mover la vista de la tarifa a una pantalla nueva intermedia,
 "Tarifas", entre Importación y Reglas. También preguntó si la configuración de margen no
 debería vivir directamente en Reglas en vez de en Importación.
 
+## Corrección el mismo día: Tarifas no puede depender solo de `LoadedTariff`
+
+La primera versión de esta ADR hacía que Tarifas leyera ÚNICAMENTE `LoadedTariff` (la
+tarifa recién soltada en Importación). Yako lo probó de inmediato: tras importar las 6
+marcas, visitó Tarifas directamente (sin acabar de soltar un fichero) y vio "todavía no
+has cargado ninguna tarifa" — a pesar de que las tarjetas de Importación mostraban
+claramente que sí había datos. El fallo de diseño: `LoadedTariff` vive solo en memoria
+(se pierde al recargar la página o simplemente al navegar a otra pantalla y volver), así
+que Tarifas solo "funcionaba" en el instante justo después de soltar un fichero.
+
+**Corregido igual que Reglas/Comparación/Exportación**: Tarifas pasa a tener su propio
+selector de Marca + Gama y lee siempre directamente de `MasterDB` (el maestro
+persistente), igual que las demás pantallas — no depende de haber importado nada en esa
+misma sesión. `LoadedTariff` se degrada a un atajo de conveniencia: si se acaba de soltar
+un fichero, Tarifas salta automáticamente a esa marca/gama la primera vez que se visita
+(y se autoconsume — `LoadedTariff.clear()` tras el salto — para no forzar volver ahí si
+el usuario ya eligió ver otra marca a mano). Las filas del maestro usan
+`costFactura`/`costNetoNeto`/`costTripleNeto` en vez de `costPerPack` — se remapea con el
+mismo helper `forMaster()` que ya usan Reglas/Comparación/Exportación; para que
+`History.save`/`History.diff` (que comparan por `costPerPack`) sigan funcionando sin
+tocarlos, se añade un alias `costPerPack = costFactura` al leer del maestro.
+
 ## Decisión: Importación solo carga, Tarifas solo muestra, Reglas es la única fuente de margen
 
 - **Importación**: cuadrícula de tarjetas + zonas de arrastre por marca + zona central de
   rebranding. Al cargar una tarifa con éxito, persiste en `MasterDB` (igual que antes) y
   entrega el resultado a un nuevo módulo puente, `LoadedTariff` (solo en memoria), y
   navega automáticamente a Tarifas.
-- **Tarifas** (pantalla nueva): lee `LoadedTariff`, muestra pestañas de gama (+ "Todas",
-  ver más abajo), banner de histórico, KPIs, filtros, tabla de preview con edición de
+- **Tarifas** (pantalla nueva): selector de marca/gama que lee de `MasterDB`, muestra
+  pestañas de gama (+ "Todas", ver más abajo), banner de histórico, KPIs, filtros, tabla
+  de preview con edición de
   litros y PVP manual por fila, y los botones "Establecer como vigente" / "Cargar otra
   tarifa" (vuelve a Importación y limpia `LoadedTariff`).
 - **Reglas**: pasa a ser la ÚNICA pantalla donde se edita margen/redondeo/modo/base de

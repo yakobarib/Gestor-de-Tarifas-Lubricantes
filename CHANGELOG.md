@@ -2,6 +2,19 @@
 
 Formato inspirado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [v0.9.6] — 2026-08-04
+
+### Arreglado
+- **Tarifas dependía solo de la tarifa recién importada** (`LoadedTariff`, en
+  memoria) — al visitarla sin acabar de soltar un fichero, o tras recargar la
+  página, decía "no has cargado ninguna tarifa" aunque las tarjetas de
+  Importación mostraran datos reales. Corregido: Tarifas ahora tiene su
+  propio selector de marca/gama y lee siempre de `MasterDB` (igual que
+  Reglas/Comparación/Exportación); `LoadedTariff` queda solo como atajo que
+  salta a la marca recién importada la primera vez que se visita la
+  pantalla, sin forzar volver ahí si ya se eligió ver otra marca a mano. Ver
+  [ADR 0020](docs/decisiones/0020-pantalla-tarifas.md).
+
 ## [v0.9.5] — 2026-08-04
 
 ### Añadido
