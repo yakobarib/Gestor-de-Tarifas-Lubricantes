@@ -99,7 +99,12 @@ const ScreenImport = (() => {
               : `<span class="status-none">sin importar</span>`;
             return `<div class="line">Tarifa general: ${status}</div>`;
           })();
-      return `<div class="brand-card"><div class="brand-card-head">${icon}<h4>${escapeHtml(b.label)}</h4></div>${gamaLines}</div>`;
+      const dropZone = `
+        <div class="brand-drop" data-brand-drop="${escapeHtml(b.id)}" title="Arrastra o elige la tarifa de ${escapeHtml(b.label)}">
+          Arrastra tarifa o pulsa
+          <input type="file" class="brand-drop-input" data-brand-input="${escapeHtml(b.id)}" accept=".xlsx,.xls" hidden>
+        </div>`;
+      return `<div class="brand-card"><div class="brand-card-head">${icon}<h4>${escapeHtml(b.label)}</h4></div>${gamaLines}${dropZone}</div>`;
     }).join('');
   }
 
@@ -439,26 +444,31 @@ const ScreenImport = (() => {
   }
 
   /* ----- handlers ----- */
-  function handleFiles(files) {
+  /** Carga una tarifa de proveedor soltada/elegida en la tarjeta de una marca concreta
+   *  (ver ADR pendiente de UI por tarjeta). Si el proveedor detectado no coincide con la
+   *  tarjeta donde se soltó, se avisa antes de continuar (fichero equivocado en la marca
+   *  equivocada) — se carga igualmente bajo el proveedor real detectado, no bajo la marca
+   *  de la tarjeta. */
+  function handleBrandFiles(files, brandId) {
     if (!files || files.length === 0) return;
     const file = files[0];
+    const targetBrand = findBrand(brandId);
     $('loadStatus').classList.remove('hidden');
     $('loadStatus').innerHTML = `<small class="muted">Leyendo <strong>${escapeHtml(file.name)}</strong>…</small>`;
     const reader = new FileReader();
     reader.onload = (e) => {
-      // Un mismo drop puede ser la tarifa o el Excel de cruce de rebranding
-      // (SIRDI antigua ↔ nueva) — se detecta por columnas, no hace falta un
-      // control separado (ver ADR 0009).
-      try {
-        const testWb = XLSX.read(e.target.result, { type: 'array' });
-        const bySupplier = RebrandMap.readRebrandExcel(testWb, null);
-        if (Object.keys(bySupplier).length) {
-          applyRebrandMap(bySupplier, file.name);
-          return;
-        }
-      } catch (err) { /* no es un Excel de rebranding legible, se prueba como tarifa */ }
       try {
         const result = ExcelReader.read(e.target.result, file.name);
+        if (result.id && result.id !== brandId) {
+          const detectedBrand = findBrand(result.id);
+          const detectedLabel = detectedBrand ? detectedBrand.label : result.supplier;
+          const targetLabel = targetBrand ? targetBrand.label : brandId;
+          const proceed = confirm(`El fichero parece ser de ${detectedLabel}, no de ${targetLabel}. ¿Continuar de todos modos?`);
+          if (!proceed) {
+            $('loadStatus').innerHTML = `<small class="muted">Importación cancelada.</small>`;
+            return;
+          }
+        }
         state.supplier = result.supplier;
         state.supplierId = result.id;
         state.gamas = (result.gamas && result.gamas.length) ? result.gamas : ['default'];
@@ -472,7 +482,6 @@ const ScreenImport = (() => {
 
         $('loadStatus').innerHTML = `<small class="muted">✓ <strong>${state.allRows.length}</strong> referencias cargadas de <strong>${escapeHtml(state.supplier)}</strong> (hoja <code>${escapeHtml(result.sheetUsed)}</code>).</small>`;
         $('mainLayout').classList.remove('hidden');
-        $('dropZone').classList.add('hidden');
         loadConfig();
         $('defaultMargin').value = state.config.defaultMargin;
         $('rounding').value = state.config.rounding;
@@ -496,6 +505,32 @@ const ScreenImport = (() => {
     reader.readAsArrayBuffer(file);
   }
 
+  /** Zona central: reservada solo para el Excel de cruce de rebranding (SIRDI antigua ↔
+   *  nueva, ver ADR 0009) — las tarifas de proveedor se cargan desde la tarjeta de su
+   *  marca (ver handleBrandFiles). */
+  function handleFiles(files) {
+    if (!files || files.length === 0) return;
+    const file = files[0];
+    $('loadStatus').classList.remove('hidden');
+    $('loadStatus').innerHTML = `<small class="muted">Leyendo <strong>${escapeHtml(file.name)}</strong>…</small>`;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const testWb = XLSX.read(e.target.result, { type: 'array' });
+        const bySupplier = RebrandMap.readRebrandExcel(testWb, null);
+        if (Object.keys(bySupplier).length) {
+          applyRebrandMap(bySupplier, file.name);
+        } else {
+          $('loadStatus').innerHTML = `<small style="color: var(--pico-del-color);">❌ No se han encontrado columnas de cruce de rebranding reconocibles en <strong>${escapeHtml(file.name)}</strong>. Para cargar una tarifa de proveedor, usa la zona de la tarjeta de esa marca.</small>`;
+        }
+      } catch (err) {
+        console.error(err);
+        $('loadStatus').innerHTML = `<small style="color: var(--pico-del-color);">❌ ${escapeHtml(err.message)}</small>`;
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  }
+
   function setupDropZone() {
     const dz = $('dropZone');
     const input = $('fileInput');
@@ -507,6 +542,43 @@ const ScreenImport = (() => {
       e.preventDefault();
       dz.classList.remove('hover');
       handleFiles(e.dataTransfer.files);
+    });
+  }
+
+  /** Zonas de carga por tarjeta de marca — event delegation sobre #brandGrid, ya que las
+   *  tarjetas se regeneran por completo en cada renderBrandCards(). */
+  function setupBrandDropZones() {
+    const grid = $('brandGrid');
+    if (!grid) return;
+    grid.addEventListener('click', (e) => {
+      const drop = e.target.closest('.brand-drop');
+      if (!drop || e.target.matches('.brand-drop-input')) return;
+      const input = drop.querySelector('.brand-drop-input');
+      if (input) input.click();
+    });
+    grid.addEventListener('change', (e) => {
+      const input = e.target.closest('.brand-drop-input');
+      if (!input) return;
+      handleBrandFiles(input.files, input.dataset.brandInput);
+      input.value = '';
+    });
+    grid.addEventListener('dragover', (e) => {
+      const drop = e.target.closest('.brand-drop');
+      if (!drop) return;
+      e.preventDefault();
+      drop.classList.add('hover');
+    });
+    grid.addEventListener('dragleave', (e) => {
+      const drop = e.target.closest('.brand-drop');
+      if (!drop) return;
+      drop.classList.remove('hover');
+    });
+    grid.addEventListener('drop', (e) => {
+      const drop = e.target.closest('.brand-drop');
+      if (!drop) return;
+      e.preventDefault();
+      drop.classList.remove('hover');
+      handleBrandFiles(e.dataTransfer.files, drop.dataset.brandDrop);
     });
   }
 
@@ -623,7 +695,6 @@ const ScreenImport = (() => {
       state.activeGama = 'default';
       state.diff = null;
       $('mainLayout').classList.add('hidden');
-      $('dropZone').classList.remove('hidden');
       $('loadStatus').classList.add('hidden');
       $('fileInput').value = '';
     });
@@ -649,6 +720,7 @@ const ScreenImport = (() => {
   function init() {
     renderBrandCards();
     setupDropZone();
+    setupBrandDropZones();
     setupConfigListeners();
     loadConfig();
     $('defaultMargin').value = state.config.defaultMargin;

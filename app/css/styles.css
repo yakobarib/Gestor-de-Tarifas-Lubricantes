@@ -195,6 +195,15 @@ article h4 { font-size: 0.88rem; }
 .brand-card .status-ok { color: #2d7a2d; }
 .brand-card .status-none { color: var(--pico-muted-color); font-style: italic; }
 
+/* Zona de carga por tarjeta de marca — arrastra o elige la tarifa de ESA marca directamente. */
+.brand-drop {
+  margin-top: 0.55rem; padding: 0.45rem 0.4rem; text-align: center;
+  border: 1.5px dashed var(--pico-muted-border-color); border-radius: var(--radius-md);
+  font-size: 0.7rem; color: var(--pico-muted-color); cursor: pointer;
+  transition: all 0.15s ease;
+}
+.brand-drop:hover, .brand-drop.hover { border-color: var(--pico-primary); background: var(--pico-primary-background); color: var(--pico-primary); }
+
 /* Drop zone */
 #dropZone {
   border: 2px dashed var(--pico-muted-border-color);

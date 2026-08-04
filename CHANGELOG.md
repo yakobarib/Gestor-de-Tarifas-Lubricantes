@@ -2,6 +2,20 @@
 
 Formato inspirado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [v0.9.3] — 2026-08-04
+
+### Cambiado
+- **Carga de tarifas por tarjeta de marca.** Cada tarjeta de Importación tiene
+  ahora su propia zona de arrastre/selección en la parte inferior — soltar un
+  fichero ahí lo carga directamente para esa marca, sin pasar por la zona
+  central. La zona central se repurpone en exclusiva para el Excel de cruce
+  de rebranding (SIRDI antigua ↔ nueva): ya no intenta detectar tarifas de
+  proveedor como fallback.
+- Salvaguarda de marca equivocada: si el fichero soltado en la tarjeta de una
+  marca se detecta como perteneciente a otra (por columnas, no por la
+  tarjeta), se pide confirmación antes de continuar — se carga bajo el
+  proveedor realmente detectado, no bajo el de la tarjeta.
+
 ## [v0.9.2] — 2026-08-03
 
 ### Añadido
