@@ -5,8 +5,8 @@
    rutas no-fichero devuelven 404 al refrescar, el hash no toca el servidor.
 */
 const Router = (() => {
-  const SCREENS = ['import', 'rules', 'compare', 'export'];
-  const TITLES = { import: 'Importación', rules: 'Reglas', compare: 'Comparación', export: 'Exportación' };
+  const SCREENS = ['import', 'tarifas', 'rules', 'compare', 'export'];
+  const TITLES = { import: 'Importación', tarifas: 'Tarifas', rules: 'Reglas', compare: 'Comparación', export: 'Exportación' };
 
   function show(screen) {
     for (const s of SCREENS) {

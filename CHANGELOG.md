@@ -2,6 +2,43 @@
 
 Formato inspirado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [v0.9.5] — 2026-08-04
+
+### Añadido
+- **Pantalla nueva: Tarifas.** Entre Importación y Reglas. Muestra la tarifa
+  recién cargada (tabla, filtros, KPIs, PVP manual por fila) — Importación se
+  queda solo con las tarjetas de marca y la carga. Nuevo módulo puente
+  `LoadedTariff`. Ver [ADR 0020](docs/decisiones/0020-pantalla-tarifas.md).
+- Pestaña de gama **"Todas"** en Tarifas, y opción **"Todas"** (primera y por
+  defecto) en el selector de gama de Exportación — el PVP de cada fila se
+  calcula con el nivel de su propia gama real, no uno compartido.
+
+### Cambiado
+- El margen (base de coste, modo, % por defecto, redondeo) se configura
+  **solo en Reglas** — se retira el panel duplicado de Importación (arreglaba
+  de paso un bug real: editar margen desde Importación podía dejar de tener
+  efecto en cuanto esa marca/gama se visitaba una vez en Reglas, sin aviso,
+  por dos copias de la misma config desincronizadas). El PVP manual por fila
+  sigue editándose en la tabla (ahora en Tarifas).
+- Exportación: "Tipo de exportación" y "Nivel de precio" (dos selects) se
+  fusionan en un único selector plano — cada nivel de Reglas (PVP, Bidones y
+  Cubas Neto, Netos Bonus…) aparece como opción "(Venta)" junto a los
+  listados fijos "Neto Factura / Neto-Neto (Compra)".
+- Reglas → "Añadir nivel": se retira el preset obsoleto "Precio Neto de
+  Venta" (confundía con PVP, nunca se llegó a usar) y se añade una nota
+  aclarando que el nivel PVP ya existe por defecto.
+- Tarjetas de marca (Importación): fecha acortada (`04/08/26`) y texto más
+  compacto — no cabía en una línea con fechas largas.
+
+### Arreglado
+- Buscador de Importación/Tarifas: el icono de lupa se solapaba con el texto
+  — movido al lado derecho del campo.
+
+### Retirado
+- "Exportar a Skrit" y "Guardar/Cargar perfil de margen" (panel legacy de
+  Importación) — superados por la pantalla Exportación y por la persistencia
+  ya duradera de Reglas por marca/gama.
+
 ## [v0.9.4] — 2026-08-04
 
 ### Arreglado

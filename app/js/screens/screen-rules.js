@@ -4,8 +4,12 @@
    Selección de marca + gama, y edición de sus "niveles de precio"
    (`priceLevels`, ver ADR 0008 y Migration): cada nivel tiene una base de
    coste (factura / neto-neto), un modo de margen, y si va o no a Skrit.
-   Presets: PVP (siempre existe), Precio Neto de Venta, Bidones y Cubas Neto,
-   Netos Bonus (ver ADR 0015/0016).
+   El nivel "pvp" siempre existe (se sintetiza vía Migration si no hay
+   config guardada todavía) — "Añadir nivel" es solo para niveles extra:
+   Bidones y Cubas Neto, Netos Bonus (ver ADR 0015/0016). El preset
+   "Precio Neto de Venta" del diseño original (ADR 0008) quedó obsoleto y se
+   retiró — Yako lo confundía con PVP y en la práctica solo se usan los dos
+   anteriores.
 */
 const ScreenRules = (() => {
   const $ = (id) => document.getElementById(id);
@@ -23,7 +27,6 @@ const ScreenRules = (() => {
   const BONUS_PREMIUM_BY_FORMAT = { '185': 50, '200': 50, '205': 50, '208': 50, '209': 50, '1000': 100 };
 
   const PRESETS = {
-    precio_neto_venta: { id: 'precio_neto_venta', label: 'Precio Neto de Venta', baseCost: 'netoNeto', baseCostField: 'costNetoNeto', mode: 'sale', defaultMargin: 15, byFormat: {}, rounding: 'int', manualOverride: {}, goesToSkrit: true },
     cubas_neto: { id: 'cubas_neto', label: 'Bidones y Cubas Neto', baseCost: 'factura', baseCostField: 'costPerPack', mode: 'sale', defaultMargin: 20, onlyFormats: CUBAS_FORMATS, byFormat: CUBAS_MARGIN_BY_FORMAT, rounding: '2dec', manualOverride: {}, goesToSkrit: true },
     // "Siempre el precio más bajo disponible" (Yako): triple-neto si existe, si no
     // neto-neto, si no factura. costCascade ya usa los nombres de campo del maestro

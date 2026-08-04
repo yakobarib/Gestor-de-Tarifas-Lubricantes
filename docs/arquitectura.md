@@ -26,7 +26,7 @@ de una misma página comparten el mismo entorno léxico, así que el orden de ca
 
 ```
 app/
-  index.html                    shell: markup de las 4 pantallas + <script src> en orden
+  index.html                    shell: markup de las 5 pantallas + <script src> en orden
   css/styles.css                 estilos (antes <style> inline)
   js/core/
     storage.js                   Storage — capa de persistencia localStorage
@@ -37,26 +37,31 @@ app/
     db.js                        MasterDB — maestro persistente multi-marca (IndexedDB)
     migration.js                 Migration — migra config legacy a priceLevels (aditivo)
     store.js                     Store — pub/sub mínimo entre pantallas
-    router.js                    Router — navegación hash entre las 4 pantallas
+    loaded-tariff.js             LoadedTariff — puente en memoria Importación → Tarifas
+    router.js                    Router — navegación hash entre las 5 pantallas
   js/profiles/
     excel-reader.js              ExcelReader — registro de perfiles + helpers compartidos
     profile-repsol.js            RepsolProfile
     profile-ad-parts-aceite.js   ADPartsAceiteProfile (2 formatos de entrada + 3 gamas)
     profile-ad-parts-quimico.js  ADPartsQuimicoProfile
+    profile-eni.js, profile-racing-oil.js, profile-shell.js, profile-castrol.js
   js/export/excel-writer.js      ExcelWriter — export legacy + exportSkritV2 (unificado)
   js/comparison/
     equivalence-reader.js        EquivalenceReader — parsers de los 2 formatos de equivalencias
     equivalence-index.js         EquivalenceIndex — índice combinado + lookup
   js/screens/
-    screen-import.js             pantalla IMPORTACIÓN (tarjetas por marca + flujo v0.1-v0.3.0)
-    screen-rules.js              pantalla REGLAS (edición de priceLevels)
+    screen-import.js             pantalla IMPORTACIÓN (solo tarjetas por marca + carga)
+    screen-tarifas.js            pantalla TARIFAS (tabla/filtros/KPIs de la tarifa cargada, ver ADR 0020)
+    screen-rules.js              pantalla REGLAS (edición de priceLevels — única fuente de margen)
     screen-compare.js            pantalla COMPARACIÓN (equivalencias en vivo)
     screen-export.js             pantalla EXPORTACIÓN (layout de 9 columnas)
-  js/app.js                      boot: Migration.run() → init de las 4 pantallas → Router.init()
+  js/app.js                      boot: Migration.run() → init de las 5 pantallas → Router.init()
 ```
 
-Detalle de la decisión y su razonamiento en
-[decisiones/0008-rediseno-4-pantallas.md](decisiones/0008-rediseno-4-pantallas.md).
+Detalle de la decisión original y su razonamiento en
+[decisiones/0008-rediseno-4-pantallas.md](decisiones/0008-rediseno-4-pantallas.md); la
+quinta pantalla (Tarifas) y la consolidación del margen en Reglas en
+[decisiones/0020-pantalla-tarifas.md](decisiones/0020-pantalla-tarifas.md).
 
 ## Flujo de datos (pantalla Importación)
 
@@ -92,8 +97,8 @@ futura tarifa "neto-neto"/"triple neto", nullable hasta que se audite ese provee
 La configuración de margen por marca+gama se extiende de forma aditiva con `priceLevels`
 (pantalla Reglas): cada nivel define una base de coste (`factura` | `netoNeto`), un modo
 de margen, redondeo, y si va o no a Skrit (`goesToSkrit`). Ejemplos: **PVP** (siempre
-existe, migrado automáticamente desde la config legacy), **Precio Neto de Venta**, y
-**Precios para Bonus** (uso interno, nunca a Skrit). `Pricing.compute(row, level)` es la
+existe, migrado automáticamente desde la config legacy), **Bidones y Cubas Neto**, y
+**Netos Bonus** (ver ADR 0015/0016). `Pricing.compute(row, level)` es la
 única función que calcula precios en toda la app — Importación, Reglas, Comparación y
 Exportación la comparten.
 
@@ -136,6 +141,7 @@ Están en [decisiones/](decisiones/) como ADRs (Architecture Decision Records). 
 - [0006 · Comparativa histórica entre tarifas](decisiones/0006-comparativa-historica.md)
 - [0007 · Formalización de Supplier Profiles y soporte AD Parts](decisiones/0007-ad-parts-supplier-profiles.md)
 - [0008 · Rediseño a 4 pantallas y maestro multi-marca](decisiones/0008-rediseno-4-pantallas.md)
+- [0020 · Pantalla Tarifas + margen consolidado en Reglas](decisiones/0020-pantalla-tarifas.md)
 
 ## Preparación para Electron (fase futura)
 

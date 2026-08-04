@@ -60,13 +60,18 @@ const ExcelWriter = (() => {
    * Export unificado (pantalla EXPORTACIÓN): una fila del maestro por línea,
    * con MARCA abreviada + REFERENCIA bare + MARCA+REFERENCIA, ambos niveles
    * de coste que existan, y el precio calculado del nivel elegido.
-   * `rows` = filas del maestro (MasterDB), ya de una marca+gama concretas.
+   * `rows` = filas del maestro (MasterDB), de una marca+gama concreta o de todas sus
+   * gamas juntas (export "Todas", ver pantalla Exportación).
+   * `levelConfig` acepta un nivel fijo, o una función `(row) => nivel` para el caso
+   * "Todas" — cada gama puede tener el mismo nivel configurado con márgenes distintos,
+   * así que se resuelve fila a fila según la gama real de esa fila.
    */
-  function exportSkritV2(rows, brandAbbr, levelConfig, tariffDate) {
+  function exportSkritV2(rows, brandAbbr, levelConfig, tariffDate, levelId) {
+    const resolveLevel = typeof levelConfig === 'function' ? levelConfig : () => levelConfig;
     const header = ['MARCA', 'REFERENCIA', 'MARCA+REFERENCIA', 'COSTE FACTURA', 'COSTE NETO-NETO', 'COSTE TRIPLE NETO', 'PVP', 'FAMILIA', 'LITROS', 'DESCRIPCION'];
     const data = [header];
     for (const r of rows) {
-      const c = Pricing.compute(r, levelConfig);
+      const c = Pricing.compute(r, resolveLevel(r) || {});
       if (c.pvp == null) continue; // sin coste base para este nivel (ej. netoNeto/tripleNeto aún no auditado)
       const bare = r.ref.startsWith(brandAbbr) ? r.ref.slice(brandAbbr.length) : r.ref;
       data.push([
@@ -97,7 +102,7 @@ const ExcelWriter = (() => {
     XLSX.utils.book_append_sheet(wb, ws, 'SKRIT');
 
     const dateStr = (tariffDate || new Date().toISOString().slice(0, 10));
-    const levelSlug = (levelConfig.id || 'nivel').toLowerCase().replace(/[^a-z0-9]+/g, '-');
+    const levelSlug = (levelId || levelConfig.id || 'nivel').toLowerCase().replace(/[^a-z0-9]+/g, '-');
     const filename = `tarifa-skrit-${brandAbbr.toLowerCase()}-${levelSlug}-${dateStr}.xlsx`;
     XLSX.writeFile(wb, filename);
     return filename;

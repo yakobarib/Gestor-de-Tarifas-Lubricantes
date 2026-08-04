@@ -31,6 +31,7 @@ document.addEventListener('DOMContentLoaded', () => {
   Theme.init();
   Migration.run();
   ScreenImport.init();
+  ScreenTarifas.init();
   ScreenRules.init();
   ScreenCompare.init();
   ScreenExport.init();
