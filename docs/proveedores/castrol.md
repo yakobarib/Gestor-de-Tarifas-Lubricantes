@@ -1,9 +1,9 @@
 # Castrol
 
 ## Estado
-- **Versión de app:** v0.9.2 (2026-08-03) — implementado
+- **Versión de app:** v0.9.4 (2026-08-04) — implementado
 - **Última tarifa procesada:** `Tarifa Julio 2026 - Formato Castrol y neto neto.xlsx`
-- **Última actualización de este documento:** 2026-08-03
+- **Última actualización de este documento:** 2026-08-04
 
 ## Formato de la tarifa entrante
 
@@ -48,13 +48,11 @@ app.
 ```
 0.4 kg → 400ML (formato mostrado como gramos/ml, no como "0.4L")
 18 kg  → 20L
+25 kg  → 25L
 180 kg → 208L
 ```
 
-**Sin resolver**: la tarifa real trae `CAT15EEF3 — "CLS Grease, 25K B5"` (25kg), sin
-equivalencia en la tabla. Al no detectar litros, **esa fila se descarta silenciosamente
-del import** (no aparece ni con error ni en el maestro). Pendiente preguntar a Yako el
-volumen real de ese envase de grasa de 25kg.
+25kg confirmado por Yako (envase de grasa, ej. `CAT15EEF3`/`CAT15A3DA` "CLS Grease").
 
 ### "Sustituye a": se duplica, salvo el placeholder "NUEVO"
 
@@ -65,19 +63,17 @@ placeholder de "producto nuevo, no sustituye nada" — se excluye de la duplicac
 
 ## Estado en la app
 
-**Implementado en v0.9.2.** `js/profiles/profile-castrol.js`, perfil `castrol`, 9 gamas
-activas en `BRANDS` (`other`, `crb`, `edge`, `gtx`, `gtx-5w`, `magnatec`, `castrol-on`,
-`transmax`, `vecton`), `refPrefix: 'CAT'`. Probado contra la tarifa real de julio 2026:
-447 filas, 0 duplicados, import → MasterDB → Exportación (Skrit V2 y listado Neto-Neto)
-verificado en navegador.
+**Implementado en v0.9.2** (perfil), pulido en **v0.9.4** (25kg + zona de carga por
+tarjeta). `js/profiles/profile-castrol.js`, perfil `castrol`, 9 gamas activas en
+`BRANDS` (`other`, `crb`, `edge`, `gtx`, `gtx-5w`, `magnatec`, `castrol-on`, `transmax`,
+`vecton`), `refPrefix: 'CAT'`. Probado contra la tarifa real de julio 2026: 449 filas
+(447 + las 2 de 25kg antes descartadas), 0 duplicados, import → MasterDB → Exportación
+(Skrit V2 y listado Neto-Neto) verificado en navegador.
 
 Al probarlo en navegador se detectaron y corrigieron dos colisiones de detección
 automática de proveedor con Repsol y Shell (ambos compartían convenciones de nombre de
 hoja/columna con Castrol) — ver [ADR 0019](../decisiones/0019-perfil-castrol.md) para el
 detalle.
-
-**Pendiente**: volumen real del envase de grasa de 25kg (`CAT15EEF3`), única ref que se
-pierde en el import.
 
 ## Referencias
 

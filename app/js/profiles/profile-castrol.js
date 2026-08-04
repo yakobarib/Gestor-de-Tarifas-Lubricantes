@@ -22,8 +22,7 @@
    verificó que cuadra al 100% contra la columna manual de Yako en esta
    tarifa (371/371 filas). kg/g se convierten con la tabla de equivalencias
    de Castrol (18kg=20L, 180kg=208L —los bidones de esta marca son de 208L,
-   no 205L—, 0,4kg=400ML) — el peso 25kg visto en la tarifa real NO está en
-   la tabla, se deja sin convertir.
+   no 205L—, 0,4kg=400ML, 25kg=25L —envase de grasa, confirmado por Yako—).
 
    Descripción: se limpia quitando el paréntesis final tipo "(C)" y la
    unidad de compra (todo lo que va después de la primera coma), y se le
@@ -44,10 +43,8 @@
     return String(s).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
   }
 
-  // Envases estándar de Castrol en kg/g → litros. Confirmado por Yako. 25kg
-  // (visto en la tarifa real, gama de grasas) no está en la tabla — se deja
-  // sin convertir en vez de inventar un equivalente.
-  const KG_TO_L_DESC = { 0.4: 0.4, 18: 20, 180: 208 };
+  // Envases estándar de Castrol en kg/g → litros. Confirmado por Yako (25kg = 25L).
+  const KG_TO_L_DESC = { 0.4: 0.4, 18: 20, 25: 25, 180: 208 };
 
   function formatLitersSuffix(liters) {
     if (liters < 1) return `${Math.round(liters * 1000)}ML`;

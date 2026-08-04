@@ -28,8 +28,7 @@ Plan acordado con Yako en la sesión del **2026-05-14** y actualizado según ava
 - ✅ **Detección automática de proveedor** — por firma de columnas (`ExcelReader.registerProfile` + `detect()`), no solo por nombre de archivo. Todos los perfiles registrados verifican cabecera real, no solo nombre de hoja (ver ADR 0019 para dos bugs de colisión encontrados y corregidos).
 
 Con Castrol, los 6 proveedores del roadmap inicial están implementados — Fase 1 cerrada
-en la práctica salvo pulido menor (25kg sin mapear en Castrol, tabla de descripciones
-pendiente en Shell).
+en la práctica salvo pulido menor (tabla de descripciones pendiente en Shell).
 
 > **Nota sobre la numeración (2026-07-28):** este roadmap marcaba AD Parts como el hito
 > **v0.2**, pero el trabajo real publicado como v0.2/v0.2.1/v0.2.2 se dedicó a la

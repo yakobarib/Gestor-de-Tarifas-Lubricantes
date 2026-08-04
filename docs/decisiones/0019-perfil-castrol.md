@@ -34,12 +34,11 @@ añade el sufijo de litros propio de la app — dando `"Brake Fluid DOT 4 1L"` y
 
 ## Litros: tabla kg→L propia de Castrol
 
-Los envases en Kg se convierten con `{0.4: 0.4 (→ 400ML), 18: 20, 180: 208}` — confirmado
-por Yako (bidones de 208L en esta marca, igual que Repsol). **Pendiente sin resolver:**
-la tarifa real trae una fila `CAT15EEF3 / "CLS Grease, 25K B5"` (25kg) sin equivalencia
-en la tabla — al no encontrar litros, esa única fila se descarta silenciosamente del
-import (0 de 448 filas brutas se pierde así). Falta preguntarle a Yako el volumen real de
-ese envase de grasa de 25kg para añadirlo a `KG_TO_L_DESC`.
+Los envases en Kg se convierten con `{0.4: 0.4 (→ 400ML), 18: 20, 25: 25, 180: 208}` —
+confirmado por Yako (bidones de 208L en esta marca, igual que Repsol; 25kg = 25L, envase
+de grasa `CAT15EEF3`/`CAT15A3DA` "CLS Grease"). El 25kg se detectó primero como caso sin
+resolver (esas 2 filas se descartaban silenciosamente del import) y se cerró el mismo día
+al confirmar Yako el volumen — ver CHANGELOG v0.9.4.
 
 ## "Sustituye a": duplicar salvo placeholder "NUEVO"
 
@@ -82,10 +81,8 @@ proveedor nuevo.
 - `js/profiles/profile-shell.js`: `detect()` ahora excluye cabeceras con "PRONTO PAGO".
 - `BRANDS.castrol` pasa de `pending: true` a `false`, con 9 gamas reales y
   `refPrefix: 'CAT'`; `EQUIV_BRAND_ALIASES['CASTROL']` apunta a `castrol:edge`.
-- Probado contra la tarifa real de julio 2026: 447 filas, 9 gamas, 0 duplicados, import →
+- Probado contra la tarifa real de julio 2026: 449 filas, 9 gamas, 0 duplicados, import →
   MasterDB → Exportación (Skrit V2 y listado Neto-Neto) verificado en navegador.
-- Pendiente: preguntar a Yako el volumen del envase de 25kg de grasa (única ref que se
-  pierde en el import).
 
 ## Referencias
 

@@ -2,6 +2,22 @@
 
 Formato inspirado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [v0.9.4] — 2026-08-04
+
+### Arreglado
+- Castrol: el envase de grasa de 25kg (`CAT15EEF3`/`CAT15A3DA`, "CLS Grease")
+  ya no se descarta del import — Yako confirmó que equivale a 25L, añadido a
+  la tabla kg→L del perfil.
+
+### Cambiado
+- Pulido visual de las zonas de arrastre por tarjeta de marca (Importación):
+  ahora quedan siempre ancladas al borde inferior de la tarjeta (antes
+  quedaban a distinta altura según cuántas líneas de gama tuviera cada
+  tarjeta encima) y con un estilo más marcado (fondo e icono) para que se
+  lean como zona interactiva. La cuadrícula de tarjetas pasa de `auto-fill`
+  a `auto-fit` para que ocupe exactamente el mismo ancho que la zona central
+  de rebranding, sin dejar columnas fantasma vacías.
+
 ## [v0.9.3] — 2026-08-04
 
 ### Cambiado
