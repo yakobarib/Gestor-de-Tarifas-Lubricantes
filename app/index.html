@@ -56,7 +56,7 @@
     <div class="sidebar-footer">
       <p>Krafted by <strong>Yakoba Moreno</strong></p>
       <p>Designed in <strong>Claude Code</strong></p>
-      <span class="sidebar-version">v0.9.6</span>
+      <span class="sidebar-version">v0.9.7</span>
     </div>
   </aside>
 
@@ -197,9 +197,10 @@
   <article style="margin-bottom: 1rem;">
     <h3>Niveles de precio por marca / gama</h3>
     <p class="muted" style="font-size:0.85rem;">
-      Cada marca (y gama, si tiene varias) puede generar varios precios de salida a partir de dos posibles bases de
-      coste: el coste de factura, o el coste neto-neto tras descuentos/rappels (cuando ese proveedor ya esté auditado).
-      "Bidones y Cubas Neto" y "Netos Bonus" solo generan precio para envases de ~200L
+      Cada marca (y gama, si tiene varias) puede generar varios precios de salida a partir de la base de coste que
+      tenga auditada: factura, neto-neto o triple neto tras descuentos/rappels — el selector de "Base de coste" solo
+      ofrece las que de verdad tengan datos para esa marca/gama (algunas, como Racing Oil o Eni Live, solo tienen
+      factura). "Bidones y Cubas Neto" y "Netos Bonus" solo generan precio para envases de ~200L
       (20% sobre venta) y ~1000L (15% sobre venta) — el resto de formatos quedan sin
       precio en esos niveles. "Netos Bonus" además parte del coste más bajo disponible
       (triple-neto, si no neto-neto, si no factura) y le suma un "precio del premio" fijo
@@ -213,6 +214,7 @@
       <div class="field">
         <label for="rulesGamaSelect">Gama</label>
         <select id="rulesGamaSelect"></select>
+        <p class="hint" style="margin:0.3rem 0 0;">Con "Todas las gamas" seleccionada, guardar aplica la misma configuración a todas las gamas de la marca a la vez (sobrescribe cualquier diferencia que hubiera entre ellas). Elige una gama suelta si necesita un margen distinto al resto.</p>
       </div>
     </div>
   </article>

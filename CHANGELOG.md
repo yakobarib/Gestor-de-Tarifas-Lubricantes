@@ -2,6 +2,24 @@
 
 Formato inspirado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [v0.9.7] — 2026-08-04
+
+### Añadido
+- Reglas: el selector de "Base de coste" de cada nivel solo ofrece las
+  opciones (factura / neto-neto / triple neto) que esa marca/gama tenga
+  realmente auditadas en el maestro — Racing Oil o Eni Live, por ejemplo,
+  solo tienen factura; las demás aparecen deshabilitadas con "(sin datos)"
+  en vez de dejar elegir una base que daría "sin coste" en todas las filas.
+
+### Cambiado
+- Reglas: el selector de Gama gana "Todas las gamas", primera y por
+  defecto (igual que Tarifas/Exportación) — es lo más habitual, casi
+  siempre se quiere la misma política de margen para toda la marca. A
+  diferencia de Tarifas/Exportación (solo lectura), aquí "Todas" también
+  aplica al guardar: cualquier edición se difunde a la config de cada gama
+  real de la marca, sobrescribiendo cualquier diferencia previa entre ellas.
+  Ver [ADR 0021](docs/decisiones/0021-reglas-todas-las-gamas-y-coste-disponible.md).
+
 ## [v0.9.6] — 2026-08-04
 
 ### Arreglado

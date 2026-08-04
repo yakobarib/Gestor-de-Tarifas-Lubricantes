@@ -42,8 +42,12 @@ const ScreenRules = (() => {
     return gama === 'default' ? `config_${brandId}` : `config_${brandId}_${gama}`;
   }
 
+  /** "Todas las gamas" no tiene su propia config — se lee/edita la de la primera gama
+   *  real como representante (lo normal es que Yako quiera la misma política para
+   *  todas, ver `saveConfig`). */
   function loadConfig(brandId, gama) {
-    const key = configKeyFor(brandId, gama);
+    const realGama = gama === '__all__' ? ((findBrand(brandId) || {}).gamas || ['default'])[0] : gama;
+    const key = configKeyFor(brandId, realGama);
     let cfg = Storage.get(key);
     if (!cfg) {
       cfg = { defaultMargin: 30, byFormat: {}, rounding: '2dec', marginMode: 'sale', manualPvp: {} };
@@ -54,9 +58,16 @@ const ScreenRules = (() => {
     return cfg;
   }
 
+  /** Al guardar con "Todas las gamas" seleccionada, se difunde la misma config a CADA
+   *  gama real de la marca — es lo más habitual (una sola política de margen por marca),
+   *  y sobrescribe cualquier diferencia que hubiera entre gamas. Para una gama que
+   *  necesite de verdad un margen distinto, hay que seleccionarla suelta en el selector. */
   function saveConfig(brandId, gama, cfg) {
-    Storage.set(configKeyFor(brandId, gama), cfg);
-    Store.emit('rules:changed', { brandId, gama });
+    const gamas = gama === '__all__' ? ((findBrand(brandId) || {}).gamas || ['default']) : [gama];
+    for (const g of gamas) {
+      Storage.set(configKeyFor(brandId, g), cfg);
+      Store.emit('rules:changed', { brandId, gama: g });
+    }
   }
 
   function renderBrandSelect() {
@@ -77,20 +88,35 @@ const ScreenRules = (() => {
     } else {
       sel.disabled = false;
       const labels = { normal: 'Normal', standard: 'Standard', sportcar: 'Sport Car', quimico: 'Químicos', default: 'General', automocion: 'Automoción', industria: 'Industria', 'productos-de-mantenimiento': 'Productos de Mantenimiento', marinos: 'Marinos', grasas: 'Grasas', alimentarios: 'Alimentarios', 'v-ligero': 'V. Ligero', 'v-pesado': 'V. Pesado', agricola: 'Agrícola', transmision: 'Transmisión', hidraulicos: 'Hidráulicos', grasa: 'Grasa', moto: 'Moto', classic: 'Classic', marina: 'Marina', anticogelante: 'Anticongelante', aditivos: 'Aditivos', advance: 'Advance', 'air-tool': 'Air Tool', corena: 'Corena', diala: 'Diala', gadinia: 'Gadinia', gadus: 'Gadus', 'heat-transfer': 'Heat Transfer', helix: 'Helix', hydraulic: 'Hydraulic', morlina: 'Morlina', omala: 'Omala', ondina: 'Ondina', 'paper-mach': 'Paper Mach', refrigeration: 'Refrigeration', rimula: 'Rimula', sirius: 'Sirius', spirax: 'Spirax', tegula: 'Tegula', tellus: 'Tellus', tonna: 'Tonna', transmission: 'Transmission', turbo: 'Turbo', 'vacuum-pump': 'Vacuum Pump', other: 'Other', crb: 'CRB', edge: 'EDGE', gtx: 'GTX', 'gtx-5w': 'GTX 5W', magnatec: 'Magnatec', 'castrol-on': 'Castrol ON', transmax: 'Transmax', vecton: 'Vecton' };
-      sel.innerHTML = brand.gamas.map(g => `<option value="${g}">${escapeHtml(labels[g] || g)}</option>`).join('');
-      currentGama = brand.gamas[0];
+      // "Todas las gamas" primera y por defecto — lo más habitual es gestionar el
+      // margen de toda la marca de una vez, no gama a gama.
+      sel.innerHTML = '<option value="__all__">Todas las gamas</option>'
+        + brand.gamas.map(g => `<option value="${g}">${escapeHtml(labels[g] || g)}</option>`).join('');
+      currentGama = '__all__';
       sel.value = currentGama;
     }
     renderLevels();
   }
 
-  function renderLevels() {
-    const cfg = loadConfig(currentBrandId, currentGama);
-    const el = $('levelsContainer');
-    el.innerHTML = cfg.priceLevels.map((lvl, i) => levelCardHtml(lvl, i, cfg.priceLevels.length)).join('');
+  /** Qué bases de coste tienen datos reales para esta marca/gama en el maestro — para no
+   *  ofrecer "Coste neto-neto"/"Coste triple neto" en marcas que nunca traen esa columna
+   *  (Racing Oil, Eni Live…) y que darían "sin coste" en todas las filas si se eligieran. */
+  async function availableCostFields(brandId, gama) {
+    const rows = gama === '__all__'
+      ? await MasterDB.getByBrand(brandId, null)
+      : await MasterDB.getByBrand(brandId, gama);
+    const has = (field) => rows.some(r => typeof r[field] === 'number' && isFinite(r[field]));
+    return { factura: has('costFactura'), netoNeto: has('costNetoNeto'), tripleNeto: has('costTripleNeto') };
   }
 
-  function levelCardHtml(lvl, index, total) {
+  async function renderLevels() {
+    const cfg = loadConfig(currentBrandId, currentGama);
+    const avail = await availableCostFields(currentBrandId, currentGama);
+    const el = $('levelsContainer');
+    el.innerHTML = cfg.priceLevels.map((lvl, i) => levelCardHtml(lvl, i, cfg.priceLevels.length, avail)).join('');
+  }
+
+  function levelCardHtml(lvl, index, total, avail) {
     const canDelete = lvl.id !== 'pvp' && total > 1;
     return `
       <div class="level-card" data-index="${index}">
@@ -103,9 +129,9 @@ const ScreenRules = (() => {
           <div class="level-field">
             <label>Base de coste</label>
             <select data-field="baseCost" data-index="${index}">
-              <option value="factura" ${!lvl.baseCost || lvl.baseCost === 'factura' ? 'selected' : ''}>Coste factura</option>
-              <option value="netoNeto" ${lvl.baseCost === 'netoNeto' ? 'selected' : ''}>Coste neto-neto</option>
-              <option value="tripleNeto" ${lvl.baseCost === 'tripleNeto' ? 'selected' : ''}>Coste triple neto</option>
+              <option value="factura" ${!lvl.baseCost || lvl.baseCost === 'factura' ? 'selected' : ''} ${!avail.factura ? 'disabled' : ''}>Coste factura${!avail.factura ? ' (sin datos)' : ''}</option>
+              <option value="netoNeto" ${lvl.baseCost === 'netoNeto' ? 'selected' : ''} ${!avail.netoNeto ? 'disabled' : ''}>Coste neto-neto${!avail.netoNeto ? ' (sin datos)' : ''}</option>
+              <option value="tripleNeto" ${lvl.baseCost === 'tripleNeto' ? 'selected' : ''} ${!avail.tripleNeto ? 'disabled' : ''}>Coste triple neto${!avail.tripleNeto ? ' (sin datos)' : ''}</option>
             </select>
           </div>
           <div class="level-field">
