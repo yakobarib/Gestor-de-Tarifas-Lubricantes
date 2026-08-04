@@ -181,7 +181,7 @@ article h4 { font-size: 0.88rem; }
   background: var(--pico-card-background-color); border: 1px solid var(--pico-card-border-color);
   border-radius: var(--radius-md); padding: 0.75rem 0.85rem; box-shadow: var(--shadow-card);
   transition: box-shadow 0.15s ease;
-  display: flex; flex-direction: column;
+  display: flex; flex-direction: column; min-height: 258px;
 }
 .brand-card:not(.pending):hover { box-shadow: var(--shadow-card-hover); }
 .brand-card-head { display: flex; align-items: center; gap: 0.55rem; margin-bottom: 0.5rem; }
