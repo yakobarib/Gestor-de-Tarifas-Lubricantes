@@ -2,6 +2,23 @@
 
 Formato inspirado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [v0.9.8] — 2026-08-04
+
+### Añadido
+- Reglas: cada nivel de precio gana un desglose de "Margen por formato (%)"
+  con los litrajes reales de esa marca/gama (consultados del maestro, con
+  contador de referencias) — antes solo había un margen por defecto único
+  para todos los formatos.
+- Tarifas: el selector de marca gana "Ninguna" para dejar la pantalla
+  limpia.
+
+### Cambiado
+- Tarifas pierde las columnas calculadas (% Margen, PVP envase, PVP manual,
+  Ganancia €, Margen real) — vuelve a ser solo la tarifa entrante tal cual
+  llega del proveedor (Ref, Estado, Producto, Litros, Coste de envase). El
+  listado calculado según el "Tipo de Exportación" elegido se verá en
+  Exportación. Ver [ADR 0022](docs/decisiones/0022-tarifas-en-crudo-y-margen-por-formato.md).
+
 ## [v0.9.7] — 2026-08-04
 
 ### Añadido

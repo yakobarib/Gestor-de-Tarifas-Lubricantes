@@ -56,7 +56,7 @@
     <div class="sidebar-footer">
       <p>Krafted by <strong>Yakoba Moreno</strong></p>
       <p>Designed in <strong>Claude Code</strong></p>
-      <span class="sidebar-version">v0.9.7</span>
+      <span class="sidebar-version">v0.9.8</span>
     </div>
   </aside>
 
@@ -117,7 +117,7 @@
   </div>
 
   <div id="tarifasEmpty" class="hidden">
-    <p class="muted">Sin tarifa importada para esta marca/gama todavía. Ve a
+    <p class="muted" id="tarifasEmptyText">Sin tarifa importada para esta marca/gama todavía. Ve a
       <a href="#import">Importación</a> y suelta un fichero en su tarjeta.</p>
   </div>
 
@@ -132,7 +132,7 @@
 
     <div id="gamaTabs" class="mode-toggle hidden" style="margin-bottom:0.6rem;"></div>
     <div id="historyBanner" class="history-banner hidden"></div>
-    <p class="hint">El margen y los niveles de precio (PVP, Bidones y Cubas Neto, Netos Bonus…) se configuran en <a href="#rules">Reglas</a>.</p>
+    <p class="hint">Tarifa entrante tal cual llega del proveedor, sin margen — configúralo en <a href="#rules">Reglas</a> y mira el listado final calculado en <a href="#export">Exportación</a>.</p>
     <div class="kpis" id="kpis"></div>
 
     <div class="filter-bar">
@@ -158,11 +158,6 @@
             <th>Producto</th>
             <th class="num liters">Litros</th>
             <th class="num">Coste/envase</th>
-            <th class="num">% Margen</th>
-            <th class="num">PVP envase</th>
-            <th class="num">PVP manual</th>
-            <th class="num">Ganancia €</th>
-            <th class="num">Margen real</th>
           </tr>
         </thead>
         <tbody id="previewBody"></tbody>

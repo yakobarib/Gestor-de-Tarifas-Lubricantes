@@ -9,15 +9,11 @@
    acaba de soltar un fichero en Importación, Tarifas salta automáticamente a
    esa marca/gama al llegar.
 
-   El margen/nivel de precio (PVP, Bidones y Cubas Neto, Netos Bonus…) YA NO
-   se configura aquí — vive solo en Reglas (mismo `priceLevels` que usan
-   Comparación y Exportación); esta pantalla solo LEE el nivel "pvp" vigente
-   de esa marca/gama para calcular el PVP mostrado y guardar los overrides
-   manuales por ref (ver ADR 0020).
-
-   Pestaña de gama "Todas": cada gama puede tener el nivel "pvp" con un
-   margen distinto — al ver "Todas" el PVP de cada fila se calcula con el
-   nivel de SU PROPIA gama real, no con uno compartido (ver `levelForRow`).
+   Esta pantalla muestra la tarifa ENTRANTE tal cual llega del proveedor, sin
+   ningún cálculo de margen — solo Referencia, Estado (nueva/estable/rebrand),
+   Producto, Litros y Coste de envase. El margen/PVP se configura en Reglas y
+   el listado final calculado (PVP, ganancia, margen real…) se ve en
+   Exportación, según el tipo de exportación elegido (ver ADR 0022).
 */
 const ScreenTarifas = (() => {
   const $ = (id) => document.getElementById(id);
@@ -57,9 +53,6 @@ const ScreenTarifas = (() => {
   }
   function truncate(s, n) { return s.length > n ? s.slice(0, n - 1) + '…' : s; }
 
-  function configKeyFor(brandId, gama) {
-    return gama === 'default' ? `config_${brandId}` : `config_${brandId}_${gama}`;
-  }
   function importMetaKey(brandId, gama) {
     return `import_meta_${brandId}_${gama}_factura`;
   }
@@ -69,42 +62,6 @@ const ScreenTarifas = (() => {
   function tariffDateFor(brandId, gama) {
     const meta = Storage.get(importMetaKey(brandId, gama), null);
     return (meta && (meta.tariffDate || meta.importedAt)) || new Date().toISOString().slice(0, 10);
-  }
-
-  /** Nivel "pvp" vigente de una marca/gama concreta — el mismo que edita Reglas. Se
-   *  sintetiza (y persiste) si esa marca/gama todavía no tiene config guardada.
-   *  Devuelve el nivel SIN remapear — usar `forMaster()` antes de pasarlo a
-   *  Pricing.compute, ya que aquí las filas vienen del maestro (costFactura, no
-   *  costPerPack). Editar/guardar el override manual se hace sobre este objeto tal cual
-   *  (mismo shape que persiste Reglas). */
-  function loadPvpLevel(brandId, gama) {
-    const key = configKeyFor(brandId, gama);
-    let cfg = Storage.get(key);
-    let isNew = false;
-    if (!cfg) { cfg = { defaultMargin: 30, byFormat: {}, rounding: '2dec', marginMode: 'sale', manualPvp: {} }; isNew = true; }
-    if (!cfg.priceLevels || !cfg.priceLevels.length) { cfg.priceLevels = [Migration.synthesizePvpLevel(cfg)]; isNew = true; }
-    let level = cfg.priceLevels.find(l => l.id === 'pvp');
-    if (!level) { level = Migration.synthesizePvpLevel(cfg); cfg.priceLevels.unshift(level); isNew = true; }
-    if (isNew) Storage.set(key, cfg);
-    return { cfg, level, key };
-  }
-
-  /** Las filas del maestro usan costFactura/costNetoNeto/costTripleNeto, no
-   *  costPerPack — se remapea baseCostField a partir de baseCost. */
-  function forMaster(level) {
-    const baseCostField = level.baseCost === 'tripleNeto' ? 'costTripleNeto'
-                        : level.baseCost === 'netoNeto' ? 'costNetoNeto'
-                        : 'costFactura';
-    return Object.assign({}, level, { baseCostField });
-  }
-
-  function saveManualOverride(brandId, gama, ref, value) {
-    const { cfg, level, key } = loadPvpLevel(brandId, gama);
-    if (!level.manualOverride) level.manualOverride = {};
-    if (value == null) delete level.manualOverride[ref];
-    else level.manualOverride[ref] = value;
-    Storage.set(key, cfg);
-    Store.emit('rules:changed', { brandId, gama });
   }
 
   /** Diff agregado sumando el de cada gama real — usado solo en la vista "Todas", donde
@@ -133,8 +90,8 @@ const ScreenTarifas = (() => {
   /* ----- render: selects de marca/gama ----- */
   function renderBrandSelect() {
     const sel = $('tarifasBrandSelect');
-    sel.innerHTML = BRANDS.filter(b => !b.pending).map(b => `<option value="${b.id}">${escapeHtml(b.label)}</option>`).join('');
-    if (!currentBrandId) currentBrandId = sel.value;
+    sel.innerHTML = '<option value="">Ninguna</option>'
+      + BRANDS.filter(b => !b.pending).map(b => `<option value="${b.id}">${escapeHtml(b.label)}</option>`).join('');
     sel.value = currentBrandId;
     loadTariffData();
   }
@@ -205,14 +162,8 @@ const ScreenTarifas = (() => {
     const MAX = 500;
     const slice = visible.slice(0, MAX);
 
-    // Nivel "pvp" por gama real — cacheado por render para no releer Storage por fila.
-    const levelCache = {};
-    const levelFor = (gama) => levelCache[gama] || (levelCache[gama] = loadPvpLevel(currentBrandId, gama).level);
-
     const frag = document.createDocumentFragment();
     for (const r of slice) {
-      const level = levelFor(currentGama === '__all__' ? r.gama : currentGama);
-      const c = Pricing.compute(r, forMaster(level));
       const tr = document.createElement('tr');
 
       const classes = [];
@@ -231,8 +182,6 @@ const ScreenTarifas = (() => {
       const costTitle = r._prevCost != null
         ? `Anterior: ${r._prevCost.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`
         : '';
-      const manualVal = level.manualOverride ? level.manualOverride[r.ref] : null;
-      const pvpTitle = c.isManual ? 'PVP fijado manualmente' : '';
 
       tr.innerHTML = `
         <td>${escapeHtml(r.ref)}</td>
@@ -240,11 +189,6 @@ const ScreenTarifas = (() => {
         <td title="${escapeHtml(r.description)}">${escapeHtml(truncate(r.description, 60))}</td>
         <td class="num liters"><input type="number" step="0.01" value="${r.liters ?? ''}" data-ref="${escapeHtml(r.ref)}" data-field="liters"></td>
         <td class="num" title="${escapeHtml(costTitle)}">${formatEur(r.costFactura)}</td>
-        <td class="num">${c.marginPct != null ? c.marginPct.toFixed(1) + '%' : '—'}</td>
-        <td class="num" title="${escapeHtml(pvpTitle)}"><strong${c.isManual ? ' style="color:#1a6bcf;"' : ''}>${formatEur(c.pvp)}</strong></td>
-        <td class="num"><input type="number" step="0.01" value="${manualVal ?? ''}" placeholder="auto" data-ref="${escapeHtml(r.ref)}" data-gama="${escapeHtml(r.gama)}" data-field="manualPvp" style="width:74px;text-align:right;padding:0.1rem 0.3rem;margin:0;font-size:0.8rem;"></td>
-        <td class="num">${formatEur(c.gain)}</td>
-        <td class="num">${c.realMarginPct != null ? c.realMarginPct.toFixed(1) + '%' : '—'}</td>
       `;
       frag.appendChild(tr);
     }
@@ -267,25 +211,9 @@ const ScreenTarifas = (() => {
       });
     });
 
-    tbody.querySelectorAll('input[data-field="manualPvp"]').forEach(inp => {
-      inp.addEventListener('change', (e) => {
-        const ref = e.target.dataset.ref;
-        const gama = e.target.dataset.gama;
-        const raw = e.target.value;
-        let v = null;
-        if (raw !== '' && raw != null) {
-          const parsed = parseFloat(raw);
-          if (isFinite(parsed) && parsed > 0) v = parsed;
-        }
-        saveManualOverride(currentBrandId, gama, ref, v);
-        renderTable();
-        renderKpis();
-      });
-    });
-
     if (visible.length > MAX) {
       const note = document.createElement('tr');
-      note.innerHTML = `<td colspan="10" style="text-align:center; padding:0.6rem; color: var(--pico-muted-color); font-style: italic;">
+      note.innerHTML = `<td colspan="5" style="text-align:center; padding:0.6rem; color: var(--pico-muted-color); font-style: italic;">
         Mostrando ${MAX} primeras filas (de ${visible.length}). Usa el buscador o los filtros para acotar.
       </td>`;
       tbody.appendChild(note);
@@ -367,7 +295,15 @@ const ScreenTarifas = (() => {
   /* ----- carga desde el maestro (MasterDB) para la marca/gama actuales ----- */
   async function loadTariffData() {
     const brand = findBrand(currentBrandId);
-    if (!brand) return;
+    if (!brand) {
+      // "Ninguna" — deja la pantalla limpia.
+      rows = []; diff = null;
+      $('tarifasTitle').textContent = '—';
+      $('tarifasEmptyText').textContent = 'Elige una marca arriba para ver su tarifa.';
+      $('tarifasEmpty').classList.remove('hidden');
+      $('tarifasContent').classList.add('hidden');
+      return;
+    }
     $('tarifasTitle').textContent = brand.label;
 
     if (currentGama === '__all__') {
@@ -384,6 +320,7 @@ const ScreenTarifas = (() => {
     }
 
     const empty = rows.length === 0;
+    if (empty) $('tarifasEmptyText').innerHTML = 'Sin tarifa importada para esta marca/gama todavía. Ve a <a href="#import">Importación</a> y suelta un fichero en su tarjeta.';
     $('tarifasEmpty').classList.toggle('hidden', !empty);
     $('tarifasContent').classList.toggle('hidden', empty);
     if (empty) return;

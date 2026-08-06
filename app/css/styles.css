@@ -358,6 +358,15 @@ table.preview th.liters, table.preview td.liters { max-width: 76px; }
 .level-field.checkbox label { text-transform: none; font-size: 0.8rem; margin: 0; order: 2; }
 .level-field.checkbox input { order: 1; margin: 0; width: auto; }
 
+/* Margen por formato dentro de un nivel — ocupa toda la fila del grid de campos. */
+.level-field.wide { grid-column: 1 / -1; }
+.byformat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 0.4rem 0.6rem; margin-top: 0.2rem; }
+.format-row { display: grid; grid-template-columns: 1fr 84px 54px; gap: 0.5rem; align-items: center; margin-bottom: 0.28rem; font-size: 0.85rem; }
+.format-row label { margin: 0; text-transform: none; color: var(--text-strong); }
+.format-row input, .format-row select { margin: 0; padding: 0.28rem 0.45rem; font-size: 0.82rem; text-align: right; height: auto; }
+.format-row select { text-align: left; }
+.format-row .count { color: var(--pico-muted-color); font-size: 0.74rem; text-align: right; }
+
 .compare-result { background: var(--pico-card-background-color); border: 1px solid var(--pico-card-border-color); border-radius: var(--radius-md); padding: 0.9rem 1rem; margin-top: 0.9rem; box-shadow: var(--shadow-card); }
 .compare-result:empty { display: none; }
 .compare-row { display: grid; grid-template-columns: 140px 1fr 100px 100px; gap: 0.6rem; align-items: center; padding: 0.4rem 0; border-bottom: 1px solid var(--pico-card-border-color); font-size: 0.86rem; }

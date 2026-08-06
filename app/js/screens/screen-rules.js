@@ -109,14 +109,51 @@ const ScreenRules = (() => {
     return { factura: has('costFactura'), netoNeto: has('costNetoNeto'), tripleNeto: has('costTripleNeto') };
   }
 
+  /** Formatos (litros) reales de esta marca/gama en el maestro, con cuántas refs tiene
+   *  cada uno — para que el desglose de margen por formato solo ofrezca formatos que de
+   *  verdad existan en esta tarifa, no una lista genérica. */
+  async function availableFormats(brandId, gama) {
+    const rows = gama === '__all__'
+      ? await MasterDB.getByBrand(brandId, null)
+      : await MasterDB.getByBrand(brandId, gama);
+    const counts = {};
+    for (const r of rows) {
+      const k = r.formatKey || '?';
+      counts[k] = (counts[k] || 0) + 1;
+    }
+    const keys = Object.keys(counts).sort((a, b) => {
+      if (a === '?') return 1; if (b === '?') return -1;
+      return parseFloat(a) - parseFloat(b);
+    });
+    return keys.map(k => ({ key: k, count: counts[k], label: Parser.formatLabel(k === '?' ? null : parseFloat(k)) }));
+  }
+
   async function renderLevels() {
     const cfg = loadConfig(currentBrandId, currentGama);
     const avail = await availableCostFields(currentBrandId, currentGama);
+    const formats = await availableFormats(currentBrandId, currentGama);
     const el = $('levelsContainer');
-    el.innerHTML = cfg.priceLevels.map((lvl, i) => levelCardHtml(lvl, i, cfg.priceLevels.length, avail)).join('');
+    el.innerHTML = cfg.priceLevels.map((lvl, i) => levelCardHtml(lvl, i, cfg.priceLevels.length, avail, formats)).join('');
   }
 
-  function levelCardHtml(lvl, index, total, avail) {
+  function levelCardHtml(lvl, index, total, avail, formats) {
+    // Un nivel con `onlyFormats` (Bidones y Cubas Neto, Netos Bonus) solo tiene precio
+    // para esos formatos — no tiene sentido ofrecer margen por formato para el resto.
+    const editableFormats = lvl.onlyFormats ? formats.filter(f => lvl.onlyFormats.includes(f.key)) : formats;
+    const byFormatHtml = editableFormats.length ? `
+      <div class="level-field wide">
+        <label>Margen por formato (%) — deja vacío para usar el margen por defecto</label>
+        <div class="byformat-grid">
+          ${editableFormats.map(f => `
+            <div class="format-row">
+              <label>${escapeHtml(f.label)}</label>
+              <input type="number" min="0" max="500" step="0.5" data-field="byFormat" data-format="${escapeHtml(f.key)}" data-index="${index}" placeholder="${lvl.defaultMargin}" value="${lvl.byFormat && lvl.byFormat[f.key] != null ? lvl.byFormat[f.key] : ''}">
+              <span class="count">${f.count} refs</span>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    ` : '';
     const canDelete = lvl.id !== 'pvp' && total > 1;
     return `
       <div class="level-card" data-index="${index}">
@@ -145,6 +182,7 @@ const ScreenRules = (() => {
             <label>Margen por defecto</label>
             <input type="number" min="0" max="500" step="0.5" data-field="defaultMargin" data-index="${index}" value="${lvl.defaultMargin}">
           </div>
+          ${byFormatHtml}
           <div class="level-field">
             <label>Redondeo</label>
             <select data-field="rounding" data-index="${index}">
@@ -182,6 +220,20 @@ const ScreenRules = (() => {
     saveConfig(currentBrandId, currentGama, cfg);
   }
 
+  function updateByFormat(index, formatKey, rawValue) {
+    const cfg = loadConfig(currentBrandId, currentGama);
+    const lvl = cfg.priceLevels[index];
+    if (!lvl) return;
+    if (!lvl.byFormat) lvl.byFormat = {};
+    if (rawValue === '' || rawValue == null) {
+      delete lvl.byFormat[formatKey];
+    } else {
+      const v = parseFloat(rawValue);
+      if (isFinite(v)) lvl.byFormat[formatKey] = v; else delete lvl.byFormat[formatKey];
+    }
+    saveConfig(currentBrandId, currentGama, cfg);
+  }
+
   function addLevel(presetKey) {
     const preset = PRESETS[presetKey];
     if (!preset) return;
@@ -214,6 +266,7 @@ const ScreenRules = (() => {
       if (index == null) return;
       const field = t.dataset.field;
       if (!field) return;
+      if (field === 'byFormat') { updateByFormat(parseInt(index, 10), t.dataset.format, t.value); return; }
       const value = field === 'goesToSkrit' ? t.checked : t.value;
       updateLevelField(parseInt(index, 10), field, value);
       if (field === 'goesToSkrit' || field === 'baseCost') renderLevels();
