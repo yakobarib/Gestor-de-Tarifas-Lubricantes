@@ -2,6 +2,31 @@
 
 Formato inspirado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [v0.9.11] — 2026-08-06
+
+### Añadido
+- Importación: nueva zona de carga "Cruces de referencias entre marcas"
+  (los 5 Excel de equivalencias) debajo de la de rebranding — antes solo se
+  podían cargar desde Comparación, un problema al actualizarlos o al abrir
+  la app en otro ordenador. Ambas puertas de entrada dejan el mismo estado.
+- Reglas → "Añadir nivel": nueva opción "Ningún nivel añadido" por defecto
+  — antes el primer preset real ya estaba preseleccionado y se podía añadir
+  un nivel sin querer.
+
+### Arreglado
+- Tarifas: la columna "Estado" salía siempre vacía en la vista "Todas" — el
+  diff se calculaba sobre una copia de las filas distinta a la que se
+  pintaba en pantalla. Ver
+  [ADR 0025](docs/decisiones/0025-cruces-de-referencias-en-importacion.md).
+- Reglas: los campos de margen por formato se atropellaban con las
+  descripciones cuando había muchos formatos (Castrol tiene 10) — rediseño
+  a "chapas" verticales en vez de un grid horizontal rígido.
+
+### Cambiado
+- El cuadro de rebranding en Importación ya solo explica el rebranding
+  (se quita la mención a cargar tarifas de proveedor); el nuevo cuadro de
+  cruces de referencias explica qué son y para qué se usan.
+
 ## [v0.9.10] — 2026-08-06
 
 ### Añadido

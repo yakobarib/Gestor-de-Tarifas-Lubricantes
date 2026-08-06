@@ -278,6 +278,7 @@ const ScreenRules = (() => {
     });
     $('btnAddLevel').addEventListener('click', () => {
       const presetKey = $('newLevelPreset').value;
+      if (!presetKey) { alert('Elige un preset antes de añadir un nivel.'); return; }
       addLevel(presetKey);
     });
   }

@@ -56,7 +56,7 @@
     <div class="sidebar-footer">
       <p>Krafted by <strong>Yakoba Moreno</strong></p>
       <p>Designed in <strong>Claude Code</strong></p>
-      <span class="sidebar-version">v0.9.10</span>
+      <span class="sidebar-version">v0.9.11</span>
     </div>
   </aside>
 
@@ -93,11 +93,21 @@
        la zona de arrastre de su propia tarjeta, más abajo. -->
   <section id="dropZone">
     <p><strong>Arrastra aquí el Excel de cruce de rebranding</strong> o pulsa para elegirlo</p>
-    <p class="hint">Referencias antigua ↔ nueva (SIRDI u otro código de proveedor). Para cargar la tarifa de un proveedor, usa la zona de arrastre de su tarjeta más abajo.</p>
+    <p class="hint">Referencias antigua ↔ nueva (SIRDI u otro código de proveedor) — para cuando un producto de la misma marca cambia de referencia por un rediseño, sin ser un producto distinto.</p>
     <input type="file" id="fileInput" accept=".xlsx,.xls" class="hidden">
   </section>
 
   <div id="loadStatus" class="hidden" style="margin-top:0.6rem;"></div>
+
+  <!-- Base de conocimiento de equivalencias ENTRE marcas (usada por Comparación) — se
+       puede cargar aquí para no depender de recordar hacerlo desde esa pantalla cada vez
+       que se actualiza o se abre la app en otro ordenador (ver ADR 0025). -->
+  <section id="equivDropZone" style="margin-top:0.8rem;">
+    <p><strong>Arrastra aquí los Excel de cruces de referencias entre marcas</strong> o pulsa para elegirlos</p>
+    <p class="hint">Los 5 Excel de "Equivalencias" (Aceites por Marcas, Grasas, Hidráulicos, Motor Vehículo Industrial, Transmisión Manual y Ejes) que dicen qué referencia de una marca es el mismo producto que en otra marca — los usa la pestaña Comparación para cruzar precios entre marcas. Se guardan en este navegador; vuelve a cargarlos aquí si se actualizan o si abres la app en otro ordenador.</p>
+    <input type="file" id="equivFileInput" accept=".xlsx,.xls" multiple class="hidden">
+  </section>
+  <div id="equivStatus" style="margin-top:0.4rem;"></div>
 </section>
 
 <!-- ==========================================================================
@@ -224,6 +234,7 @@
       <div class="field">
         <label for="newLevelPreset">Preset</label>
         <select id="newLevelPreset">
+          <option value="">Ningún nivel añadido</option>
           <option value="cubas_neto">Bidones y Cubas Neto</option>
           <option value="netos_bonus">Netos Bonus</option>
         </select>

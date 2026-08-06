@@ -200,6 +200,54 @@ const ScreenImport = (() => {
     });
   }
 
+  /** Cruces de referencias ENTRE marcas (base de conocimiento de equivalencias, usada
+   *  por Comparación) — se puede recargar aquí en vez de depender de recordar hacerlo
+   *  desde esa pantalla cada vez que se actualiza o se abre en otro ordenador. Misma
+   *  lógica que `ScreenCompare.handleKbFiles`. */
+  function renderEquivStatus() {
+    const el = $('equivStatus');
+    if (!el) return;
+    if (EquivalenceIndex.isLoaded()) {
+      const idx = EquivalenceIndex.load();
+      el.innerHTML = `<span class="status-ok">Base de conocimiento cargada: ${idx.groups.length} grupos (actualizada ${escapeHtml(idx.builtAt)}).</span>`;
+    } else {
+      el.innerHTML = `<span class="status-none">Base de conocimiento no cargada — necesaria para la pestaña Comparación.</span>`;
+    }
+  }
+
+  async function handleEquivFiles(files) {
+    if (!files || !files.length) return;
+    $('equivStatus').innerHTML = '<small class="muted">Leyendo ficheros de equivalencias…</small>';
+    try {
+      const categories = [];
+      for (const file of files) {
+        const buf = await file.arrayBuffer();
+        const workbook = XLSX.read(buf, { type: 'array' });
+        categories.push(EquivalenceReader.readKnownFile(file.name, workbook));
+      }
+      EquivalenceIndex.build(categories);
+      renderEquivStatus();
+    } catch (err) {
+      console.error(err);
+      $('equivStatus').innerHTML = `<small style="color: var(--pico-del-color);">❌ ${escapeHtml(err.message)}</small>`;
+    }
+  }
+
+  function setupEquivDropZone() {
+    const dz = $('equivDropZone');
+    const input = $('equivFileInput');
+    if (!dz || !input) return;
+    dz.addEventListener('click', () => input.click());
+    input.addEventListener('change', (e) => { handleEquivFiles(e.target.files); input.value = ''; });
+    dz.addEventListener('dragover', (e) => { e.preventDefault(); dz.classList.add('hover'); });
+    dz.addEventListener('dragleave', () => dz.classList.remove('hover'));
+    dz.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dz.classList.remove('hover');
+      handleEquivFiles(e.dataTransfer.files);
+    });
+  }
+
   /** Zonas de carga por tarjeta de marca — event delegation sobre #brandGrid, ya que las
    *  tarjetas se regeneran por completo en cada renderBrandCards(). */
   function setupBrandDropZones() {
@@ -253,7 +301,9 @@ const ScreenImport = (() => {
     renderBrandCards();
     setupDropZone();
     setupBrandDropZones();
-    Store.on('screen:changed', (screen) => { if (screen === 'import') renderBrandCards(); });
+    setupEquivDropZone();
+    renderEquivStatus();
+    Store.on('screen:changed', (screen) => { if (screen === 'import') { renderBrandCards(); renderEquivStatus(); } });
   }
 
   return { init, renderBrandCards };

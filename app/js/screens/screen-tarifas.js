@@ -64,27 +64,38 @@ const ScreenTarifas = (() => {
     return (meta && (meta.tariffDate || meta.importedAt)) || new Date().toISOString().slice(0, 10);
   }
 
-  /** Diff agregado sumando el de cada gama real — usado solo en la vista "Todas", donde
-   *  no hay una única "tarifa anterior" con la que comparar de golpe. */
-  async function computeAllGamasDiff(brand) {
-    let total = 0, stable = 0, neu = 0, obsolete = 0, obsoleteRefs = [], hasPrevious = false;
-    for (const g of brand.gamas) {
-      const gRows = await fetchMasterRows(brand.id, g);
-      const previous = History.load(historyIdentifierFor(brand, g));
-      const d = History.diff(gRows, previous, RebrandMap.load(brand.id));
-      total += d.total; stable += d.stable; neu += d.new; obsolete += d.obsolete;
-      obsoleteRefs = obsoleteRefs.concat(d.obsoleteRefs || []);
-      if (d.hasPrevious) hasPrevious = true;
-    }
-    return { total, stable, new: neu, obsolete, obsoleteRefs, hasPrevious, combined: true };
-  }
-
   /** Filas del maestro para una marca/gama, con un alias `costPerPack` = `costFactura`
    *  (History.save/diff siguen comparando por ese campo, igual que en el resto de la
    *  app — ver ADR 0008/0020). */
   async function fetchMasterRows(brandId, gama) {
     const raw = await MasterDB.getByBrand(brandId, gama);
     return raw.map(r => Object.assign({}, r, { costPerPack: r.costFactura }));
+  }
+
+  /** Filas de una gama real YA anotadas con `_status`/`_rebrandedFrom`/`_prevCost` por
+   *  `History.diff` (mutación en las mismas filas que se van a pintar — antes se hacía
+   *  el diff sobre una copia distinta a la que se mostraba en pantalla, y la columna
+   *  "Estado" se quedaba vacía). */
+  async function loadRowsWithStatus(brand, gama) {
+    const rows = await fetchMasterRows(brand.id, gama);
+    const previous = History.load(historyIdentifierFor(brand, gama));
+    const d = History.diff(rows, previous, RebrandMap.load(brand.id));
+    return { rows, diff: d };
+  }
+
+  /** "Todas" las gamas de golpe: cada gama se compara contra su propia tarifa vigente
+   *  anterior (no existe una única "anterior" combinada) y se agregan los totales. */
+  async function loadAllGamasWithStatus(brand) {
+    let total = 0, stable = 0, neu = 0, obsolete = 0, obsoleteRefs = [], hasPrevious = false;
+    const allRows = [];
+    for (const g of brand.gamas) {
+      const { rows: gRows, diff: d } = await loadRowsWithStatus(brand, g);
+      total += d.total; stable += d.stable; neu += d.new; obsolete += d.obsolete;
+      obsoleteRefs = obsoleteRefs.concat(d.obsoleteRefs || []);
+      if (d.hasPrevious) hasPrevious = true;
+      allRows.push(...gRows);
+    }
+    return { rows: allRows, diff: { total, stable, new: neu, obsolete, obsoleteRefs, hasPrevious, combined: true } };
   }
 
   /* ----- render: selects de marca/gama ----- */
@@ -307,14 +318,14 @@ const ScreenTarifas = (() => {
     $('tarifasTitle').textContent = brand.label;
 
     if (currentGama === '__all__') {
-      const chunks = await Promise.all(brand.gamas.map(g => fetchMasterRows(brand.id, g)));
-      rows = chunks.flat();
-      diff = await computeAllGamasDiff(brand);
+      const result = await loadAllGamasWithStatus(brand);
+      rows = result.rows;
+      diff = result.diff;
       $('tariffDateTarifas').disabled = true;
     } else {
-      rows = await fetchMasterRows(brand.id, currentGama);
-      const previous = History.load(historyIdentifierFor(brand, currentGama));
-      diff = History.diff(rows, previous, RebrandMap.load(brand.id));
+      const result = await loadRowsWithStatus(brand, currentGama);
+      rows = result.rows;
+      diff = result.diff;
       $('tariffDateTarifas').disabled = false;
       $('tariffDateTarifas').value = tariffDateFor(brand.id, currentGama);
     }
@@ -381,7 +392,9 @@ const ScreenTarifas = (() => {
         const gRows = combined ? await fetchMasterRows(brand.id, g) : rows;
         History.save(historyIdentifierFor(brand, g), gRows, tariffDateFor(brand.id, g));
       }
-      diff = combined ? await computeAllGamasDiff(brand) : History.diff(rows, History.load(historyIdentifierFor(brand, currentGama)), RebrandMap.load(brand.id));
+      const refreshed = combined ? await loadAllGamasWithStatus(brand) : await loadRowsWithStatus(brand, currentGama);
+      rows = refreshed.rows;
+      diff = refreshed.diff;
       renderHistoryBanner(); renderKpis(); renderTable();
       $('loadStatusTarifas').classList.remove('hidden');
       $('loadStatusTarifas').innerHTML = `<small style="color: var(--pico-ins-color);">✓ Tarifa vigente de ${escapeHtml(label)} actualizada.</small>`;
@@ -398,7 +411,9 @@ const ScreenTarifas = (() => {
     Store.on('rebrand:loaded', async (brands) => {
       const brand = findBrand(currentBrandId);
       if (!brand || !brands.includes(brand.label.toUpperCase())) return;
-      diff = currentGama === '__all__' ? await computeAllGamasDiff(brand) : History.diff(rows, History.load(historyIdentifierFor(brand, currentGama)), RebrandMap.load(brand.id));
+      const refreshed = currentGama === '__all__' ? await loadAllGamasWithStatus(brand) : await loadRowsWithStatus(brand, currentGama);
+      rows = refreshed.rows;
+      diff = refreshed.diff;
       renderHistoryBanner(); renderKpis(); renderTable();
     });
   }

@@ -218,7 +218,7 @@ article h4 { font-size: 0.88rem; }
 .brand-drop:hover, .brand-drop.hover { border-color: var(--pico-primary); background: color-mix(in srgb, var(--pico-primary) 16%, transparent); }
 
 /* Drop zone */
-#dropZone {
+#dropZone, #equivDropZone {
   border: 2px dashed var(--pico-muted-border-color);
   border-radius: var(--radius-lg);
   padding: 1.7rem 1rem;
@@ -227,8 +227,8 @@ article h4 { font-size: 0.88rem; }
   cursor: pointer;
   background: var(--pico-card-background-color);
 }
-#dropZone.hover { border-color: var(--pico-primary); background: var(--pico-primary-background); }
-#dropZone p { margin: 0.3rem 0; }
+#dropZone.hover, #equivDropZone.hover { border-color: var(--pico-primary); background: color-mix(in srgb, var(--pico-primary) 8%, transparent); }
+#dropZone p, #equivDropZone p { margin: 0.3rem 0; }
 .hint { color: var(--pico-muted-color); font-size: 0.82rem; }
 
 /* Barra de herramientas de la pantalla Tarifas (título + fecha/acciones) */
@@ -358,14 +358,20 @@ table.preview th.liters, table.preview td.liters { max-width: 76px; }
 .level-field.checkbox label { text-transform: none; font-size: 0.8rem; margin: 0; order: 2; }
 .level-field.checkbox input { order: 1; margin: 0; width: auto; }
 
-/* Margen por formato dentro de un nivel — ocupa toda la fila del grid de campos. */
+/* Margen por formato dentro de un nivel — ocupa toda la fila del grid de campos. Cada
+   formato es una "chapa" vertical (litraje arriba, input, refs debajo) en vez de un
+   grid rígido de 3 columnas — con muchos formatos por marca (Castrol tiene 10) un grid
+   horizontal de columna fija atropellaba la etiqueta contra el input. */
 .level-field.wide { grid-column: 1 / -1; }
-.byformat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 0.4rem 0.6rem; margin-top: 0.2rem; }
-.format-row { display: grid; grid-template-columns: 1fr 84px 54px; gap: 0.5rem; align-items: center; margin-bottom: 0.28rem; font-size: 0.85rem; }
-.format-row label { margin: 0; text-transform: none; color: var(--text-strong); }
-.format-row input, .format-row select { margin: 0; padding: 0.28rem 0.45rem; font-size: 0.82rem; text-align: right; height: auto; }
-.format-row select { text-align: left; }
-.format-row .count { color: var(--pico-muted-color); font-size: 0.74rem; text-align: right; }
+.byformat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 0.5rem; margin-top: 0.3rem; }
+.format-row {
+  display: flex; flex-direction: column; gap: 0.2rem;
+  background: var(--surface-muted); border-radius: var(--radius-sm);
+  padding: 0.4rem 0.5rem; font-size: 0.78rem;
+}
+.format-row label { margin: 0; text-transform: none; color: var(--text-strong); font-weight: 600; white-space: nowrap; }
+.format-row input, .format-row select { margin: 0; padding: 0.24rem 0.4rem; font-size: 0.8rem; text-align: left; height: auto; width: 100%; }
+.format-row .count { color: var(--pico-muted-color); font-size: 0.68rem; }
 
 .compare-result { background: var(--pico-card-background-color); border: 1px solid var(--pico-card-border-color); border-radius: var(--radius-md); padding: 0.9rem 1rem; margin-top: 0.9rem; box-shadow: var(--shadow-card); }
 .compare-result:empty { display: none; }
