@@ -56,7 +56,7 @@
     <div class="sidebar-footer">
       <p>Krafted by <strong>Yakoba Moreno</strong></p>
       <p>Designed in <strong>Claude Code</strong></p>
-      <span class="sidebar-version">v0.9.8</span>
+      <span class="sidebar-version">v0.9.9</span>
     </div>
   </aside>
 
@@ -296,7 +296,31 @@
         <input type="date" id="exportTariffDate">
       </div>
     </div>
-    <button id="btnDoExport">Exportar</button>
+
+    <p id="exportPreviewEmpty" class="muted">Elige una marca para ver el listado.</p>
+
+    <div id="exportPreviewWrap" class="hidden">
+      <div class="filter-bar">
+        <input type="search" id="exportSearchInput" placeholder="Buscar por ref o descripción…">
+        <select id="exportFormatFilter"><option value="">Todos los formatos</option></select>
+        <select id="exportStatusFilter">
+          <option value="">Todos los estados</option>
+          <option value="new">Solo nuevas</option>
+          <option value="stable">Solo estables</option>
+        </select>
+        <span class="muted" style="font-size:0.85rem;">
+          Mostrando <strong id="exportVisibleCount">0</strong> de <strong id="exportTotalCount">0</strong> referencias
+        </span>
+      </div>
+      <div class="table-wrap">
+        <table class="preview" id="exportPreviewTable">
+          <thead></thead>
+          <tbody id="exportPreviewBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <button id="btnDoExport" style="margin-top:0.8rem;">Exportar</button>
     <div id="exportStatus" style="margin-top:0.6rem;"></div>
   </article>
 </section>

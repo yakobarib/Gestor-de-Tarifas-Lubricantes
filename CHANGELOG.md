@@ -2,6 +2,20 @@
 
 Formato inspirado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [v0.9.9] — 2026-08-04
+
+### Añadido
+- Exportación: tabla de previsualización en pantalla con el listado final
+  calculado (Ref, Estado, Producto, Litros, Coste, % Margen, PVP, PVP
+  manual, Ganancia, Margen real para tipos "de Venta"; versión simplificada
+  para "de Compra") — antes solo se generaba el Excel directamente sin ver
+  nada en pantalla. El PVP manual editado aquí se guarda en el mismo nivel
+  que edita Reglas. Exportar usa exactamente las filas mostradas (WYSIWYG,
+  sin volver a consultar el maestro). Ver
+  [ADR 0023](docs/decisiones/0023-listado-calculado-en-exportacion.md).
+- Exportación: nuevo listado "Triple Neto" (antes solo Neto Factura y
+  Neto-Neto) — Castrol, por ejemplo, solo audita triple neto.
+
 ## [v0.9.8] — 2026-08-04
 
 ### Añadido

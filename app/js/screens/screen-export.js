@@ -1,36 +1,49 @@
 /* ============================================================================
    PANTALLA: EXPORTACIÓN
    ============================================================================
-   Elegir marca + gama + tipo de exportación y exportar. "Tipo de exportación"
-   es una lista plana que mezcla los niveles configurados en REGLAS (PVP,
-   Bidones y Cubas Neto, Netos Bonus… formato Skrit de 9 columnas, solo los que
-   tengan `goesToSkrit: true`) con los listados simples sin margen (Neto
-   Factura, Neto-Neto) — antes eran dos selectores separados ("Tipo" + "Nivel
-   de precio"), confuso porque escondía los niveles reales dentro de un select
-   secundario. Gama admite "Todas" (por defecto, es lo más habitual) además de
-   cada gama suelta — para niveles, se resuelve fila a fila según la gama real
-   de cada fila, porque cada gama puede tener ese mismo nivel configurado con
-   un margen distinto.
+   Elegir marca + gama + tipo de exportación, revisar el listado final
+   calculado (con las mismas reglas de REGLAS) en una tabla en pantalla, y
+   exportar exactamente esas filas. "Tipo de exportación" es una lista plana
+   que mezcla los niveles configurados en REGLAS (PVP, Bidones y Cubas Neto,
+   Netos Bonus… formato Skrit de 9 columnas, solo los que tengan
+   `goesToSkrit: true`) con los listados simples sin margen (Neto Factura,
+   Neto-Neto). Gama admite "Todas" (por defecto) además de cada gama suelta
+   — para niveles, se resuelve fila a fila según la gama real de cada fila,
+   porque cada gama puede tener ese mismo nivel configurado con un margen
+   distinto (ver ADR 0021/0022).
 */
 const ScreenExport = (() => {
   const $ = (id) => document.getElementById(id);
   let currentBrandId = '';
   let currentGama = 'default';
   let currentOption = ''; // 'level:<id>' | 'list:neto_factura' | 'list:neto_neto'
+  let rows = [];
+  let filter = { text: '', format: '', status: '' };
+
+  const GAMA_LABELS = { normal: 'Normal', standard: 'Standard', sportcar: 'Sport Car', quimico: 'Químicos', default: 'General', automocion: 'Automoción', industria: 'Industria', 'productos-de-mantenimiento': 'Productos de Mantenimiento', marinos: 'Marinos', grasas: 'Grasas', alimentarios: 'Alimentarios', 'v-ligero': 'V. Ligero', 'v-pesado': 'V. Pesado', agricola: 'Agrícola', transmision: 'Transmisión', hidraulicos: 'Hidráulicos', grasa: 'Grasa', moto: 'Moto', classic: 'Classic', marina: 'Marina', anticogelante: 'Anticongelante', aditivos: 'Aditivos', advance: 'Advance', 'air-tool': 'Air Tool', corena: 'Corena', diala: 'Diala', gadinia: 'Gadinia', gadus: 'Gadus', 'heat-transfer': 'Heat Transfer', helix: 'Helix', hydraulic: 'Hydraulic', morlina: 'Morlina', omala: 'Omala', ondina: 'Ondina', 'paper-mach': 'Paper Mach', refrigeration: 'Refrigeration', rimula: 'Rimula', sirius: 'Sirius', spirax: 'Spirax', tegula: 'Tegula', tellus: 'Tellus', tonna: 'Tonna', transmission: 'Transmission', turbo: 'Turbo', 'vacuum-pump': 'Vacuum Pump', other: 'Other', crb: 'CRB', edge: 'EDGE', gtx: 'GTX', 'gtx-5w': 'GTX 5W', magnatec: 'Magnatec', 'castrol-on': 'Castrol ON', transmax: 'Transmax', vecton: 'Vecton' };
 
   // "Neto Factura" / "Neto-Neto" son listados simples (sin cálculo de margen, ver
   // conversación con Yako 2026-07-31) — no usan `priceLevels`, solo el coste tal cual.
   const PRICE_LIST_TYPES = {
     neto_factura: { costField: 'costFactura', label: 'Neto Factura' },
-    neto_neto: { costField: 'costNetoNeto', label: 'Neto-Neto' }
+    neto_neto: { costField: 'costNetoNeto', label: 'Neto-Neto' },
+    triple_neto: { costField: 'costTripleNeto', label: 'Triple Neto' }
   };
 
   function escapeHtml(s) {
     return String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   }
+  function formatEur(v) {
+    if (v == null || !isFinite(v)) return '—';
+    return v.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
+  }
+  function truncate(s, n) { return s.length > n ? s.slice(0, n - 1) + '…' : s; }
 
   function configKeyFor(brandId, gama) {
     return gama === 'default' ? `config_${brandId}` : `config_${brandId}_${gama}`;
+  }
+  function historyIdentifierFor(brand, gama) {
+    return gama === 'default' ? brand.label : `${brand.label} ${gama}`;
   }
 
   /** Las filas del maestro usan costFactura/costNetoNeto, no costPerPack (ver ADR 0008) —
@@ -40,6 +53,20 @@ const ScreenExport = (() => {
                         : level.baseCost === 'netoNeto' ? 'costNetoNeto'
                         : 'costFactura';
     return Object.assign({}, level, { baseCostField });
+  }
+
+  /** Nivel SIN remapear (mismo shape que persiste Reglas) — usar para leer/escribir el
+   *  override manual; envolver con `forMaster()` antes de pasarlo a Pricing.compute. */
+  function loadRawLevel(brandId, gama, levelId) {
+    const key = configKeyFor(brandId, gama);
+    let cfg = Storage.get(key);
+    let isNew = false;
+    if (!cfg) { cfg = { defaultMargin: 30, byFormat: {}, rounding: '2dec', marginMode: 'sale', manualPvp: {} }; isNew = true; }
+    if (!cfg.priceLevels || !cfg.priceLevels.length) { cfg.priceLevels = [Migration.synthesizePvpLevel(cfg)]; isNew = true; }
+    let level = cfg.priceLevels.find(l => l.id === levelId);
+    if (!level && levelId === 'pvp') { level = Migration.synthesizePvpLevel(cfg); cfg.priceLevels.unshift(level); isNew = true; }
+    if (isNew) Storage.set(key, cfg);
+    return level ? { cfg, level, key } : null;
   }
 
   function loadLevels(brandId, gama) {
@@ -55,6 +82,17 @@ const ScreenExport = (() => {
     const map = {};
     for (const g of gamas) map[g] = loadLevels(brandId, g);
     return map;
+  }
+
+  function saveManualOverride(brandId, gama, levelId, ref, value) {
+    const found = loadRawLevel(brandId, gama, levelId);
+    if (!found) return;
+    const { cfg, level, key } = found;
+    if (!level.manualOverride) level.manualOverride = {};
+    if (value == null) delete level.manualOverride[ref];
+    else level.manualOverride[ref] = value;
+    Storage.set(key, cfg);
+    Store.emit('rules:changed', { brandId, gama });
   }
 
   function renderBrandSelect() {
@@ -79,10 +117,9 @@ const ScreenExport = (() => {
       currentGama = 'default';
     } else {
       sel.disabled = false;
-      const labels = { normal: 'Normal', standard: 'Standard', sportcar: 'Sport Car', quimico: 'Químicos', default: 'General', automocion: 'Automoción', industria: 'Industria', 'productos-de-mantenimiento': 'Productos de Mantenimiento', marinos: 'Marinos', grasas: 'Grasas', alimentarios: 'Alimentarios', 'v-ligero': 'V. Ligero', 'v-pesado': 'V. Pesado', agricola: 'Agrícola', transmision: 'Transmisión', hidraulicos: 'Hidráulicos', grasa: 'Grasa', moto: 'Moto', classic: 'Classic', marina: 'Marina', anticogelante: 'Anticongelante', aditivos: 'Aditivos', advance: 'Advance', 'air-tool': 'Air Tool', corena: 'Corena', diala: 'Diala', gadinia: 'Gadinia', gadus: 'Gadus', 'heat-transfer': 'Heat Transfer', helix: 'Helix', hydraulic: 'Hydraulic', morlina: 'Morlina', omala: 'Omala', ondina: 'Ondina', 'paper-mach': 'Paper Mach', refrigeration: 'Refrigeration', rimula: 'Rimula', sirius: 'Sirius', spirax: 'Spirax', tegula: 'Tegula', tellus: 'Tellus', tonna: 'Tonna', transmission: 'Transmission', turbo: 'Turbo', 'vacuum-pump': 'Vacuum Pump', other: 'Other', crb: 'CRB', edge: 'EDGE', gtx: 'GTX', 'gtx-5w': 'GTX 5W', magnatec: 'Magnatec', 'castrol-on': 'Castrol ON', transmax: 'Transmax', vecton: 'Vecton' };
       // "Todas" por defecto — es lo más habitual de exportar (pedido por Yako).
       sel.innerHTML = '<option value="__all__">Todas</option>'
-        + brand.gamas.map(g => `<option value="${g}">${escapeHtml(labels[g] || g)}</option>`).join('');
+        + brand.gamas.map(g => `<option value="${g}">${escapeHtml(GAMA_LABELS[g] || g)}</option>`).join('');
       currentGama = '__all__';
       sel.value = currentGama;
     }
@@ -97,6 +134,7 @@ const ScreenExport = (() => {
     if (!currentBrandId) {
       sel.innerHTML = '<option value="">Elige una marca primero</option>';
       currentOption = '';
+      renderPreview();
       return;
     }
     const brand = findBrand(currentBrandId);
@@ -117,14 +155,185 @@ const ScreenExport = (() => {
     const listOptions = Object.entries(PRICE_LIST_TYPES).map(([key, spec]) => `<option value="list:${key}">${escapeHtml(spec.label)} (Compra)</option>`);
     sel.innerHTML = levelOptions.concat(listOptions).join('');
     currentOption = sel.value || '';
+    renderPreview();
+  }
+
+  /** Filas del maestro con `_status`/`_rebrandedFrom` ya anotados por History.diff — para
+   *  "Todas" se concatena el diff de cada gama real (cada gama compara contra su propia
+   *  tarifa vigente anterior, no existe una única "anterior" combinada). */
+  async function loadRowsWithStatus(brand, gama) {
+    if (gama === '__all__') {
+      const chunks = await Promise.all(brand.gamas.map(g => loadRowsWithStatus(brand, g)));
+      return chunks.flat();
+    }
+    const raw = await MasterDB.getByBrand(brand.id, gama);
+    const withAlias = raw.map(r => Object.assign({}, r, { costPerPack: r.costFactura }));
+    const previous = History.load(historyIdentifierFor(brand, gama));
+    History.diff(withAlias, previous, RebrandMap.load(brand.id)); // anota _status in situ
+    return withAlias;
+  }
+
+  function visibleRows() {
+    const txt = filter.text.toLowerCase().trim();
+    return rows.filter(r => {
+      if (txt) {
+        const hay = (r.ref + ' ' + r.description).toLowerCase();
+        if (!hay.includes(txt)) return false;
+      }
+      if (filter.format && r.formatKey !== filter.format) return false;
+      if (filter.status === 'new'    && r._status !== 'new')    return false;
+      if (filter.status === 'stable' && r._status !== 'stable') return false;
+      return true;
+    });
+  }
+
+  function renderFormatFilter() {
+    const sel = $('exportFormatFilter');
+    const keys = [...new Set(rows.map(r => r.formatKey))].sort((a, b) => {
+      if (a === '?') return 1; if (b === '?') return -1;
+      return parseFloat(a) - parseFloat(b);
+    });
+    sel.innerHTML = '<option value="">Todos los formatos</option>'
+      + keys.map(k => {
+          const l = k === '?' ? null : parseFloat(k);
+          return `<option value="${escapeHtml(k)}">${Parser.formatLabel(l)}</option>`;
+        }).join('');
+  }
+
+  /** Carga las filas de la marca/gama/tipo elegidos y las deja listas en `rows` para
+   *  pintar la tabla Y para exportar (WYSIWYG: se exporta exactamente lo que se ve aquí). */
+  async function renderPreview() {
+    const brand = findBrand(currentBrandId);
+    const wrap = $('exportPreviewWrap');
+    if (!brand || !currentOption) {
+      rows = [];
+      wrap.classList.add('hidden');
+      $('exportPreviewEmpty').classList.remove('hidden');
+      $('exportPreviewEmpty').textContent = !brand ? 'Elige una marca para ver el listado.' : 'Elige un tipo de exportación.';
+      return;
+    }
+    rows = await loadRowsWithStatus(brand, currentGama);
+    if (!rows.length) {
+      wrap.classList.add('hidden');
+      $('exportPreviewEmpty').classList.remove('hidden');
+      $('exportPreviewEmpty').textContent = 'No hay tarifa importada para esta marca/gama en el maestro.';
+      return;
+    }
+    $('exportPreviewEmpty').classList.add('hidden');
+    wrap.classList.remove('hidden');
+    renderFormatFilter();
+    renderPreviewTable();
+  }
+
+  function renderPreviewTable() {
+    const [kind, key] = currentOption.split(':');
+    const brand = findBrand(currentBrandId);
+    const thead = $('exportPreviewTable').querySelector('thead');
+    const tbody = $('exportPreviewBody');
+    const visible = visibleRows();
+    $('exportVisibleCount').textContent = visible.length;
+    $('exportTotalCount').textContent = rows.length;
+
+    if (kind === 'list') {
+      const spec = PRICE_LIST_TYPES[key];
+      thead.innerHTML = `<tr><th>Ref</th><th>Estado</th><th>Producto</th><th class="num liters">Litros</th><th class="num">${escapeHtml(spec.label)}</th></tr>`;
+      const frag = document.createDocumentFragment();
+      for (const r of visible.slice(0, 500)) {
+        const tr = document.createElement('tr');
+        let statusChip = '';
+        if (r._status === 'new') statusChip = '<span class="status-chip new">NUEVA</span>';
+        else if (r._rebrandedFrom) statusChip = `<span class="status-chip stable" title="Antes: ${escapeHtml(r._rebrandedFrom)}">REBRAND</span>`;
+        const cost = r[spec.costField];
+        tr.innerHTML = `
+          <td>${escapeHtml(r.ref)}</td>
+          <td>${statusChip}</td>
+          <td title="${escapeHtml(r.description)}">${escapeHtml(truncate(r.description || '', 60))}</td>
+          <td class="num liters">${r.liters ?? '—'}</td>
+          <td class="num">${formatEur(cost)}</td>
+        `;
+        if (cost == null) tr.className = 'warn';
+        frag.appendChild(tr);
+      }
+      tbody.innerHTML = '';
+      tbody.appendChild(frag);
+      return;
+    }
+
+    // kind === 'level'
+    thead.innerHTML = `
+      <tr>
+        <th>Ref</th><th>Estado</th><th>Producto</th><th class="num liters">Litros</th>
+        <th class="num">Coste/envase</th><th class="num">% Margen</th><th class="num">PVP envase</th>
+        <th class="num">PVP manual</th><th class="num">Ganancia €</th><th class="num">Margen real</th>
+      </tr>`;
+    const byGama = currentGama === '__all__' ? loadLevelsByGama(currentBrandId, brand.gamas) : null;
+    const levelCache = {};
+    const levelFor = (gama) => {
+      if (levelCache[gama]) return levelCache[gama];
+      const lvl = currentGama === '__all__'
+        ? (byGama[gama] || []).find(l => l.id === key)
+        : loadLevels(currentBrandId, currentGama).find(l => l.id === key);
+      levelCache[gama] = lvl || null;
+      return levelCache[gama];
+    };
+
+    const frag = document.createDocumentFragment();
+    for (const r of visible.slice(0, 500)) {
+      const level = levelFor(r.gama);
+      const tr = document.createElement('tr');
+      if (!level) {
+        tr.innerHTML = `<td>${escapeHtml(r.ref)}</td><td></td><td title="${escapeHtml(r.description)}">${escapeHtml(truncate(r.description || '', 60))}</td><td class="num liters">${r.liters ?? '—'}</td><td class="num">${formatEur(r.costFactura)}</td><td colspan="5" class="muted" style="font-style:italic;">nivel no configurado en esta gama</td>`;
+        frag.appendChild(tr);
+        continue;
+      }
+      const c = Pricing.compute(r, level);
+      const classes = [];
+      if (!r.litersDetected) classes.push('warn');
+      if (!r.costFactura || r.costFactura <= 0) classes.push('err');
+      let statusChip = '';
+      if (r._status === 'new') { statusChip = '<span class="status-chip new">NUEVA</span>'; classes.push('status-new'); }
+      else if (r._rebrandedFrom) statusChip = `<span class="status-chip stable" title="Antes: ${escapeHtml(r._rebrandedFrom)}">REBRAND</span>`;
+      tr.className = classes.join(' ');
+      const manualVal = level.manualOverride ? level.manualOverride[r.ref] : null;
+      const pvpTitle = c.isManual ? 'PVP fijado manualmente' : '';
+      tr.innerHTML = `
+        <td>${escapeHtml(r.ref)}</td>
+        <td>${statusChip}</td>
+        <td title="${escapeHtml(r.description)}">${escapeHtml(truncate(r.description || '', 60))}</td>
+        <td class="num liters">${r.liters ?? '—'}</td>
+        <td class="num">${formatEur(r.costFactura)}</td>
+        <td class="num">${c.marginPct != null ? c.marginPct.toFixed(1) + '%' : '—'}</td>
+        <td class="num" title="${escapeHtml(pvpTitle)}"><strong${c.isManual ? ' style="color:#1a6bcf;"' : ''}>${formatEur(c.pvp)}</strong></td>
+        <td class="num"><input type="number" step="0.01" value="${manualVal ?? ''}" placeholder="auto" data-ref="${escapeHtml(r.ref)}" data-gama="${escapeHtml(r.gama)}" data-level="${escapeHtml(key)}" data-field="manualPvp" style="width:74px;text-align:right;padding:0.1rem 0.3rem;margin:0;font-size:0.8rem;"></td>
+        <td class="num">${formatEur(c.gain)}</td>
+        <td class="num">${c.realMarginPct != null ? c.realMarginPct.toFixed(1) + '%' : '—'}</td>
+      `;
+      frag.appendChild(tr);
+    }
+    tbody.innerHTML = '';
+    tbody.appendChild(frag);
+
+    tbody.querySelectorAll('input[data-field="manualPvp"]').forEach(inp => {
+      inp.addEventListener('change', (e) => {
+        const ref = e.target.dataset.ref;
+        const gama = e.target.dataset.gama;
+        const levelId = e.target.dataset.level;
+        const raw = e.target.value;
+        let v = null;
+        if (raw !== '' && raw != null) {
+          const parsed = parseFloat(raw);
+          if (isFinite(parsed) && parsed > 0) v = parsed;
+        }
+        saveManualOverride(currentBrandId, gama, levelId, ref, v);
+        renderPreviewTable();
+      });
+    });
   }
 
   async function doExport() {
     const brand = findBrand(currentBrandId);
     if (!brand) { alert('Elige una marca antes de exportar.'); return; }
     if (!currentOption) { alert('Elige un tipo de exportación.'); return; }
-    const gamaForFetch = currentGama === '__all__' ? null : currentGama;
-    const rows = await MasterDB.getByBrand(currentBrandId, gamaForFetch);
     if (!rows.length) { alert('No hay tarifa importada para esta marca/gama en el maestro.'); return; }
     const tariffDate = $('exportTariffDate').value || new Date().toISOString().slice(0, 10);
     const [kind, key] = currentOption.split(':');
@@ -157,7 +366,10 @@ const ScreenExport = (() => {
   function setupListeners() {
     $('exportBrandSelect').addEventListener('change', (e) => { currentBrandId = e.target.value; renderGamaSelect(); });
     $('exportGamaSelect').addEventListener('change', (e) => { currentGama = e.target.value; renderExportOptions(); });
-    $('exportTypeSelect').addEventListener('change', (e) => { currentOption = e.target.value; });
+    $('exportTypeSelect').addEventListener('change', (e) => { currentOption = e.target.value; renderPreview(); });
+    $('exportSearchInput').addEventListener('input', (e) => { filter.text = e.target.value; renderPreviewTable(); });
+    $('exportFormatFilter').addEventListener('change', (e) => { filter.format = e.target.value; renderPreviewTable(); });
+    $('exportStatusFilter').addEventListener('change', (e) => { filter.status = e.target.value; renderPreviewTable(); });
     $('btnDoExport').addEventListener('click', doExport);
     Store.on('rules:changed', ({ brandId }) => { if (brandId === currentBrandId) renderExportOptions(); });
     Store.on('screen:changed', (screen) => { if (screen === 'export') renderBrandSelect(); });
