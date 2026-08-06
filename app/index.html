@@ -56,7 +56,7 @@
     <div class="sidebar-footer">
       <p>Krafted by <strong>Yakoba Moreno</strong></p>
       <p>Designed in <strong>Claude Code</strong></p>
-      <span class="sidebar-version">v0.9.9</span>
+      <span class="sidebar-version">v0.9.10</span>
     </div>
   </aside>
 
@@ -250,6 +250,16 @@
 
   <article>
     <h3>Comparar una referencia entre marcas</h3>
+    <div class="filter-row">
+      <div class="field" style="flex: 2 1 260px;">
+        <label for="compareRefInput">Referencia directa</label>
+        <input type="text" id="compareRefInput" placeholder="Ej. ADP32005 o 32005…">
+      </div>
+      <div class="field" style="align-self:end;">
+        <button id="btnCompareSearch">Buscar</button>
+      </div>
+    </div>
+    <p class="hint">Busca en todo el maestro, con o sin el prefijo de la marca. O elige a mano:</p>
     <div class="filter-row">
       <div class="field">
         <label for="compareBrandSelect">Marca</label>

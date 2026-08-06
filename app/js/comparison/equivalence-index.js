@@ -19,6 +19,7 @@ const EquivalenceIndex = (() => {
         const groupRef = { category: cat.category, groupId: g.groupId, specs: g.specs, members: g.members };
         groups.push(groupRef);
         for (const m of g.members) {
+          if (m.ref == null) continue; // "en otros formatos" (ver EquivalenceReader) — no es buscable por ref
           const key = (m.brandKey || '').toUpperCase();
           refToGroup[key] = refToGroup[key] || {};
           refToGroup[key][m.ref] = groupRef;

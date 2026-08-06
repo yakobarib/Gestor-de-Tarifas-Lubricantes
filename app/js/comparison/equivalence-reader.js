@@ -5,7 +5,10 @@
    Dos formatos reales distintos:
    - "spec": 1 fila = 1 grupo de equivalencia directo. Columnas de spec técnica
      (VISCO/ACEA/ILSAC/AD/LITROS) + 1 columna de referencia por marca. Valores
-     especiales SIN EQUIVALENCIA / SIN ACTUALIZAR / EN OTROS FORMATOS se ignoran.
+     especiales SIN EQUIVALENCIA / SIN ACTUALIZAR se ignoran (esa marca no tiene
+     nada). EN OTROS FORMATOS se conserva como miembro sin ref, con
+     `note: 'otros_formatos'` — la marca sí tiene el producto, solo que no en
+     este tamaño (ver Comparación, que lo muestra como aviso en vez de omitirlo).
      (Fichero real: "Equivalencias Aceites por Marcas.xlsx".)
    - "block": fila 1 = nombre de marca cada bloque de columnas (con huecos de
      separador), fila 2 = REFERENCIA/DESCRIPCCIÓN/LITROS|KG por bloque, filas
@@ -15,10 +18,15 @@
      producto). (Ficheros reales: Grasas, Hidraulicos, Motor Vehículo
      Industrial, Transmisión Manual y Ejes.)
    Ambos devuelven el mismo shape: { groups: [{ groupId, specs, members }] }
-   con members: [{ brandKey, ref, description?, size? }].
+   con members: [{ brandKey, ref, description?, size?, note? }].
 */
 const EquivalenceReader = (() => {
-  const IGNORED_VALUES = new Set(['SIN EQUIVALENCIA', 'SIN ACTUALIZAR', 'EN OTROS FORMATOS', '']);
+  // "EN OTROS FORMATOS" no significa "sin equivalencia" — significa que esa marca SÍ
+  // tiene el producto, pero no en este tamaño/formato concreto. Se conserva como
+  // miembro sin ref (con nota), en vez de descartarlo — así Comparación puede avisar
+  // "en otros formatos" en vez de dar la falsa impresión de que no hay nada.
+  const NO_EQUIVALENCE_VALUES = new Set(['SIN EQUIVALENCIA', 'SIN ACTUALIZAR', '']);
+  const OTHER_FORMATS_VALUE = 'EN OTROS FORMATOS';
 
   function sheetRows(workbook, sheetName) {
     const sheet = workbook.Sheets[sheetName];
@@ -52,7 +60,9 @@ const EquivalenceReader = (() => {
         const val = row[bc.idx];
         if (val == null) continue;
         const s = String(val).trim();
-        if (IGNORED_VALUES.has(s.toUpperCase())) continue;
+        const upper = s.toUpperCase();
+        if (NO_EQUIVALENCE_VALUES.has(upper)) continue;
+        if (upper === OTHER_FORMATS_VALUE) { members.push({ brandKey: bc.name, ref: null, note: 'otros_formatos' }); continue; }
         members.push({ brandKey: bc.name, ref: s });
       }
       if (members.length) groups.push({ groupId: `${categoryPrefix}_spec_${r}`, specs, members });
@@ -107,6 +117,9 @@ const EquivalenceReader = (() => {
         if (cols.ref == null) continue;
         const refVal = row[cols.ref];
         if (refVal == null || refVal === '') continue;
+        const refUpper = String(refVal).trim().toUpperCase();
+        if (NO_EQUIVALENCE_VALUES.has(refUpper)) continue;
+        if (refUpper === OTHER_FORMATS_VALUE) { members.push({ brandKey: b.label, ref: null, note: 'otros_formatos' }); continue; }
         members.push({
           brandKey: b.label,
           ref: String(refVal).trim(),

@@ -369,9 +369,18 @@ table.preview th.liters, table.preview td.liters { max-width: 76px; }
 
 .compare-result { background: var(--pico-card-background-color); border: 1px solid var(--pico-card-border-color); border-radius: var(--radius-md); padding: 0.9rem 1rem; margin-top: 0.9rem; box-shadow: var(--shadow-card); }
 .compare-result:empty { display: none; }
-.compare-row { display: grid; grid-template-columns: 140px 1fr 100px 100px; gap: 0.6rem; align-items: center; padding: 0.4rem 0; border-bottom: 1px solid var(--pico-card-border-color); font-size: 0.86rem; }
-.compare-row:last-child { border-bottom: none; }
-.compare-row .no-tarifa { color: var(--pico-muted-color); font-style: italic; }
+
+/* Una tarjeta por marca miembro del grupo de equivalencia — el número de chips de coste
+   y de PVP varía por marca (factura / neto-neto / triple neto; PVP / Bidones y Cubas
+   Neto / Netos Bonus…), así que en vez de un grid rígido de columnas cada marca envuelve
+   sus propios chips y salta de línea con normalidad. */
+.compare-member { padding: 0.5rem 0; border-bottom: 1px solid var(--pico-card-border-color); font-size: 0.86rem; }
+.compare-member:last-child { border-bottom: none; }
+.compare-member-head { display: flex; justify-content: space-between; align-items: baseline; gap: 0.6rem; }
+.compare-member-head strong { font-size: 0.9rem; }
+.compare-member-costs, .compare-member-pvps { display: flex; gap: 0.4rem; flex-wrap: wrap; margin-top: 0.3rem; }
+.compare-member .no-tarifa { color: var(--pico-muted-color); font-style: italic; }
+.chip.pvp { font-weight: 700; color: var(--pico-primary); background: color-mix(in srgb, var(--pico-primary) 12%, transparent); border-color: transparent; }
 
 .hidden { display: none !important; }
 .muted { color: var(--pico-muted-color); }

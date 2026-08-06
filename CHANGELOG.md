@@ -2,6 +2,29 @@
 
 Formato inspirado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [v0.9.10] — 2026-08-06
+
+### Añadido
+- Comparación: casilla de búsqueda libre de referencia, con o sin el
+  prefijo de marca (`ADP32005` o `32005`) — busca en todo el maestro antes
+  de la cascada de selects Marca/Gama/Referencia (que se mantiene como
+  alternativa).
+- Comparación: se muestran todos los costes disponibles de cada marca
+  miembro (factura, neto-neto, triple neto) y todos los niveles de precio
+  con `goesToSkrit` (PVP, Bidones y Cubas Neto, Netos Bonus…), no solo un
+  coste y un PVP.
+- Comparación: "EN OTROS FORMATOS" (marcado así en el Excel de
+  equivalencias) ya no se descarta en silencio — se muestra como aviso
+  explícito en vez de dar la impresión de que la marca no tiene nada.
+
+### Arreglado
+- Comparación daba "sin tarifa importada" para marcas que sí estaban
+  importadas: el emparejamiento fijaba una gama por marca
+  (`EQUIV_BRAND_ALIASES`) que solo es real para AD Parts — para el resto,
+  la ref de un grupo podía vivir en cualquier gama de esa marca. Ahora se
+  busca en todas las gamas antes de concluir que falta. Ver
+  [ADR 0024](docs/decisiones/0024-comparacion-busqueda-libre-y-multi-nivel.md).
+
 ## [v0.9.9] — 2026-08-04
 
 ### Añadido
