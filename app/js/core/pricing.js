@@ -3,6 +3,18 @@
    ============================================================================ */
 const Pricing = (() => {
 
+  // Modos especiales por formato dentro del nivel PVP (ver ADR 0026 v2): antes "1+2" y
+  // "Bidones y Cubas Neto" eran niveles aparte; ahora son un interruptor por formato
+  // dentro del propio PVP (un formato solo puede ir de una forma), con fórmula fija —
+  // no editable por Yako, es la misma cuenta de siempre.
+  // "1+2": cost/0,5/(1/3) = cost×6 = 83,33% de margen sobre venta (ver ADR 0026 original).
+  const PROMO_1X2_MARGIN_PCT = Math.round(100 * (1 - (0.5 / 3)) * 100) / 100;
+  // Bidones ~200L al 20% sobre venta, cubas ~1000L al 15% — el propio litraje real de la
+  // fila decide el tramo, sin depender de una lista fija de formatKeys por marca.
+  const PVP_NETO_CUBA_THRESHOLD_LITERS = 500;
+  const PVP_NETO_BIDON_MARGIN_PCT = 20;
+  const PVP_NETO_CUBA_MARGIN_PCT = 15;
+
   /**
    * PVP a partir de coste y % de margen.
    * @param {number} cost       coste por envase.
@@ -109,10 +121,23 @@ const Pricing = (() => {
       return { marginPct: null, mode: cfg.marginMode || cfg.mode || 'sale', pvp: null, gain: null, realMarginPct: null, isManual: false, noCost: true };
     }
 
-    const marginPct = (cfg.byFormat && cfg.byFormat[row.formatKey] != null)
-      ? cfg.byFormat[row.formatKey]
-      : cfg.defaultMargin;
-    const mode = cfg.marginMode || cfg.mode || 'sale';
+    // Modo especial por formato (nivel PVP): sustituye el margen normal por la fórmula
+    // fija de "1+2" o "PVP Neto" para ese formato — mutuamente excluyente, un formato
+    // solo puede tener un modo activo a la vez (ver ADR 0026 v2).
+    const formatMode = cfg.formatModes && cfg.formatModes[row.formatKey];
+    let marginPct, mode;
+    if (formatMode === '1x2') {
+      marginPct = PROMO_1X2_MARGIN_PCT;
+      mode = 'sale';
+    } else if (formatMode === 'pvp_neto') {
+      marginPct = (row.liters != null && row.liters >= PVP_NETO_CUBA_THRESHOLD_LITERS) ? PVP_NETO_CUBA_MARGIN_PCT : PVP_NETO_BIDON_MARGIN_PCT;
+      mode = 'sale';
+    } else {
+      marginPct = (cfg.byFormat && cfg.byFormat[row.formatKey] != null)
+        ? cfg.byFormat[row.formatKey]
+        : cfg.defaultMargin;
+      mode = cfg.marginMode || cfg.mode || 'sale';
+    }
 
     // "Precio del premio" (ej. Netos Bonus: 50€ bidones / 100€ cubas) — un importe
     // fijo que se suma al coste ANTES de aplicar el margen, no un coste real de la

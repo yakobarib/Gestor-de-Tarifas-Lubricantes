@@ -4,13 +4,14 @@
    Elegir marca + gama + tipo de exportación, revisar el listado final
    calculado (con las mismas reglas de REGLAS) en una tabla en pantalla, y
    exportar exactamente esas filas. "Tipo de exportación" es una lista plana
-   que mezcla los niveles configurados en REGLAS (PVP, Bidones y Cubas Neto,
-   Netos Bonus… formato Skrit de 9 columnas, solo los que tengan
-   `goesToSkrit: true`) con los listados simples sin margen (Neto Factura,
-   Neto-Neto). Gama admite "Todas" (por defecto) además de cada gama suelta
-   — para niveles, se resuelve fila a fila según la gama real de cada fila,
-   porque cada gama puede tener ese mismo nivel configurado con un margen
-   distinto (ver ADR 0021/0022).
+   que mezcla los dos niveles configurados en REGLAS (PVP, formato Skrit de
+   9 columnas; Netos Bonus, mismo formato pero solo los formatos marcados
+   "Salida impresa", ver ADR 0026 v2) con los listados simples sin margen
+   (Neto Factura, Neto-Neto, Triple Neto, y "Valor Regalo 1+1" cuando algún
+   formato de PVP tiene el modo "1+2" activado). Gama admite "Todas" (por
+   defecto) además de cada gama suelta — para niveles, se resuelve fila a
+   fila según la gama real de cada fila, porque cada gama puede tener ese
+   mismo nivel configurado con un margen distinto (ver ADR 0021/0022).
 */
 const ScreenExport = (() => {
   const $ = (id) => document.getElementById(id);
@@ -84,21 +85,20 @@ const ScreenExport = (() => {
     return map;
   }
 
-  /** El nivel "1+2" de esta marca/gama, o null si no está "habilitado" ahí (no existe). */
-  function promo1x2LevelFor(brandId, gama) {
-    return loadLevels(brandId, gama).find(l => l.id === 'promo_1x2') || null;
+  /** El nivel "pvp" de esta marca/gama (siempre existe, ver ADR 0026 v2). */
+  function pvpLevelFor(brandId, gama) {
+    return loadLevels(brandId, gama).find(l => l.id === 'pvp') || null;
   }
 
   /** Valor en € del "regalo" de un 1+1: el coste (factura/neto-neto/triple neto, el que
-   *  use el nivel "1+2" de esa gama) de la caja que se regala — no la calculamos con
+   *  use el PVP de esa gama) de la caja que se regala — no la calculamos con
    *  Pricing.compute porque eso daría el PVP, no el coste, y el override manual de PVP
-   *  no debe afectar a este valor. null si esa gama no tiene "1+2" o la fila no cumple
-   *  sus restricciones de formato (fuera del umbral de litros). */
-  function regaloValueFor(row, level) {
-    if (!level) return null;
-    if (level.onlyFormats && !level.onlyFormats.includes(row.formatKey)) return null;
-    if (level.maxLiters != null && (row.liters == null || row.liters > level.maxLiters)) return null;
-    const cost = Pricing.resolveCost(row, level);
+   *  no debe afectar a este valor. null si ese formato no tiene el modo "1+2" activado
+   *  en PVP para esa gama (ver ADR 0026 v2). */
+  function regaloValueFor(row, pvpLevel) {
+    if (!pvpLevel) return null;
+    if (!pvpLevel.formatModes || pvpLevel.formatModes[row.formatKey] !== '1x2') return null;
+    const cost = Pricing.resolveCost(row, pvpLevel);
     return (typeof cost === 'number' && isFinite(cost)) ? cost : null;
   }
 
@@ -156,25 +156,31 @@ const ScreenExport = (() => {
       return;
     }
     const brand = findBrand(currentBrandId);
-    let levels;
+    // "pvp" (va a Skrit) y "netos_bonus" (no va a Skrit, uso interno) siempre existen y
+    // siempre se ofrecen los dos — a diferencia de antes, ya no hay niveles opcionales
+    // que añadir/quitar (ver ADR 0026 v2).
+    let levels, has1x2;
     if (currentGama === '__all__') {
       const byGama = loadLevelsByGama(currentBrandId, brand.gamas);
       const seen = new Map();
       for (const g of brand.gamas) {
-        for (const l of byGama[g]) {
-          if (l.goesToSkrit && !seen.has(l.id)) seen.set(l.id, l);
-        }
+        for (const l of byGama[g]) if (!seen.has(l.id)) seen.set(l.id, l);
       }
       levels = [...seen.values()];
+      has1x2 = brand.gamas.some(g => {
+        const pvp = (byGama[g] || []).find(l => l.id === 'pvp');
+        return pvp && pvp.formatModes && Object.values(pvp.formatModes).includes('1x2');
+      });
     } else {
-      levels = loadLevels(currentBrandId, currentGama).filter(l => l.goesToSkrit);
+      levels = loadLevels(currentBrandId, currentGama);
+      const pvp = levels.find(l => l.id === 'pvp');
+      has1x2 = !!(pvp && pvp.formatModes && Object.values(pvp.formatModes).includes('1x2'));
     }
-    const levelOptions = levels.map(l => `<option value="level:${escapeHtml(l.id)}">${escapeHtml(l.label)} (Venta)</option>`);
+    const levelOptions = levels.map(l => `<option value="level:${escapeHtml(l.id)}">${escapeHtml(l.label)}${l.goesToSkrit ? ' (Venta)' : ' (uso interno)'}</option>`);
     const listOptions = Object.entries(PRICE_LIST_TYPES).map(([key, spec]) => `<option value="list:${key}">${escapeHtml(spec.label)} (Compra)</option>`);
-    // "Valor Regalo 1+1" solo se ofrece si el nivel "1+2" está habilitado en al menos una
-    // gama de esta marca (en "Todas") o en la gama elegida — si no, no tiene de dónde
-    // sacar el coste que representa el regalo.
-    if (levels.some(l => l.id === 'promo_1x2')) {
+    // "Valor Regalo 1+1" solo se ofrece si algún formato de PVP tiene el modo "1+2"
+    // activado en al menos una gama de esta marca (en "Todas") o en la gama elegida.
+    if (has1x2) {
       listOptions.push('<option value="list:regalo_1x1">Valor Regalo 1+1 (Compra)</option>');
     }
     sel.innerHTML = levelOptions.concat(listOptions).join('');
@@ -254,14 +260,14 @@ const ScreenExport = (() => {
     const brand = findBrand(currentBrandId);
     const thead = $('exportPreviewTable').querySelector('thead');
     const tbody = $('exportPreviewBody');
-    const visible = visibleRows();
-    $('exportVisibleCount').textContent = visible.length;
+    let visible = visibleRows();
     $('exportTotalCount').textContent = rows.length;
 
     if (kind === 'list' && key === 'regalo_1x1') {
       thead.innerHTML = `<tr><th>Ref</th><th>Estado</th><th>Producto</th><th class="num liters">Litros</th><th class="num">Valor Regalo 1+1</th></tr>`;
+      $('exportVisibleCount').textContent = visible.length;
       const levelCache = {};
-      const levelFor = (gama) => (gama in levelCache) ? levelCache[gama] : (levelCache[gama] = promo1x2LevelFor(currentBrandId, gama));
+      const levelFor = (gama) => (gama in levelCache) ? levelCache[gama] : (levelCache[gama] = pvpLevelFor(currentBrandId, gama));
       const frag = document.createDocumentFragment();
       for (const r of visible.slice(0, 500)) {
         const level = levelFor(currentGama === '__all__' ? r.gama : currentGama);
@@ -289,6 +295,7 @@ const ScreenExport = (() => {
     if (kind === 'list') {
       const spec = PRICE_LIST_TYPES[key];
       thead.innerHTML = `<tr><th>Ref</th><th>Estado</th><th>Producto</th><th class="num liters">Litros</th><th class="num">${escapeHtml(spec.label)}</th></tr>`;
+      $('exportVisibleCount').textContent = visible.length;
       const frag = document.createDocumentFragment();
       for (const r of visible.slice(0, 500)) {
         const tr = document.createElement('tr');
@@ -328,6 +335,16 @@ const ScreenExport = (() => {
       levelCache[gama] = lvl || null;
       return levelCache[gama];
     };
+    // Netos Bonus es una hoja impresa: solo entran los formatos marcados como "Salida
+    // impresa" en Reglas para la gama real de cada fila — a diferencia de PVP, que
+    // siempre muestra todo lo que tenga coste (ver ADR 0026 v2).
+    if (key === 'netos_bonus') {
+      visible = visible.filter(r => {
+        const lvl = levelFor(r.gama);
+        return lvl && lvl.printFormats && lvl.printFormats[r.formatKey];
+      });
+    }
+    $('exportVisibleCount').textContent = visible.length;
 
     const frag = document.createDocumentFragment();
     for (const r of visible.slice(0, 500)) {
@@ -392,7 +409,7 @@ const ScreenExport = (() => {
 
     if (kind === 'list' && key === 'regalo_1x1') {
       const withValue = rows.filter(r => typeof r._regaloValue === 'number' && isFinite(r._regaloValue));
-      if (!withValue.length) { alert('Ninguna referencia de esta marca/gama tiene el nivel "1+2" habilitado y con coste auditado.'); return; }
+      if (!withValue.length) { alert('Ninguna referencia de esta marca/gama tiene el modo "1+2" activado en PVP y con coste auditado.'); return; }
       const fname = ExcelWriter.exportPriceList(rows, brand.abbr, '_regaloValue', 'Valor Regalo 1+1', tariffDate);
       $('exportStatus').innerHTML = `<small style="color: var(--pico-ins-color);">✓ Exportado: <strong>${escapeHtml(fname)}</strong> (${withValue.length} filas).</small>`;
       return;
@@ -409,18 +426,29 @@ const ScreenExport = (() => {
 
     // kind === 'level' — en "Todas" cada gama puede tener ese nivel con un margen
     // distinto, así que se resuelve fila a fila según la gama real de cada fila.
+    const byGama = currentGama === '__all__' ? loadLevelsByGama(currentBrandId, brand.gamas) : null;
+    const levelForGama = (gama) => byGama ? (byGama[gama] || []).find(l => l.id === key) : loadLevels(currentBrandId, currentGama).find(l => l.id === key);
+    // Netos Bonus es una hoja impresa: solo se exportan los formatos marcados como
+    // "Salida impresa" para la gama real de cada fila (WYSIWYG con la previsualización).
+    let exportRows = rows;
+    if (key === 'netos_bonus') {
+      exportRows = rows.filter(r => { const lvl = levelForGama(r.gama); return lvl && lvl.printFormats && lvl.printFormats[r.formatKey]; });
+      if (!exportRows.length) { alert('Ningún formato de esta marca/gama está marcado con "Salida impresa" en Netos Bonus.'); return; }
+    }
     if (currentGama === '__all__') {
-      const byGama = loadLevelsByGama(currentBrandId, brand.gamas);
-      const resolver = (row) => (byGama[row.gama] || []).find(l => l.id === key);
-      const anyLevel = brand.gamas.map(g => (byGama[g] || []).find(l => l.id === key)).find(Boolean);
-      const fname = ExcelWriter.exportSkritV2(rows, brand.abbr, resolver, tariffDate, key);
-      $('exportStatus').innerHTML = `<small style="color: var(--pico-ins-color);">✓ Exportado: <strong>${escapeHtml(fname)}</strong> (${rows.length} filas, nivel "${escapeHtml(anyLevel ? anyLevel.label : key)}", todas las gamas).</small>`;
+      const anyLevel = brand.gamas.map(g => levelForGama(g)).find(Boolean);
+      // exportSkritV2 llama al resolver con la FILA, no con la gama — a diferencia de
+      // levelForGama (que usamos arriba directamente con un string de gama para filtrar
+      // por printFormats).
+      const resolver = (row) => levelForGama(row.gama);
+      const fname = ExcelWriter.exportSkritV2(exportRows, brand.abbr, resolver, tariffDate, key);
+      $('exportStatus').innerHTML = `<small style="color: var(--pico-ins-color);">✓ Exportado: <strong>${escapeHtml(fname)}</strong> (${exportRows.length} filas, nivel "${escapeHtml(anyLevel ? anyLevel.label : key)}", todas las gamas).</small>`;
       return;
     }
-    const level = loadLevels(currentBrandId, currentGama).find(l => l.id === key);
+    const level = levelForGama(currentGama);
     if (!level) { alert('Ese nivel ya no existe para esta marca/gama.'); return; }
-    const fname = ExcelWriter.exportSkritV2(rows, brand.abbr, level, tariffDate);
-    $('exportStatus').innerHTML = `<small style="color: var(--pico-ins-color);">✓ Exportado: <strong>${escapeHtml(fname)}</strong> (${rows.length} filas, nivel "${escapeHtml(level.label)}").</small>`;
+    const fname = ExcelWriter.exportSkritV2(exportRows, brand.abbr, level, tariffDate);
+    $('exportStatus').innerHTML = `<small style="color: var(--pico-ins-color);">✓ Exportado: <strong>${escapeHtml(fname)}</strong> (${exportRows.length} filas, nivel "${escapeHtml(level.label)}").</small>`;
   }
 
   function setupListeners() {

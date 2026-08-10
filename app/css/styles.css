@@ -344,34 +344,50 @@ table.preview th.liters, table.preview td.liters { max-width: 76px; }
 .level-card .skrit-flag { font-size: 0.68rem; padding: 0.1rem 0.5rem; border-radius: 1rem; background: var(--surface-muted); color: var(--text-strong); font-weight: 600; }
 .level-card .skrit-flag.yes { background: #e6f4e6; color: #2d7a2d; }
 .level-card .skrit-flag.no { background: #fdeaea; color: #b04040; }
-.level-card .delete-level {
-  margin-left: auto; background: transparent; border: none; color: var(--pico-muted-color);
-  font-size: 0.75rem; cursor: pointer; padding: 0.15rem 0.4rem; text-decoration: underline;
-}
-.level-card .delete-level:hover { color: #b04040; }
+.level-card .skrit-flag.block { display: inline-block; }
 
-.level-fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(125px, 1fr)); gap: 0.55rem 0.7rem; align-items: end; }
+/* Fila de campos principal: base de coste, modo de margen, margen por defecto,
+   redondeo y ¿va a Skrit? en la misma fila — hay sitio de sobra, no hace falta que
+   "¿Va a Skrit?" caiga en una fila aparte por debajo del margen por formato. */
+.level-fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 0.55rem 0.9rem; align-items: end; }
 .level-field { display: flex; flex-direction: column; gap: 0.22rem; }
 .level-field label { font-size: 0.68rem; color: var(--pico-muted-color); text-transform: uppercase; letter-spacing: 0.03em; margin: 0; }
-.level-field input, .level-field select { margin: 0; padding: 0.32rem 0.5rem; font-size: 0.82rem; height: auto; width: 100%; }
+.level-field input { margin: 0; padding: 0.4rem 0.6rem; font-size: 0.85rem; height: auto; width: 100%; }
+/* Padding-derecho + posición de flecha propios (no los de Pico) — con el padding
+   uniforme de antes el texto largo ("Coste factura", "Sobre venta") se comía la
+   flecha del desplegable. */
+.level-field select { margin: 0; padding: 0.4rem 1.8rem 0.4rem 0.6rem; font-size: 0.85rem; height: auto; width: 100%; background-position: right 0.65rem center; }
 .level-field.checkbox { flex-direction: row; align-items: center; gap: 0.4rem; padding-bottom: 0.35rem; }
 .level-field.checkbox label { text-transform: none; font-size: 0.8rem; margin: 0; order: 2; }
 .level-field.checkbox input { order: 1; margin: 0; width: auto; }
-
-/* Margen por formato dentro de un nivel — ocupa toda la fila del grid de campos. Cada
-   formato es una "chapa" vertical (litraje arriba, input, refs debajo) en vez de un
-   grid rígido de 3 columnas — con muchos formatos por marca (Castrol tiene 10) un grid
-   horizontal de columna fija atropellaba la etiqueta contra el input. */
-.level-field.wide { grid-column: 1 / -1; }
-.byformat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 0.5rem; margin-top: 0.3rem; }
-.format-row {
-  display: flex; flex-direction: column; gap: 0.2rem;
-  background: var(--surface-muted); border-radius: var(--radius-sm);
-  padding: 0.4rem 0.5rem; font-size: 0.78rem;
+.level-field .input-suffix { position: relative; }
+.level-field .input-suffix input { padding-right: 1.7rem; }
+.level-field .input-suffix .suffix {
+  position: absolute; right: 0.65rem; top: 50%; transform: translateY(-50%);
+  font-size: 0.8rem; color: var(--pico-muted-color); pointer-events: none;
 }
-.format-row label { margin: 0; text-transform: none; color: var(--text-strong); font-weight: 600; white-space: nowrap; }
-.format-row input, .format-row select { margin: 0; padding: 0.24rem 0.4rem; font-size: 0.8rem; text-align: left; height: auto; width: 100%; }
-.format-row .count { color: var(--pico-muted-color); font-size: 0.68rem; }
+
+/* Margen por formato — tabla (columnas = formatos, filas = margen + modos especiales)
+   en vez de una "chapa" por formato: con el modo "1+2"/"PVP Neto"/"Salida impresa" como
+   encabezado de fila hace falta que los formatos comparen en columna, no en tarjetas
+   sueltas (pedido de Yako para verlo de un vistazo). */
+.format-table-wrap { margin-top: 0.9rem; }
+.format-table-wrap > label { font-size: 0.68rem; color: var(--pico-muted-color); text-transform: uppercase; letter-spacing: 0.03em; display: block; margin-bottom: 0.4rem; }
+.format-table-scroll { overflow-x: auto; }
+.format-table { border-collapse: collapse; width: 100%; font-size: 0.8rem; }
+.format-table th, .format-table td { padding: 0.35rem 0.55rem; text-align: center; border-bottom: 1px solid var(--pico-card-border-color); }
+.format-table thead th { font-weight: 600; color: var(--text-strong); white-space: nowrap; }
+.format-table thead th small { display: block; font-weight: 400; color: var(--pico-muted-color); font-size: 0.68rem; text-transform: none; }
+.format-table tbody th { text-align: left; white-space: nowrap; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.03em; color: var(--pico-muted-color); padding-right: 0.9rem; }
+.format-table td input[type="number"] { margin: 0; padding: 0.28rem 0.4rem; font-size: 0.8rem; text-align: center; width: 72px; }
+.format-table td.disabled { color: var(--pico-muted-color); opacity: 0.5; }
+.format-toggle-btn {
+  padding: 0.2rem 0.6rem; font-size: 0.72rem; border-radius: 999px; margin: 0; cursor: pointer;
+  background: var(--surface-muted); color: var(--pico-muted-color); border: 1px solid var(--border-muted);
+  transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+}
+.format-toggle-btn:not(.active):hover { background: var(--surface-muted-hover); }
+.format-toggle-btn.active { background: var(--pico-primary); color: var(--pico-primary-inverse); border-color: var(--pico-primary); }
 
 .compare-result { background: var(--pico-card-background-color); border: 1px solid var(--pico-card-border-color); border-radius: var(--radius-md); padding: 0.9rem 1rem; margin-top: 0.9rem; box-shadow: var(--shadow-card); }
 .compare-result:empty { display: none; }

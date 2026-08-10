@@ -2,6 +2,35 @@
 
 Formato inspirado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [v0.9.13] — 2026-08-10
+
+### Cambiado
+- Reglas: "1+2" y "PVP Neto" (antes "Bidones y Cubas Neto") dejan de ser niveles
+  que había que añadir/quitar aparte — ahora son un interruptor por formato
+  dentro de la propia tabla de margen de PVP (encendido/apagado, apagado por
+  defecto), mutuamente excluyentes entre sí y con el margen normal de ese
+  formato. "Añadir nivel" desaparece: ya no hace falta.
+- Reglas: Netos Bonus pasa a ser una tarjeta fija (como PVP) en vez de un nivel
+  opcional — nunca va a Skrit (se corrige un dato que llevaba mal desde que se
+  introdujo), y en vez de limitarse a bidones/cubas tiene su propia fila de
+  interruptor "Salida impresa" por formato, que decide qué formatos entran en
+  la hoja impresa/exportada.
+- Exportación: "Valor Regalo 1+1" y el propio listado de Netos Bonus se
+  adaptan al cambio anterior (formatos con "1+2" activado / con "Salida
+  impresa" activada, respectivamente). Ver
+  [ADR 0027](docs/decisiones/0027-pvp-modos-por-formato-y-netos-bonus-fijo.md).
+
+### Arreglado
+- Reglas: el desplegable "Base de coste" pegaba el texto contra la flecha, y
+  "Margen por defecto" partía su etiqueta en dos líneas — se ensancharon las
+  columnas y "Redondeo"/"¿Va a Skrit?" pasan a la misma fila que los otros 3
+  campos (ya no caían debajo de la tabla de margen por formato). El campo de
+  margen por defecto ahora muestra el símbolo "%".
+- Exportación "Todas las gamas" con Netos Bonus o con formatos en modo "1+2"/
+  "PVP Neto": el nivel se resolvía mal fila a fila (se le pasaba una función
+  pensada para recibir una gama, no una fila) y el PVP exportado salía
+  incorrecto — introducido por este mismo cambio, corregido antes de publicar.
+
 ## [v0.9.12] — 2026-08-10
 
 ### Añadido

@@ -4,49 +4,47 @@
    Selección de marca + gama, y edición de sus "niveles de precio"
    (`priceLevels`, ver ADR 0008 y Migration): cada nivel tiene una base de
    coste (factura / neto-neto), un modo de margen, y si va o no a Skrit.
-   El nivel "pvp" siempre existe (se sintetiza vía Migration si no hay
-   config guardada todavía) — "Añadir nivel" es solo para niveles extra:
-   Bidones y Cubas Neto, Netos Bonus (ver ADR 0015/0016). El preset
-   "Precio Neto de Venta" del diseño original (ADR 0008) quedó obsoleto y se
-   retiró — Yako lo confundía con PVP y en la práctica solo se usan los dos
-   anteriores.
+   Solo hay dos niveles, siempre presentes (se sintetizan si no hay config
+   guardada todavía), sin "Añadir nivel":
+   - PVP: el que va a Skrit. Por formato puede además marcarse un modo
+     especial mutuamente excluyente con el margen normal — "1+2" o "PVP
+     Neto" (antes eran niveles aparte que había que añadir/quitar; a Yako le
+     resultaba menos visual y conceptualmente un formato solo puede ir de
+     una forma, ver ADR 0026 v2).
+   - Netos Bonus: nunca va a Skrit (hojas impresas para comerciales) — su
+     propio coste/margen por formato, y qué formatos se marcan para esa
+     salida impresa.
 */
 const ScreenRules = (() => {
   const $ = (id) => document.getElementById(id);
   let currentBrandId = null;
   let currentGama = 'default';
 
+  // Umbral que decide si el formato puede tener el modo "1+2" (hasta 5L) o "PVP Neto"
+  // (bidones/cubas, a partir de ~150L) disponible como interruptor — fuera de ese rango
+  // el interruptor ni se muestra, no tiene sentido para ese tamaño de envase.
+  const PROMO_1X2_MAX_LITERS = 5;
+  const PVP_NETO_MIN_LITERS = 150;
+
   // Bidones ~200L (185/200/205/208/209 según proveedor) al 20% sobre venta, cubas
-  // ~1000L al 15% sobre venta — confirmado por Yako 2026-07-31. `onlyFormats` hace que
-  // Pricing.compute devuelva "sin coste" (no un PVP a 0% de margen) para cualquier
-  // formato que no sea bidón o cuba — este nivel no tiene precio fuera de esos dos.
-  // Netos Bonus usa el mismo desglose de formato/margen, con un "precio del premio"
-  // (50€ bidones / 100€ cubas) sumado al coste antes de aplicar el margen — ver ADR 0016.
-  const CUBAS_FORMATS = ['185', '200', '205', '208', '209', '1000'];
+  // ~1000L al 15% — mismos valores que usa la fórmula fija de "PVP Neto" en pricing.js,
+  // aquí solo como semilla de margen por formato al crear Netos Bonus por primera vez.
   const CUBAS_MARGIN_BY_FORMAT = { '185': 20, '200': 20, '205': 20, '208': 20, '209': 20, '1000': 15 };
   const BONUS_PREMIUM_BY_FORMAT = { '185': 50, '200': 50, '205': 50, '208': 50, '209': 50, '1000': 100 };
 
-  // "1+2": el cliente compra 1 caja al PVP de este nivel y se lleva 2 más sin cargo —
-  // paga 1 de cada 3 (33,33%), lo mismo que un 66,66% de descuento sobre 3 cajas. Para
-  // que la venta de las 3 recupere el margen mínimo de Yako (doblar el coste, 50% sobre
-  // venta), el PVP de lista tiene que ser 6× el coste — cost/0,5/(1/3) = cost×6 — lo que
-  // en el modelo de margen único de la app equivale a un 83,33% de margen sobre venta
-  // (1 - 1/6 = 5/6). Solo tiene sentido en cajas pequeñas (Yako: hasta 5L) — `maxLiters`
-  // es un umbral, no una lista fija de formatos, porque el litraje real varía por
-  // producto/marca. "1+2 habilitado" para una marca/gama = que este nivel exista para
-  // ella (añadido/quitado con "Añadir nivel"/"Eliminar", igual que cualquier otro nivel)
-  // — no hace falta un interruptor aparte. Ver ADR 0026.
-  const PROMO_1X2_MAX_LITERS = 5;
-  const PROMO_1X2_MARGIN = 100 * (1 - (0.5 / 3)); // 83.333...%
-
-  const PRESETS = {
-    cubas_neto: { id: 'cubas_neto', label: 'Bidones y Cubas Neto', baseCost: 'factura', baseCostField: 'costPerPack', mode: 'sale', defaultMargin: 20, onlyFormats: CUBAS_FORMATS, byFormat: CUBAS_MARGIN_BY_FORMAT, rounding: '2dec', manualOverride: {}, goesToSkrit: true },
-    // "Siempre el precio más bajo disponible" (Yako): triple-neto si existe, si no
-    // neto-neto, si no factura. costCascade ya usa los nombres de campo del maestro
-    // (MasterDB) porque este nivel solo tiene sentido en Comparación/Exportación.
-    netos_bonus: { id: 'netos_bonus', label: 'Netos Bonus', baseCost: 'tripleNeto', baseCostField: 'costTripleNeto', costCascade: ['costTripleNeto', 'costNetoNeto', 'costFactura'], mode: 'sale', defaultMargin: 20, onlyFormats: CUBAS_FORMATS, byFormat: CUBAS_MARGIN_BY_FORMAT, premiumByFormat: BONUS_PREMIUM_BY_FORMAT, rounding: '2dec', manualOverride: {}, goesToSkrit: true },
-    promo_1x2: { id: 'promo_1x2', label: '1+2', baseCost: 'factura', baseCostField: 'costPerPack', mode: 'sale', defaultMargin: Math.round(PROMO_1X2_MARGIN * 100) / 100, maxLiters: PROMO_1X2_MAX_LITERS, byFormat: {}, rounding: '2dec', manualOverride: {}, goesToSkrit: true }
-  };
+  /** Netos Bonus: coste en cascada (siempre el más bajo disponible, ver ADR 0016), nunca
+   *  va a Skrit — son hojas impresas para comerciales, no dependen de Skrit — y en vez de
+   *  `onlyFormats` (que antes decidía a la vez "tiene precio" y "se imprime") ahora
+   *  `printFormats` solo decide qué formatos se incluyen en la hoja impresa; el precio se
+   *  calcula para cualquier formato con coste disponible. */
+  function defaultNetosBonusLevel() {
+    return {
+      id: 'netos_bonus', label: 'Netos Bonus', baseCost: 'tripleNeto', baseCostField: 'costTripleNeto',
+      costCascade: ['costTripleNeto', 'costNetoNeto', 'costFactura'], mode: 'sale', defaultMargin: 20,
+      byFormat: Object.assign({}, CUBAS_MARGIN_BY_FORMAT), premiumByFormat: Object.assign({}, BONUS_PREMIUM_BY_FORMAT),
+      printFormats: {}, rounding: '2dec', manualOverride: {}, goesToSkrit: false
+    };
+  }
 
   function escapeHtml(s) {
     return String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -70,6 +68,52 @@ const ScreenRules = (() => {
       cfg.priceLevels = [Migration.synthesizePvpLevel(cfg)];
     }
     return cfg;
+  }
+
+  /** Migra configs de antes de ADR 0026 v2 ("1+2"/"Bidones y Cubas Neto" como niveles
+   *  aparte) y asegura que siempre existan exactamente los niveles "pvp" y "netos_bonus",
+   *  en ese orden. Corre en cada `renderLevels` porque necesita `formats` (async) para
+   *  saber qué formatos activar; guarda solo si de verdad cambió algo. */
+  function migrateLevels(cfg, formats) {
+    let changed = false;
+    let pvp = cfg.priceLevels.find(l => l.id === 'pvp');
+    if (!pvp) { pvp = Migration.synthesizePvpLevel(cfg); cfg.priceLevels.unshift(pvp); changed = true; }
+    if (!pvp.formatModes) { pvp.formatModes = {}; changed = true; }
+
+    const legacyPromo = cfg.priceLevels.find(l => l.id === 'promo_1x2');
+    if (legacyPromo) {
+      for (const f of formats) {
+        if (f.key !== '?' && legacyPromo.maxLiters != null && parseFloat(f.key) <= legacyPromo.maxLiters) {
+          pvp.formatModes[f.key] = '1x2';
+        }
+      }
+      cfg.priceLevels = cfg.priceLevels.filter(l => l.id !== 'promo_1x2');
+      changed = true;
+    }
+    const legacyCubas = cfg.priceLevels.find(l => l.id === 'cubas_neto');
+    if (legacyCubas) {
+      for (const key of (legacyCubas.onlyFormats || [])) pvp.formatModes[key] = 'pvp_neto';
+      cfg.priceLevels = cfg.priceLevels.filter(l => l.id !== 'cubas_neto');
+      changed = true;
+    }
+
+    let bonus = cfg.priceLevels.find(l => l.id === 'netos_bonus');
+    if (!bonus) {
+      bonus = defaultNetosBonusLevel();
+      cfg.priceLevels.push(bonus);
+      changed = true;
+    }
+    if (bonus.goesToSkrit !== false) { bonus.goesToSkrit = false; changed = true; }
+    if (!bonus.printFormats) {
+      bonus.printFormats = {};
+      for (const k of (bonus.onlyFormats || [])) bonus.printFormats[k] = true;
+      changed = true;
+    }
+    if (bonus.onlyFormats) { delete bonus.onlyFormats; changed = true; }
+
+    const order = ['pvp', 'netos_bonus'];
+    cfg.priceLevels.sort((a, b) => order.indexOf(a.id) - order.indexOf(b.id));
+    return changed;
   }
 
   /** Al guardar con "Todas las gamas" seleccionada, se difunde la misma config a CADA
@@ -146,38 +190,57 @@ const ScreenRules = (() => {
     const cfg = loadConfig(currentBrandId, currentGama);
     const avail = await availableCostFields(currentBrandId, currentGama);
     const formats = await availableFormats(currentBrandId, currentGama);
+    if (migrateLevels(cfg, formats)) saveConfig(currentBrandId, currentGama, cfg);
     const el = $('levelsContainer');
-    el.innerHTML = cfg.priceLevels.map((lvl, i) => levelCardHtml(lvl, i, cfg.priceLevels.length, avail, formats)).join('');
+    el.innerHTML = cfg.priceLevels.map((lvl, i) => levelCardHtml(lvl, i, avail, formats)).join('');
   }
 
-  function levelCardHtml(lvl, index, total, avail, formats) {
-    // Un nivel con `onlyFormats` (Bidones y Cubas Neto, Netos Bonus) o `maxLiters`
-    // ("1+2", hasta cierto litraje) solo tiene precio para esos formatos — no tiene
-    // sentido ofrecer margen por formato para el resto.
-    let editableFormats = formats;
-    if (lvl.onlyFormats) editableFormats = editableFormats.filter(f => lvl.onlyFormats.includes(f.key));
-    if (lvl.maxLiters != null) editableFormats = editableFormats.filter(f => f.key !== '?' && parseFloat(f.key) <= lvl.maxLiters);
-    const byFormatHtml = editableFormats.length ? `
-      <div class="level-field wide">
-        <label>Margen por formato (%) — deja vacío para usar el margen por defecto</label>
-        <div class="byformat-grid">
-          ${editableFormats.map(f => `
-            <div class="format-row">
-              <label>${escapeHtml(f.label)}</label>
-              <input type="number" min="0" max="500" step="0.5" data-field="byFormat" data-format="${escapeHtml(f.key)}" data-index="${index}" placeholder="${lvl.defaultMargin}" value="${lvl.byFormat && lvl.byFormat[f.key] != null ? lvl.byFormat[f.key] : ''}">
-              <span class="count">${f.count} refs</span>
-            </div>
-          `).join('')}
+  function formatToggleCell(lvl, formatKey, mode) {
+    const active = lvl.formatModes && lvl.formatModes[formatKey] === mode;
+    return `<td><button type="button" class="format-toggle-btn ${active ? 'active' : ''}" data-action="toggle-mode" data-mode="${mode}" data-format="${escapeHtml(formatKey)}" aria-pressed="${active}">${active ? 'Sí' : 'No'}</button></td>`;
+  }
+
+  function printToggleCell(lvl, formatKey) {
+    const active = !!(lvl.printFormats && lvl.printFormats[formatKey]);
+    return `<td><button type="button" class="format-toggle-btn ${active ? 'active' : ''}" data-action="toggle-print" data-format="${escapeHtml(formatKey)}" aria-pressed="${active}">${active ? 'Sí' : 'No'}</button></td>`;
+  }
+
+  function formatTableHtml(lvl, formats) {
+    const marginRow = `<tr><th>Margen (%)</th>${formats.map(f => `
+      <td><input type="number" min="0" max="500" step="0.5" data-field="byFormat" data-format="${escapeHtml(f.key)}" placeholder="${lvl.defaultMargin}" value="${lvl.byFormat && lvl.byFormat[f.key] != null ? lvl.byFormat[f.key] : ''}"></td>
+    `).join('')}</tr>`;
+
+    let extraRows = '';
+    if (lvl.id === 'pvp') {
+      extraRows = `
+        <tr><th>1+2</th>${formats.map(f => (f.key !== '?' && parseFloat(f.key) <= PROMO_1X2_MAX_LITERS) ? formatToggleCell(lvl, f.key, '1x2') : '<td class="disabled">—</td>').join('')}</tr>
+        <tr><th>PVP Neto</th>${formats.map(f => (f.key !== '?' && parseFloat(f.key) >= PVP_NETO_MIN_LITERS) ? formatToggleCell(lvl, f.key, 'pvp_neto') : '<td class="disabled">—</td>').join('')}</tr>
+      `;
+    } else if (lvl.id === 'netos_bonus') {
+      extraRows = `<tr><th>Salida impresa</th>${formats.map(f => printToggleCell(lvl, f.key)).join('')}</tr>`;
+    }
+
+    return `
+      <div class="format-table-wrap">
+        <label>Margen por formato (%) — deja vacío para usar el margen por defecto${lvl.id === 'pvp' ? '. "1+2" y "PVP Neto" sustituyen ese margen por su fórmula fija cuando están activados para ese formato' : ''}</label>
+        <div class="format-table-scroll">
+          <table class="format-table" data-index="${lvl._index}">
+            <thead><tr><th></th>${formats.map(f => `<th>${escapeHtml(f.label)}<small>${f.count} refs</small></th>`).join('')}</tr></thead>
+            <tbody>${marginRow}${extraRows}</tbody>
+          </table>
         </div>
       </div>
-    ` : '';
-    const canDelete = lvl.id !== 'pvp' && total > 1;
+    `;
+  }
+
+  function levelCardHtml(lvl, index, avail, formats) {
+    lvl._index = index; // leído por formatTableHtml para el data-index de la tabla
+    const isBonus = lvl.id === 'netos_bonus';
     return `
       <div class="level-card" data-index="${index}">
         <div class="level-card-head">
           <h4>${escapeHtml(lvl.label)}</h4>
           <span class="skrit-flag ${lvl.goesToSkrit ? 'yes' : 'no'}">${lvl.goesToSkrit ? 'va a Skrit' : 'no va a Skrit'}</span>
-          ${canDelete ? `<button type="button" class="delete-level" data-action="delete-level" data-index="${index}">Eliminar</button>` : ''}
         </div>
         <div class="level-fields">
           <div class="level-field">
@@ -197,9 +260,11 @@ const ScreenRules = (() => {
           </div>
           <div class="level-field">
             <label>Margen por defecto</label>
-            <input type="number" min="0" max="500" step="0.5" data-field="defaultMargin" data-index="${index}" value="${lvl.defaultMargin}">
+            <div class="input-suffix">
+              <input type="number" min="0" max="500" step="0.5" data-field="defaultMargin" data-index="${index}" value="${lvl.defaultMargin}">
+              <span class="suffix">%</span>
+            </div>
           </div>
-          ${byFormatHtml}
           <div class="level-field">
             <label>Redondeo</label>
             <select data-field="rounding" data-index="${index}">
@@ -211,11 +276,11 @@ const ScreenRules = (() => {
               <option value="int" ${lvl.rounding === 'int' ? 'selected' : ''}>Entero</option>
             </select>
           </div>
-          <div class="level-field checkbox">
-            <input type="checkbox" id="skrit-${index}" data-field="goesToSkrit" data-index="${index}" ${lvl.goesToSkrit ? 'checked' : ''}>
-            <label for="skrit-${index}">¿Va a Skrit?</label>
-          </div>
+          ${isBonus
+            ? `<div class="level-field"><label>&nbsp;</label><span class="skrit-flag no block">no va a Skrit — uso interno</span></div>`
+            : `<div class="level-field checkbox"><input type="checkbox" id="skrit-${index}" data-field="goesToSkrit" data-index="${index}" ${lvl.goesToSkrit ? 'checked' : ''}><label for="skrit-${index}">¿Va a Skrit?</label></div>`}
         </div>
+        ${formats.length ? formatTableHtml(lvl, formats) : ''}
       </div>
     `;
   }
@@ -251,19 +316,27 @@ const ScreenRules = (() => {
     saveConfig(currentBrandId, currentGama, cfg);
   }
 
-  function addLevel(presetKey) {
-    const preset = PRESETS[presetKey];
-    if (!preset) return;
+  /** Activa/desactiva el modo especial de un formato en el nivel PVP — mutuamente
+   *  excluyente por construcción: es un único valor por formatKey, así que marcar
+   *  "pvp_neto" desplaza automáticamente "1x2" para ese mismo formato y viceversa. */
+  function toggleFormatMode(index, formatKey, mode) {
     const cfg = loadConfig(currentBrandId, currentGama);
-    if (cfg.priceLevels.some(l => l.id === preset.id)) { alert('Ese nivel ya existe para esta marca/gama.'); return; }
-    cfg.priceLevels.push(JSON.parse(JSON.stringify(preset)));
+    const lvl = cfg.priceLevels[index];
+    if (!lvl) return;
+    if (!lvl.formatModes) lvl.formatModes = {};
+    if (lvl.formatModes[formatKey] === mode) delete lvl.formatModes[formatKey];
+    else lvl.formatModes[formatKey] = mode;
     saveConfig(currentBrandId, currentGama, cfg);
     renderLevels();
   }
 
-  function deleteLevel(index) {
+  function togglePrintFormat(index, formatKey) {
     const cfg = loadConfig(currentBrandId, currentGama);
-    cfg.priceLevels.splice(index, 1);
+    const lvl = cfg.priceLevels[index];
+    if (!lvl) return;
+    if (!lvl.printFormats) lvl.printFormats = {};
+    if (lvl.printFormats[formatKey]) delete lvl.printFormats[formatKey];
+    else lvl.printFormats[formatKey] = true;
     saveConfig(currentBrandId, currentGama, cfg);
     renderLevels();
   }
@@ -289,14 +362,17 @@ const ScreenRules = (() => {
       if (field === 'goesToSkrit' || field === 'baseCost') renderLevels();
     });
     $('levelsContainer').addEventListener('click', (e) => {
-      const btn = e.target.closest('[data-action="delete-level"]');
-      if (!btn) return;
-      deleteLevel(parseInt(btn.dataset.index, 10));
-    });
-    $('btnAddLevel').addEventListener('click', () => {
-      const presetKey = $('newLevelPreset').value;
-      if (!presetKey) { alert('Elige un preset antes de añadir un nivel.'); return; }
-      addLevel(presetKey);
+      const modeBtn = e.target.closest('[data-action="toggle-mode"]');
+      if (modeBtn) {
+        const index = parseInt(modeBtn.closest('table').dataset.index, 10);
+        toggleFormatMode(index, modeBtn.dataset.format, modeBtn.dataset.mode);
+        return;
+      }
+      const printBtn = e.target.closest('[data-action="toggle-print"]');
+      if (printBtn) {
+        const index = parseInt(printBtn.closest('table').dataset.index, 10);
+        togglePrintFormat(index, printBtn.dataset.format);
+      }
     });
   }
 
