@@ -2,6 +2,17 @@
 
 Formato inspirado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [v0.9.14] — 2026-08-10
+
+### Arreglado
+- La barra lateral se desplazaba junto con el contenido en Reglas (la única
+  pantalla que puede necesitar más scroll que un viewport) — el `position:
+  sticky` que la fijaba solo aguanta pegada mientras el scroll total no supere
+  la propia altura de la barra, casi un viewport completo. Ahora el scroll
+  vive dentro del área de contenido en vez de en la página entera, así que la
+  barra nunca se mueve, sea lo larga que sea la pantalla activa. Ver
+  [ADR 0028](docs/decisiones/0028-scroll-interno-en-app-main.md).
+
 ## [v0.9.13] — 2026-08-10
 
 ### Cambiado

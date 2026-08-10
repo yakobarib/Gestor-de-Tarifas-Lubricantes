@@ -55,14 +55,19 @@
   --page-bg: #0f1115;
 }
 
-html, body { overflow-x: hidden; }
+/* html/body ya no hacen scroll — el scroll vive dentro de `.app-main` para que la
+   barra lateral (un hermano flex fuera de ese contenedor) nunca se mueva, sea lo larga
+   que sea la pantalla activa (antes, con `position: sticky`, se "despegaba" en cuanto el
+   scroll superaba la propia altura de la barra, ~1 viewport — pasaba en Reglas con
+   tarifas largas). En el media query de móvil se revierte a scroll de página normal. */
+html, body { height: 100%; overflow: hidden; }
 body { padding: 0; margin: 0; box-sizing: border-box; font-size: 0.94rem; background: var(--page-bg); }
 * { box-sizing: border-box; }
 
 /* ============================================================================
    Shell: sidebar flotante (estilo Finder) + área de contenido
    ============================================================================ */
-.app-shell { display: flex; align-items: stretch; min-height: 100vh; gap: 0.75rem; padding: 0.75rem; }
+.app-shell { display: flex; align-items: stretch; height: 100vh; gap: 0.75rem; padding: 0.75rem; }
 .sidebar {
   width: 244px; flex-shrink: 0; padding: 0.9rem 0.75rem;
   display: flex; flex-direction: column; gap: 1.1rem;
@@ -70,10 +75,12 @@ body { padding: 0; margin: 0; box-sizing: border-box; font-size: 0.94rem; backgr
   border: 1px solid var(--pico-card-border-color);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-float);
-  position: sticky; top: 0.75rem; align-self: flex-start;
-  height: calc(100vh - 1.5rem); overflow-y: auto; overflow-x: hidden;
+  overflow-y: auto; overflow-x: hidden;
 }
-.app-main { flex: 1; min-width: 0; }
+/* `.app-shell` mide exactamente 100vh (menos el padding) y estira a sus dos hijos por
+   igual — la barra lateral ya no necesita `sticky`, sencillamente nunca se mueve. Todo el
+   scroll de una pantalla larga (Reglas) ocurre dentro de `.app-main`. */
+.app-main { flex: 1; min-width: 0; height: 100%; overflow-y: auto; overflow-x: hidden; }
 
 .sidebar-brand { display: flex; align-items: center; gap: 0.5rem; padding: 0.1rem 0.2rem 0.1rem; min-width: 0; }
 .brand-logo { width: 28px; height: auto; flex-shrink: 0; color: var(--text-strong); }
@@ -151,8 +158,12 @@ body { padding: 0; margin: 0; box-sizing: border-box; font-size: 0.94rem; backgr
 .toast.show { opacity: 1; transform: translateX(-50%) translateY(-6px); }
 
 @media (max-width: 860px) {
-  .app-shell { flex-direction: column; }
-  .sidebar { width: 100%; height: auto; position: static; flex-direction: row; align-items: center; gap: 0.8rem; overflow-x: auto; }
+  /* En móvil la barra lateral es una franja horizontal arriba, no una columna fija —
+     aquí sí conviene el scroll de página normal de siempre. */
+  html, body { height: auto; overflow: visible; overflow-x: hidden; }
+  .app-shell { flex-direction: column; height: auto; }
+  .sidebar { width: 100%; height: auto; flex-direction: row; align-items: center; gap: 0.8rem; overflow-x: auto; overflow-y: visible; }
+  .app-main { height: auto; overflow-y: visible; }
   .sidebar-nav { flex-direction: row; }
   .nav-item { white-space: nowrap; }
   .sidebar-footer { display: none; }
