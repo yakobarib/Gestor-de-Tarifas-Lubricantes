@@ -84,6 +84,24 @@ const ScreenExport = (() => {
     return map;
   }
 
+  /** El nivel "1+2" de esta marca/gama, o null si no está "habilitado" ahí (no existe). */
+  function promo1x2LevelFor(brandId, gama) {
+    return loadLevels(brandId, gama).find(l => l.id === 'promo_1x2') || null;
+  }
+
+  /** Valor en € del "regalo" de un 1+1: el coste (factura/neto-neto/triple neto, el que
+   *  use el nivel "1+2" de esa gama) de la caja que se regala — no la calculamos con
+   *  Pricing.compute porque eso daría el PVP, no el coste, y el override manual de PVP
+   *  no debe afectar a este valor. null si esa gama no tiene "1+2" o la fila no cumple
+   *  sus restricciones de formato (fuera del umbral de litros). */
+  function regaloValueFor(row, level) {
+    if (!level) return null;
+    if (level.onlyFormats && !level.onlyFormats.includes(row.formatKey)) return null;
+    if (level.maxLiters != null && (row.liters == null || row.liters > level.maxLiters)) return null;
+    const cost = Pricing.resolveCost(row, level);
+    return (typeof cost === 'number' && isFinite(cost)) ? cost : null;
+  }
+
   function saveManualOverride(brandId, gama, levelId, ref, value) {
     const found = loadRawLevel(brandId, gama, levelId);
     if (!found) return;
@@ -153,6 +171,12 @@ const ScreenExport = (() => {
     }
     const levelOptions = levels.map(l => `<option value="level:${escapeHtml(l.id)}">${escapeHtml(l.label)} (Venta)</option>`);
     const listOptions = Object.entries(PRICE_LIST_TYPES).map(([key, spec]) => `<option value="list:${key}">${escapeHtml(spec.label)} (Compra)</option>`);
+    // "Valor Regalo 1+1" solo se ofrece si el nivel "1+2" está habilitado en al menos una
+    // gama de esta marca (en "Todas") o en la gama elegida — si no, no tiene de dónde
+    // sacar el coste que representa el regalo.
+    if (levels.some(l => l.id === 'promo_1x2')) {
+      listOptions.push('<option value="list:regalo_1x1">Valor Regalo 1+1 (Compra)</option>');
+    }
     sel.innerHTML = levelOptions.concat(listOptions).join('');
     currentOption = sel.value || '';
     renderPreview();
@@ -233,6 +257,34 @@ const ScreenExport = (() => {
     const visible = visibleRows();
     $('exportVisibleCount').textContent = visible.length;
     $('exportTotalCount').textContent = rows.length;
+
+    if (kind === 'list' && key === 'regalo_1x1') {
+      thead.innerHTML = `<tr><th>Ref</th><th>Estado</th><th>Producto</th><th class="num liters">Litros</th><th class="num">Valor Regalo 1+1</th></tr>`;
+      const levelCache = {};
+      const levelFor = (gama) => (gama in levelCache) ? levelCache[gama] : (levelCache[gama] = promo1x2LevelFor(currentBrandId, gama));
+      const frag = document.createDocumentFragment();
+      for (const r of visible.slice(0, 500)) {
+        const level = levelFor(currentGama === '__all__' ? r.gama : currentGama);
+        const value = regaloValueFor(r, level);
+        r._regaloValue = value; // se reutiliza tal cual al exportar (WYSIWYG)
+        const tr = document.createElement('tr');
+        let statusChip = '';
+        if (r._status === 'new') statusChip = '<span class="status-chip new">NUEVA</span>';
+        else if (r._rebrandedFrom) statusChip = `<span class="status-chip stable" title="Antes: ${escapeHtml(r._rebrandedFrom)}">REBRAND</span>`;
+        tr.innerHTML = `
+          <td>${escapeHtml(r.ref)}</td>
+          <td>${statusChip}</td>
+          <td title="${escapeHtml(r.description)}">${escapeHtml(truncate(r.description || '', 60))}</td>
+          <td class="num liters">${r.liters ?? '—'}</td>
+          <td class="num">${formatEur(value)}</td>
+        `;
+        if (value == null) tr.className = 'warn';
+        frag.appendChild(tr);
+      }
+      tbody.innerHTML = '';
+      tbody.appendChild(frag);
+      return;
+    }
 
     if (kind === 'list') {
       const spec = PRICE_LIST_TYPES[key];
@@ -337,6 +389,14 @@ const ScreenExport = (() => {
     if (!rows.length) { alert('No hay tarifa importada para esta marca/gama en el maestro.'); return; }
     const tariffDate = $('exportTariffDate').value || new Date().toISOString().slice(0, 10);
     const [kind, key] = currentOption.split(':');
+
+    if (kind === 'list' && key === 'regalo_1x1') {
+      const withValue = rows.filter(r => typeof r._regaloValue === 'number' && isFinite(r._regaloValue));
+      if (!withValue.length) { alert('Ninguna referencia de esta marca/gama tiene el nivel "1+2" habilitado y con coste auditado.'); return; }
+      const fname = ExcelWriter.exportPriceList(rows, brand.abbr, '_regaloValue', 'Valor Regalo 1+1', tariffDate);
+      $('exportStatus').innerHTML = `<small style="color: var(--pico-ins-color);">✓ Exportado: <strong>${escapeHtml(fname)}</strong> (${withValue.length} filas).</small>`;
+      return;
+    }
 
     if (kind === 'list') {
       const spec = PRICE_LIST_TYPES[key];

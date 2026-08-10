@@ -2,6 +2,18 @@
 
 Formato inspirado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [v0.9.12] — 2026-08-10
+
+### Añadido
+- Reglas: nuevo preset de nivel "1+2" (venta especial: caja + 2 cajas sin
+  cargo, equivalente a un descuento del 66,6% sobre las tres) — margen fijo
+  del 83,33% sobre venta y solo aplicable a formatos de hasta 5 litros.
+- Exportación: cuando la marca/gama activa tiene el nivel "1+2" añadido en
+  Reglas, aparece un nuevo listado "Valor Regalo 1+1 (Compra)" con el coste
+  de la caja adicional que se regala en cada referencia — pensado para
+  "1+1+regalo" (una sola caja adicional, valorada en dinero en vez de en
+  producto). Ver [ADR 0026](docs/decisiones/0026-promocion-1x2-y-listado-regalo.md).
+
 ## [v0.9.11] — 2026-08-06
 
 ### Añadido

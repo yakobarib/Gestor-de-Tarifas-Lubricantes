@@ -26,12 +26,26 @@ const ScreenRules = (() => {
   const CUBAS_MARGIN_BY_FORMAT = { '185': 20, '200': 20, '205': 20, '208': 20, '209': 20, '1000': 15 };
   const BONUS_PREMIUM_BY_FORMAT = { '185': 50, '200': 50, '205': 50, '208': 50, '209': 50, '1000': 100 };
 
+  // "1+2": el cliente compra 1 caja al PVP de este nivel y se lleva 2 más sin cargo —
+  // paga 1 de cada 3 (33,33%), lo mismo que un 66,66% de descuento sobre 3 cajas. Para
+  // que la venta de las 3 recupere el margen mínimo de Yako (doblar el coste, 50% sobre
+  // venta), el PVP de lista tiene que ser 6× el coste — cost/0,5/(1/3) = cost×6 — lo que
+  // en el modelo de margen único de la app equivale a un 83,33% de margen sobre venta
+  // (1 - 1/6 = 5/6). Solo tiene sentido en cajas pequeñas (Yako: hasta 5L) — `maxLiters`
+  // es un umbral, no una lista fija de formatos, porque el litraje real varía por
+  // producto/marca. "1+2 habilitado" para una marca/gama = que este nivel exista para
+  // ella (añadido/quitado con "Añadir nivel"/"Eliminar", igual que cualquier otro nivel)
+  // — no hace falta un interruptor aparte. Ver ADR 0026.
+  const PROMO_1X2_MAX_LITERS = 5;
+  const PROMO_1X2_MARGIN = 100 * (1 - (0.5 / 3)); // 83.333...%
+
   const PRESETS = {
     cubas_neto: { id: 'cubas_neto', label: 'Bidones y Cubas Neto', baseCost: 'factura', baseCostField: 'costPerPack', mode: 'sale', defaultMargin: 20, onlyFormats: CUBAS_FORMATS, byFormat: CUBAS_MARGIN_BY_FORMAT, rounding: '2dec', manualOverride: {}, goesToSkrit: true },
     // "Siempre el precio más bajo disponible" (Yako): triple-neto si existe, si no
     // neto-neto, si no factura. costCascade ya usa los nombres de campo del maestro
     // (MasterDB) porque este nivel solo tiene sentido en Comparación/Exportación.
-    netos_bonus: { id: 'netos_bonus', label: 'Netos Bonus', baseCost: 'tripleNeto', baseCostField: 'costTripleNeto', costCascade: ['costTripleNeto', 'costNetoNeto', 'costFactura'], mode: 'sale', defaultMargin: 20, onlyFormats: CUBAS_FORMATS, byFormat: CUBAS_MARGIN_BY_FORMAT, premiumByFormat: BONUS_PREMIUM_BY_FORMAT, rounding: '2dec', manualOverride: {}, goesToSkrit: true }
+    netos_bonus: { id: 'netos_bonus', label: 'Netos Bonus', baseCost: 'tripleNeto', baseCostField: 'costTripleNeto', costCascade: ['costTripleNeto', 'costNetoNeto', 'costFactura'], mode: 'sale', defaultMargin: 20, onlyFormats: CUBAS_FORMATS, byFormat: CUBAS_MARGIN_BY_FORMAT, premiumByFormat: BONUS_PREMIUM_BY_FORMAT, rounding: '2dec', manualOverride: {}, goesToSkrit: true },
+    promo_1x2: { id: 'promo_1x2', label: '1+2', baseCost: 'factura', baseCostField: 'costPerPack', mode: 'sale', defaultMargin: Math.round(PROMO_1X2_MARGIN * 100) / 100, maxLiters: PROMO_1X2_MAX_LITERS, byFormat: {}, rounding: '2dec', manualOverride: {}, goesToSkrit: true }
   };
 
   function escapeHtml(s) {
@@ -137,9 +151,12 @@ const ScreenRules = (() => {
   }
 
   function levelCardHtml(lvl, index, total, avail, formats) {
-    // Un nivel con `onlyFormats` (Bidones y Cubas Neto, Netos Bonus) solo tiene precio
-    // para esos formatos — no tiene sentido ofrecer margen por formato para el resto.
-    const editableFormats = lvl.onlyFormats ? formats.filter(f => lvl.onlyFormats.includes(f.key)) : formats;
+    // Un nivel con `onlyFormats` (Bidones y Cubas Neto, Netos Bonus) o `maxLiters`
+    // ("1+2", hasta cierto litraje) solo tiene precio para esos formatos — no tiene
+    // sentido ofrecer margen por formato para el resto.
+    let editableFormats = formats;
+    if (lvl.onlyFormats) editableFormats = editableFormats.filter(f => lvl.onlyFormats.includes(f.key));
+    if (lvl.maxLiters != null) editableFormats = editableFormats.filter(f => f.key !== '?' && parseFloat(f.key) <= lvl.maxLiters);
     const byFormatHtml = editableFormats.length ? `
       <div class="level-field wide">
         <label>Margen por formato (%) — deja vacío para usar el margen por defecto</label>

@@ -95,6 +95,15 @@ const Pricing = (() => {
     if (cfg.onlyFormats && !cfg.onlyFormats.includes(row.formatKey) && !isManual) {
       return { marginPct: null, mode: cfg.marginMode || cfg.mode || 'sale', pvp: null, gain: null, realMarginPct: null, isManual: false, noCost: true };
     }
+    // Niveles restringidos por umbral de litros (ej. "1+2", solo envases de hasta 5L —
+    // a diferencia de `onlyFormats`, que es una lista fija de formatKeys conocidos, aquí
+    // el límite es un número y aplica a cualquier litraje real por debajo, ver ADR 0026).
+    // Sin litros detectados no se puede confirmar que cumpla el umbral — se excluye.
+    if (cfg.maxLiters != null && !isManual) {
+      if (row.liters == null || row.liters > cfg.maxLiters) {
+        return { marginPct: null, mode: cfg.marginMode || cfg.mode || 'sale', pvp: null, gain: null, realMarginPct: null, isManual: false, noCost: true };
+      }
+    }
 
     if (cost == null && !isManual) {
       return { marginPct: null, mode: cfg.marginMode || cfg.mode || 'sale', pvp: null, gain: null, realMarginPct: null, isManual: false, noCost: true };
@@ -137,5 +146,5 @@ const Pricing = (() => {
       : 'PVP = Coste / (1 − %/100)';
   }
 
-  return { pvpFromMargin, realMargin, round, compute, formulaText };
+  return { pvpFromMargin, realMargin, round, compute, formulaText, resolveCost };
 })();
