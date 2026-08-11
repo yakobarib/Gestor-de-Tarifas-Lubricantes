@@ -66,19 +66,27 @@ const MasterDB = (() => {
           litersDetected: !!r.litersDetected
         }
       );
-      if (tariffType === 'triple_neto') {
-        merged.costTripleNeto = r.costPerPack;
-        merged.costTripleNetoImportedAt = now;
-      } else if (tariffType === 'netoNeto') {
-        merged.costNetoNeto = r.costPerPack;
-        merged.costNetoNetoImportedAt = now;
-      } else {
-        merged.costFactura = r.costPerPack;
-        merged.costFacturaImportedAt = now;
+      // Guardia: solo tocar el coste del `tariffType` de este import si la fila trae de
+      // verdad un `costPerPack` numérico. Sin esto, una importación de "solo triple-neto"
+      // (sin costPerPack, ver ADR 0030 — AD Parts manda esos datos en un fichero aparte,
+      // no dentro de la tarifa de factura) borraría a `null` el costFactura ya existente.
+      const hasCost = typeof r.costPerPack === 'number' && isFinite(r.costPerPack);
+      if (hasCost) {
+        if (tariffType === 'triple_neto') {
+          merged.costTripleNeto = r.costPerPack;
+          merged.costTripleNetoImportedAt = now;
+        } else if (tariffType === 'netoNeto') {
+          merged.costNetoNeto = r.costPerPack;
+          merged.costNetoNetoImportedAt = now;
+        } else {
+          merged.costFactura = r.costPerPack;
+          merged.costFacturaImportedAt = now;
+        }
       }
       // Campos explícitos que el propio perfil ya conozca (ej. la tarifa Repsol "con
       // aportaciones" trae factura + neto-neto + triple-neto en la misma fila — ver
-      // ADR 0010) mandan sobre el mapeo por tariffType de arriba.
+      // ADR 0010; o un fichero dedicado solo a triple-neto, ver ADR 0030) mandan sobre
+      // el mapeo por tariffType de arriba.
       if (r.costNetoNeto != null) { merged.costNetoNeto = r.costNetoNeto; merged.costNetoNetoImportedAt = now; }
       if (r.costTripleNeto != null) { merged.costTripleNeto = r.costTripleNeto; merged.costTripleNetoImportedAt = now; }
       store.put(merged);

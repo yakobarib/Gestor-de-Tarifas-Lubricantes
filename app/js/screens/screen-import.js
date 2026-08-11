@@ -115,6 +115,35 @@ const ScreenImport = (() => {
   }
 
   /* ----- handlers ----- */
+  /** Fichero dedicado de Triple-Neto de AD Parts (ver ADR 0030): no es una tarifa
+   *  completa — solo trae ref + coste triple-neto del mes más reciente, sin gama (el
+   *  fichero mezcla normal/standard sin indicarlo). Se resuelve cruzando cada ref
+   *  contra el maestro ya existente (cualquiera de sus gamas); las refs que todavía no
+   *  se hayan importado con su tarifa de factura no tienen dónde guardarse y se
+   *  reportan como "sin emparejar". No navega a Tarifas — no hay una tarifa nueva que
+   *  revisar ahí, es solo una actualización de coste en segundo plano. */
+  async function handleAdPartsTripleNeto(workbook, brandId) {
+    const parsed = AdPartsTripleNeto.parse(workbook);
+    const existing = await MasterDB.getByBrand(brandId, null);
+    const gamaByRef = new Map(existing.map(r => [r.ref, r.gama]));
+    const byGama = new Map();
+    let unmatched = 0;
+    for (const row of parsed.rows) {
+      const gama = gamaByRef.get(row.ref);
+      if (!gama) { unmatched++; continue; }
+      if (!byGama.has(gama)) byGama.set(gama, []);
+      byGama.get(gama).push(row);
+    }
+    for (const [gama, rows] of byGama) {
+      await MasterDB.putRows(brandId, gama, rows, 'factura');
+    }
+    const matched = parsed.rows.length - unmatched;
+    $('loadStatus').innerHTML = `<small class="muted">✓ Triple-neto (<strong>${escapeHtml(String(parsed.monthLabel))}</strong>): ` +
+      `<strong>${matched}</strong> referencias actualizadas` +
+      (unmatched ? `, <strong>${unmatched}</strong> sin emparejar (todavía sin importar con su tarifa de factura).` : '.') +
+      `</small>`;
+  }
+
   /** Carga una tarifa de proveedor soltada/elegida en la tarjeta de una marca concreta.
    *  Si el proveedor detectado no coincide con la tarjeta donde se soltó, se avisa antes
    *  de continuar (fichero equivocado en la marca equivocada) — se carga igualmente bajo
@@ -128,6 +157,18 @@ const ScreenImport = (() => {
     const reader = new FileReader();
     reader.onload = (e) => {
       try {
+        // AD Parts manda el triple-neto en un fichero aparte, sin tarifa completa
+        // (ver arriba) — se detecta y desvía ANTES del pipeline normal de perfiles.
+        if (brandId === 'ad_parts_aceite') {
+          const workbook = XLSX.read(e.target.result, { type: 'array' });
+          if (AdPartsTripleNeto.detect(workbook)) {
+            handleAdPartsTripleNeto(workbook, brandId).catch(err => {
+              console.error(err);
+              $('loadStatus').innerHTML = `<small style="color: var(--pico-del-color);">❌ ${escapeHtml(err.message)}</small>`;
+            });
+            return;
+          }
+        }
         const result = ExcelReader.read(e.target.result, file.name);
         if (result.id && result.id !== brandId) {
           const detectedBrand = findBrand(result.id);

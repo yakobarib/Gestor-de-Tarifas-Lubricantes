@@ -2,6 +2,23 @@
 
 Formato inspirado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [v0.9.17] — 2026-08-11
+
+### Añadido
+- AD Parts: soporte para el fichero dedicado de Triple-Neto que envían aparte
+  de la tarifa normal (`Triple-neto DD-MM-AAAA.xlsx`) — se detecta al
+  soltarlo en la tarjeta de AD Parts, elige automáticamente el mes más
+  reciente de las dos columnas que trae, y cruza cada referencia contra las
+  ya importadas con su tarifa de factura (el fichero no indica gama). Las
+  referencias que todavía no se hayan importado se reportan como "sin
+  emparejar" en vez de crear datos a medias. Ver
+  [ADR 0030](docs/decisiones/0030-triple-neto-ad-parts.md).
+
+### Arreglado
+- `MasterDB.putRows` podía borrar el coste de factura ya guardado si una
+  importación no traía ese coste en la fila (el caso del fichero anterior) —
+  ahora solo lo toca cuando la fila trae un valor numérico válido.
+
 ## [v0.9.16] — 2026-08-11
 
 ### Arreglado
