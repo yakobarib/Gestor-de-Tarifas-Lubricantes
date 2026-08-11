@@ -183,8 +183,17 @@
         : 1;
       const costPerPack = priceInvoice / unitsPerBox;
 
-      const netoNetoVal = idxNetoNeto >= 0 ? r[idxNetoNeto] : null;
-      const tripleNetoVal = idxTripleNeto >= 0 ? r[idxTripleNeto] : null;
+      // Al igual que PRECIO FACTURA, estas columnas vienen por CAJA (unidad de compra),
+      // no por envase individual — verificado contra la propia fórmula de Repsol (ADR
+      // 0010): "Precio Neto €/L" × litros del envase QUE SE FACTURA (la caja completa,
+      // 25L en un "5x5L"), no litros de una sola botella. Sin dividir por `unitsPerBox`
+      // salían costes neto-neto/triple-neto varias veces más caros que la factura misma
+      // en cajas de más de 1 unidad — bug real detectado por Yako en Comparación
+      // (RPP1042QFB: factura 15,98€, neto-neto salía 70,62€ sin dividir).
+      const netoNetoRaw = idxNetoNeto >= 0 ? r[idxNetoNeto] : null;
+      const tripleNetoRaw = idxTripleNeto >= 0 ? r[idxTripleNeto] : null;
+      const netoNetoVal = typeof netoNetoRaw === 'number' && isFinite(netoNetoRaw) ? netoNetoRaw / unitsPerBox : null;
+      const tripleNetoVal = typeof tripleNetoRaw === 'number' && isFinite(tripleNetoRaw) ? tripleNetoRaw / unitsPerBox : null;
 
       const row = {
         ref: String(ref).trim(),
@@ -200,8 +209,6 @@
         fam: currentFam,
         litersDetected: liters !== null
       };
-      // Ya vienen por envase/caja en la propia hoja de Repsol — no hace falta dividir
-      // de nuevo por unitsPerBox como con costPerPack.
       if (typeof netoNetoVal === 'number' && isFinite(netoNetoVal)) row.costNetoNeto = netoNetoVal;
       if (typeof tripleNetoVal === 'number' && isFinite(tripleNetoVal)) row.costTripleNeto = tripleNetoVal;
 

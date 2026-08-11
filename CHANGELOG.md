@@ -2,6 +2,21 @@
 
 Formato inspirado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [v0.9.16] — 2026-08-11
+
+### Arreglado
+- Repsol: los costes Neto-Neto y Triple Neto salían varias veces más caros
+  que el de Factura en cualquier envase con más de 1 unidad por caja (ej.
+  "5x5L") — esas columnas vienen por caja en el Excel de Repsol, igual que
+  Factura, pero no se estaban dividiendo entre las unidades por caja. Ver
+  [ADR 0029](docs/decisiones/0029-fix-neto-repsol-y-quitar-kb-duplicada.md).
+
+### Cambiado
+- Comparación ya no tiene su propia zona para cargar los 5 Excel de
+  equivalencias entre marcas — estaba duplicada con la de Importación (ADR
+  0025), que alimenta el mismo índice. El aviso de "sin base de conocimiento"
+  ahora indica que se carga desde Importación.
+
 ## [v0.9.15] — 2026-08-10
 
 ### Arreglado

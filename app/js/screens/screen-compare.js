@@ -118,29 +118,6 @@ const ScreenCompare = (() => {
     `;
   }
 
-  function renderKbStatus() {
-    const el = $('kbStatus');
-    if (EquivalenceIndex.isLoaded()) {
-      const idx = EquivalenceIndex.load();
-      el.innerHTML = `<span class="status-ok">Base de conocimiento cargada: ${idx.groups.length} grupos (actualizada ${escapeHtml(idx.builtAt)}).</span>`;
-    } else {
-      el.innerHTML = `<span class="status-none">Base de conocimiento no cargada — carga los 5 Excel de equivalencias para poder comparar.</span>`;
-    }
-  }
-
-  async function handleKbFiles(files) {
-    if (!files || !files.length) return;
-    $('kbStatus').innerHTML = '<small class="muted">Leyendo ficheros de equivalencias…</small>';
-    const categories = [];
-    for (const file of files) {
-      const buf = await file.arrayBuffer();
-      const workbook = XLSX.read(buf, { type: 'array' });
-      categories.push(EquivalenceReader.readKnownFile(file.name, workbook));
-    }
-    EquivalenceIndex.build(categories);
-    renderKbStatus();
-  }
-
   function renderBrandSelect() {
     const sel = $('compareBrandSelect');
     sel.innerHTML = BRANDS.filter(b => !b.pending).map(b => `<option value="${b.id}">${escapeHtml(b.label)}</option>`).join('');
@@ -190,7 +167,7 @@ const ScreenCompare = (() => {
     lastShown = { brand, gama, ref };
     const el = $('compareResult');
     if (!EquivalenceIndex.isLoaded()) {
-      el.innerHTML = '<p class="muted">Carga primero la base de conocimiento de equivalencias.</p>';
+      el.innerHTML = '<p class="muted">Carga primero los Excel de cruces de referencias entre marcas, desde Importación.</p>';
       return;
     }
     const brandKey = brandKeyForRow(brand.id, gama);
@@ -255,8 +232,6 @@ const ScreenCompare = (() => {
   }
 
   function setupListeners() {
-    $('btnLoadKb').addEventListener('click', () => $('kbFileInput').click());
-    $('kbFileInput').addEventListener('change', (e) => handleKbFiles(e.target.files));
     $('btnCompareSearch').addEventListener('click', handleFreeSearch);
     $('compareRefInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); handleFreeSearch(); } });
     $('compareBrandSelect').addEventListener('change', (e) => { currentBrandId = e.target.value; renderGamaSelect(); });
@@ -267,11 +242,10 @@ const ScreenCompare = (() => {
       else $('compareResult').innerHTML = '';
     });
     Store.on('rules:changed', () => { if (lastShown) renderGroupFor(lastShown.brand, lastShown.gama, lastShown.ref); });
-    Store.on('screen:changed', (screen) => { if (screen === 'compare') { renderKbStatus(); renderBrandSelect(); } });
+    Store.on('screen:changed', (screen) => { if (screen === 'compare') renderBrandSelect(); });
   }
 
   function init() {
-    renderKbStatus();
     renderBrandSelect();
     setupListeners();
   }
