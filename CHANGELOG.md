@@ -2,6 +2,14 @@
 
 Formato inspirado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [v0.9.15] — 2026-08-10
+
+### Arreglado
+- El título de la pantalla activa y los iconos de tema/ayuda/ajustes/login
+  también se desplazaban con el contenido en Reglas — ahora se quedan fijos
+  arriba, igual que la barra lateral. Ver
+  [ADR 0028](docs/decisiones/0028-scroll-interno-en-app-main.md).
+
 ## [v0.9.14] — 2026-08-10
 
 ### Arreglado

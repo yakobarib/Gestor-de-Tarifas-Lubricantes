@@ -1,4 +1,4 @@
-# ADR 0028 — Scroll dentro de `.app-main`, no de la página, para que la barra lateral no se mueva
+# ADR 0028 — Scroll dentro de `.app-main`, no de la página, para que la barra lateral y el header no se muevan
 
 **Fecha:** 2026-08-10
 **Estado:** Aceptada
@@ -46,13 +46,28 @@ nunca se desplaza). Las otras 4 pantallas siguen sin necesitar scroll (ya tenía
 propias tablas con scroll interno acotado, `.table-wrap { max-height: 66vh }`). En móvil
 (375px), el scroll de página vuelve a funcionar con normalidad.
 
+## Decisión 2 — El header (título + iconos) también fijo, dentro de `.app-main`
+
+Yako pidió, de paso, que el título de la pantalla activa y los iconos de tema/ayuda/
+ajustes/login (`.app-header`, dentro de `.app-main`) tampoco se movieran al hacer scroll
+en Reglas. A diferencia de la barra lateral, aquí `position: sticky; top: 0` sí es la
+solución correcta y suficiente: el problema anterior de sticky era que el rango de "pegado"
+está limitado a la altura de la propia caja, y `.app-header` es pequeño (~90px) frente al
+contenido que hay debajo — se queda pegado durante todo el scroll sin ningún límite
+práctico. Se le añade `background: var(--page-bg)` (el mismo fondo de la página, para que
+el contenido no se vea "a través" al pasar por debajo) y `z-index: 5` (por encima de las
+tarjetas normales, por debajo de modales).
+
 ## Consecuencias
 
 - `css/styles.css`: `html, body` pasan de `overflow-x: hidden` a `height:100%;
   overflow:hidden`; `.app-shell` de `min-height:100vh` a `height:100vh`; `.sidebar` pierde
   `position/top/align-self/height` (ya no le hacen falta); `.app-main` gana
-  `height:100%; overflow-y:auto; overflow-x:hidden`. Media query de móvil añade el
-  reverso de los tres cambios anteriores.
+  `height:100%; overflow-y:auto; overflow-x:hidden`; `.app-header` gana
+  `position:sticky; top:0; z-index:5; background:var(--page-bg)`. Media query de móvil
+  añade el reverso de los cambios de `.app-shell`/`.sidebar`/`.app-main` (el header sigue
+  sticky en móvil, sin problema — su contenedor de scroll pasa a ser la página, pero sigue
+  siendo pequeño frente al contenido).
 - Ningún JS dependía de la posición de scroll de `document.body`/`window` (comprobado, no
   hay llamadas a `scrollTo`/`scrollTop` en `js/`), así que no hace falta tocar nada más.
 

@@ -132,10 +132,15 @@ body { padding: 0; margin: 0; box-sizing: border-box; font-size: 0.94rem; backgr
 .sidebar-footer strong { color: var(--text-strong); font-weight: 650; }
 .sidebar-footer .sidebar-version { display: block; margin-top: 0.35rem; font-size: 0.62rem; color: var(--pico-muted-color); }
 
-/* Header compartido: título de la pantalla activa + acciones (ajustes/ayuda/tema/login) */
+/* Header compartido: título de la pantalla activa + acciones (ajustes/ayuda/tema/login).
+   Fijo arriba de `.app-main` (que es quien hace scroll, ver ADR 0028) — su propia altura
+   es pequeña frente al contenido, así que `sticky` aquí sí se mantiene pegado durante
+   todo el scroll (a diferencia del problema que tenía la barra lateral). */
 .app-header {
   display: flex; align-items: center; justify-content: space-between;
   padding: 0.9rem 1.4rem; margin-bottom: 1rem;
+  position: sticky; top: 0; z-index: 5;
+  background: var(--page-bg);
 }
 .app-header h2 { margin: 0; font-size: 1.15rem; font-weight: 700; letter-spacing: -0.01em; }
 .header-actions { display: flex; align-items: center; gap: 0.4rem; }
