@@ -8,6 +8,7 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
 <link rel="stylesheet" href="css/styles.css">
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
 </head>
@@ -58,7 +59,7 @@
     <div class="sidebar-footer">
       <p>Krafted by <strong>Yakoba Moreno</strong></p>
       <p>Designed in <strong>Claude Code</strong></p>
-      <span class="sidebar-version">v0.9.18</span>
+      <span class="sidebar-version">v0.9.19</span>
     </div>
   </aside>
 
@@ -273,10 +274,10 @@
   <article>
     <h3>Exportar a Skrit</h3>
     <p class="muted" style="font-size:0.85rem;">
-      Layout unificado: MARCA, REFERENCIA, MARCA+REFERENCIA, coste factura, coste neto-neto, precio del nivel elegido,
-      familia, litros y descripción — lee directamente del maestro multi-marca.
+      Elige marca, gama y tipo de exportación — la previsualización de abajo muestra
+      exactamente lo que va a salir en el fichero (Excel o PDF, según el tipo).
     </p>
-    <div class="filter-row">
+    <div class="filter-row export-toolbar">
       <div class="field">
         <label for="exportBrandSelect">Marca</label>
         <select id="exportBrandSelect"></select>
@@ -292,6 +293,10 @@
       <div class="field">
         <label for="exportTariffDate">Fecha tarifa</label>
         <input type="date" id="exportTariffDate">
+      </div>
+      <div class="field">
+        <label>&nbsp;</label>
+        <button id="btnDoExport" type="button">Exportar</button>
       </div>
     </div>
 
@@ -318,7 +323,6 @@
       </div>
     </div>
 
-    <button id="btnDoExport" style="margin-top:0.8rem;">Exportar</button>
     <div id="exportStatus" style="margin-top:0.6rem;"></div>
   </article>
 </section>

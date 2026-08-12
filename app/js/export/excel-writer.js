@@ -1,13 +1,16 @@
 /* ============================================================================
-   MÓDULO: excelWriter  (export a formato Skrit)
+   MÓDULO: excelWriter  (export a formato Skrit — ver ADR 0032)
    ============================================================================
-   exportSkrit: el export legacy de v0.1-v0.3.0, usado desde la pantalla de
-   Importación (una gama a la vez, tal como funciona hoy). Se mantiene sin
-   cambios mientras la pantalla EXPORTACIÓN nueva se valida.
+   Usa ExcelJS (no XLSX.js) para poder escribir estilo real en el .xlsx —
+   XLSX.js (SheetJS, la build community cargada para LEER las tarifas de los
+   proveedores) descarta cualquier `cell.s` al escribir, comprobado con un
+   round-trip que vuelve `{patternType:"none"}` en vez del estilo puesto.
+   XLSX.js sigue siendo el lector de todos los perfiles de Importación — este
+   fichero es el único que escribe, y solo con ExcelJS.
 
-   exportSkritV2: layout unificado de 9 columnas para la pantalla EXPORTACIÓN
-   (ver ADR 0008): MARCA, REFERENCIA, MARCA+REFERENCIA, coste factura, coste
-   neto-neto, precio del nivel elegido, familia, litros, descripción.
+   exportSkritV2: layout de 8 columnas para la pantalla EXPORTACIÓN (ver ADR
+   0008/0032): MARCA, REFERENCIA, coste factura, coste neto-neto, coste
+   triple-neto, precio del nivel elegido, familia, litros, descripción.
    ============================================================================ */
 const ExcelWriter = (() => {
 
@@ -17,164 +20,146 @@ const ExcelWriter = (() => {
     return r.descriptionExport || r.description || '';
   }
 
-  function exportSkrit(rows, config, supplier, tariffDate) {
-    // AD Parts añade una columna FAM (código de familia) que Repsol no tiene.
-    const hasFam = rows.some(r => r.fam != null);
-    const header = ['REF', 'PRODUCTO', 'LITROS', 'NETO FACTURA ENVASE', 'P.V.P. ENVASE'];
-    if (hasFam) header.push('FAM');
-    header.push(tariffDate || '');
+  /** Cabecera en negrita y centrada — pedido por Yako para todos los Excel exportados. */
+  function styleHeaderRow(ws) {
+    const row = ws.getRow(1);
+    row.font = { bold: true };
+    row.alignment = { horizontal: 'center', vertical: 'middle' };
+  }
 
-    const data = [header];
-    for (const r of rows) {
-      if (!r.costPerPack || r.costPerPack <= 0) continue;
-      const c = Pricing.compute(r, config);
-      const row = [r.ref, exportDescription(r), r.liters || '', r.costPerPack, c.pvp];
-      if (hasFam) row.push(r.fam || '');
-      row.push('');
-      data.push(row);
-    }
-    const ws = XLSX.utils.aoa_to_sheet(data);
-    // Ancho de columnas
-    ws['!cols'] = hasFam
-      ? [{ wch: 14 }, { wch: 50 }, { wch: 8 }, { wch: 14 }, { wch: 14 }, { wch: 8 }, { wch: 12 }]
-      : [{ wch: 14 }, { wch: 50 }, { wch: 8 }, { wch: 14 }, { wch: 14 }, { wch: 12 }];
-    // Formato numérico €
-    const range = XLSX.utils.decode_range(ws['!ref']);
-    for (let R = 1; R <= range.e.r; ++R) {
-      for (const col of [3, 4]) {
-        const cell = ws[XLSX.utils.encode_cell({ r: R, c: col })];
-        if (cell && typeof cell.v === 'number') cell.z = '#,##0.00 €';
-      }
-    }
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'SKRIT');
+  function setColumns(ws, columns) {
+    // `columns` = [{ header, width, euro? }] — euro:true aplica formato de moneda a
+    // toda la columna (los encabezados, al ser texto, ignoran el numFmt sin problema).
+    ws.columns = columns.map(c => ({ header: c.header, width: c.width }));
+    columns.forEach((c, i) => {
+      if (c.euro) ws.getColumn(i + 1).numFmt = '#,##0.00 €';
+    });
+    styleHeaderRow(ws);
+  }
 
-    const dateStr = (tariffDate || new Date().toISOString().slice(0, 10));
-    const supplierSlug = supplier.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
-    const filename = `tarifa-skrit-${supplierSlug}-${dateStr}.xlsx`;
-    XLSX.writeFile(wb, filename);
+  /** Descarga el workbook — ExcelJS no tiene un `writeFile` de conveniencia en el
+   *  navegador (a diferencia de XLSX.js), hay que construir el Blob a mano. */
+  async function downloadWorkbook(wb, filename) {
+    const buffer = await wb.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
     return filename;
   }
 
   /**
-   * Export unificado (pantalla EXPORTACIÓN): una fila del maestro por línea,
-   * con MARCA abreviada + REFERENCIA bare + MARCA+REFERENCIA, ambos niveles
-   * de coste que existan, y el precio calculado del nivel elegido.
-   * `rows` = filas del maestro (MasterDB), de una marca+gama concreta o de todas sus
-   * gamas juntas (export "Todas", ver pantalla Exportación).
-   * `levelConfig` acepta un nivel fijo, o una función `(row) => nivel` para el caso
-   * "Todas" — cada gama puede tener el mismo nivel configurado con márgenes distintos,
-   * así que se resuelve fila a fila según la gama real de esa fila.
+   * Export unificado (pantalla EXPORTACIÓN): una fila del maestro por línea, con MARCA
+   * abreviada + REFERENCIA (sin prefijo), ambos niveles de coste que existan, y el
+   * precio calculado del nivel elegido. `rows` = filas del maestro (MasterDB), de una
+   * marca+gama concreta o de todas sus gamas juntas (export "Todas", ver pantalla
+   * Exportación). `levelConfig` acepta un nivel fijo, o una función `(row) => nivel`
+   * para el caso "Todas" — cada gama puede tener el mismo nivel configurado con
+   * márgenes distintos, así que se resuelve fila a fila según la gama real de esa fila.
    */
-  function exportSkritV2(rows, brandAbbr, levelConfig, tariffDate, levelId) {
+  async function exportSkritV2(rows, brandAbbr, levelConfig, tariffDate, levelId) {
     const resolveLevel = typeof levelConfig === 'function' ? levelConfig : () => levelConfig;
-    const header = ['MARCA', 'REFERENCIA', 'MARCA+REFERENCIA', 'COSTE FACTURA', 'COSTE NETO-NETO', 'COSTE TRIPLE NETO', 'PVP', 'FAMILIA', 'LITROS', 'DESCRIPCION'];
-    const data = [header];
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet('SKRIT');
+    setColumns(ws, [
+      { header: 'MARCA', width: 8 },
+      { header: 'REFERENCIA', width: 14 },
+      { header: 'COSTE FACTURA', width: 14, euro: true },
+      { header: 'COSTE NETO-NETO', width: 16, euro: true },
+      { header: 'COSTE TRIPLE NETO', width: 16, euro: true },
+      { header: 'PVP', width: 12, euro: true },
+      { header: 'FAMILIA', width: 8 },
+      { header: 'LITROS', width: 8 },
+      { header: 'DESCRIPCION', width: 50 }
+    ]);
     for (const r of rows) {
       const c = Pricing.compute(r, resolveLevel(r) || {});
       if (c.pvp == null) continue; // sin coste base para este nivel (ej. netoNeto/tripleNeto aún no auditado)
       const bare = r.ref.startsWith(brandAbbr) ? r.ref.slice(brandAbbr.length) : r.ref;
-      data.push([
+      ws.addRow([
         brandAbbr,
         bare,
-        brandAbbr + bare,
-        r.costFactura != null ? r.costFactura : '',
-        r.costNetoNeto != null ? r.costNetoNeto : '',
-        r.costTripleNeto != null ? r.costTripleNeto : '',
+        r.costFactura != null ? r.costFactura : null,
+        r.costNetoNeto != null ? r.costNetoNeto : null,
+        r.costTripleNeto != null ? r.costTripleNeto : null,
         c.pvp,
         r.fam || '',
-        r.liters || '',
+        r.liters || null,
         exportDescription(r)
       ]);
     }
-    const ws = XLSX.utils.aoa_to_sheet(data);
-    ws['!cols'] = [
-      { wch: 8 }, { wch: 14 }, { wch: 16 }, { wch: 14 }, { wch: 16 }, { wch: 16 }, { wch: 12 }, { wch: 8 }, { wch: 8 }, { wch: 50 }
-    ];
-    const range = XLSX.utils.decode_range(ws['!ref']);
-    for (let R = 1; R <= range.e.r; ++R) {
-      for (const col of [3, 4, 5, 6]) {
-        const cell = ws[XLSX.utils.encode_cell({ r: R, c: col })];
-        if (cell && typeof cell.v === 'number') cell.z = '#,##0.00 €';
-      }
-    }
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'SKRIT');
 
     const dateStr = (tariffDate || new Date().toISOString().slice(0, 10));
     const levelSlug = (levelId || levelConfig.id || 'nivel').toLowerCase().replace(/[^a-z0-9]+/g, '-');
     const filename = `tarifa-skrit-${brandAbbr.toLowerCase()}-${levelSlug}-${dateStr}.xlsx`;
-    XLSX.writeFile(wb, filename);
-    return filename;
+    return downloadWorkbook(wb, filename);
   }
 
   /**
-   * Listado simple de precio neto (Factura o Neto-Neto) — para imprimir, no para Skrit:
-   * REF, MARCA+REFERENCIA, PRODUCTO, LITROS, el propio coste tal cual, sin ningún
-   * cálculo de margen. `costField` es 'costFactura' o 'costNetoNeto'.
+   * Listado simple de coste (Factura / Neto-Neto / Triple Neto / Valor Regalo 1+1) —
+   * para imprimir o auditar, no para Skrit: sin ningún cálculo de margen, el propio
+   * coste tal cual. `costField` es el nombre del campo en `rows` ('costFactura',
+   * 'costNetoNeto', 'costTripleNeto' o '_regaloValue').
    */
-  function exportPriceList(rows, brandAbbr, costField, label, tariffDate) {
-    const header = ['MARCA', 'REFERENCIA', 'MARCA+REFERENCIA', 'LITROS', 'DESCRIPCION', label.toUpperCase()];
-    const data = [header];
+  async function exportPriceList(rows, brandAbbr, costField, label, tariffDate) {
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet(label.slice(0, 31));
+    setColumns(ws, [
+      { header: 'MARCA', width: 8 },
+      { header: 'REFERENCIA', width: 14 },
+      { header: 'DESCRIPCION', width: 50 },
+      { header: 'LITROS', width: 8 },
+      { header: label.toUpperCase(), width: 14, euro: true }
+    ]);
     for (const r of rows) {
       const cost = r[costField];
       if (typeof cost !== 'number' || !isFinite(cost)) continue; // sin este coste auditado todavía
       const bare = r.ref.startsWith(brandAbbr) ? r.ref.slice(brandAbbr.length) : r.ref;
-      data.push([brandAbbr, bare, brandAbbr + bare, r.liters || '', exportDescription(r), cost]);
+      ws.addRow([brandAbbr, bare, exportDescription(r), r.liters || null, cost]);
     }
-    const ws = XLSX.utils.aoa_to_sheet(data);
-    ws['!cols'] = [{ wch: 8 }, { wch: 14 }, { wch: 16 }, { wch: 8 }, { wch: 50 }, { wch: 14 }];
-    const range = XLSX.utils.decode_range(ws['!ref']);
-    for (let R = 1; R <= range.e.r; ++R) {
-      const cell = ws[XLSX.utils.encode_cell({ r: R, c: 5 })];
-      if (cell && typeof cell.v === 'number') cell.z = '#,##0.00 €';
-    }
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, label.slice(0, 31));
 
     const dateStr = (tariffDate || new Date().toISOString().slice(0, 10));
     const labelSlug = label.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
     const filename = `listado-${labelSlug}-${brandAbbr.toLowerCase()}-${dateStr}.xlsx`;
-    XLSX.writeFile(wb, filename);
-    return filename;
+    return downloadWorkbook(wb, filename);
   }
 
   /**
    * "PVP (Skrit)" (ver ADR 0031): el listado mínimo tal cual lo pide Yako para subir a
-   * Skrit — sin las columnas de coste neto-neto/triple-neto ni familia que trae
-   * `exportSkritV2` (esas son para auditoría interna, no las necesita Skrit). Solo
-   * MARCA, REFERENCIA, DESCRIPCION (editada), LITROS (por envase), COSTE COMPRA (el
-   * mismo que usa el nivel para calcular el PVP) y PVP.
+   * Skrit — MARCA, REFERENCIA, DESCRIPCION (editada), FAMILIA, LITROS (por envase),
+   * COSTE COMPRA (el que usa el nivel para calcular el PVP) y PVP.
    */
-  function exportSkritLean(rows, brandAbbr, levelConfig, tariffDate) {
+  async function exportSkritLean(rows, brandAbbr, levelConfig, tariffDate) {
     const resolveLevel = typeof levelConfig === 'function' ? levelConfig : () => levelConfig;
-    const header = ['MARCA', 'REFERENCIA', 'DESCRIPCION', 'LITROS', 'COSTE COMPRA', 'PVP'];
-    const data = [header];
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet('SKRIT');
+    setColumns(ws, [
+      { header: 'MARCA', width: 8 },
+      { header: 'REFERENCIA', width: 14 },
+      { header: 'DESCRIPCION', width: 50 },
+      { header: 'FAMILIA', width: 8 },
+      { header: 'LITROS', width: 8 },
+      { header: 'COSTE COMPRA', width: 14, euro: true },
+      { header: 'PVP', width: 12, euro: true }
+    ]);
     for (const r of rows) {
       const level = resolveLevel(r) || {};
       const c = Pricing.compute(r, level);
       if (c.pvp == null) continue; // sin coste base para este nivel
       const bare = r.ref.startsWith(brandAbbr) ? r.ref.slice(brandAbbr.length) : r.ref;
       const cost = Pricing.resolveCost(r, level);
-      data.push([brandAbbr, bare, exportDescription(r), r.liters || '', typeof cost === 'number' ? cost : '', c.pvp]);
+      ws.addRow([brandAbbr, bare, exportDescription(r), r.fam || '', r.liters || null, typeof cost === 'number' ? cost : null, c.pvp]);
     }
-    const ws = XLSX.utils.aoa_to_sheet(data);
-    ws['!cols'] = [{ wch: 8 }, { wch: 14 }, { wch: 50 }, { wch: 8 }, { wch: 14 }, { wch: 12 }];
-    const range = XLSX.utils.decode_range(ws['!ref']);
-    for (let R = 1; R <= range.e.r; ++R) {
-      for (const col of [4, 5]) {
-        const cell = ws[XLSX.utils.encode_cell({ r: R, c: col })];
-        if (cell && typeof cell.v === 'number') cell.z = '#,##0.00 €';
-      }
-    }
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'SKRIT');
 
     const dateStr = (tariffDate || new Date().toISOString().slice(0, 10));
     const filename = `pvp-skrit-${brandAbbr.toLowerCase()}-${dateStr}.xlsx`;
-    XLSX.writeFile(wb, filename);
-    return filename;
+    return downloadWorkbook(wb, filename);
   }
 
-  return { exportSkrit, exportSkritV2, exportSkritLean, exportPriceList };
+  return { exportSkritV2, exportSkritLean, exportPriceList };
 })();

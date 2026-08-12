@@ -2,6 +2,24 @@
 
 Formato inspirado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [v0.9.19] — 2026-08-12
+
+### Añadido
+- Los Excel exportados llevan la fila de cabecera en negrita y centrada (se
+  cambia el motor de escritura a ExcelJS — la librería anterior, gratuita,
+  no soporta escribir estilos).
+- "PVP (Skrit)" incluye también la columna Familia.
+
+### Cambiado
+- Se quita la columna "MARCA+REFERENCIA" de todas las exportaciones que la
+  tenían (era redundante con Marca + Referencia por separado).
+- En los listados de Neto Factura/Neto-Neto/Triple Neto/Valor Regalo 1+1, la
+  columna Litros pasa a ir después de Descripción.
+- El botón "Exportar" se mueve a la fila de Marca/Gama/Tipo de
+  exportación/Fecha tarifa, repartiendo el ancho a partes iguales entre los
+  5 — antes podía quedar fuera de la pantalla en listados largos. Ver
+  [ADR 0032](docs/decisiones/0032-excel-negrita-columnas-boton-exportar.md).
+
 ## [v0.9.18] — 2026-08-12
 
 ### Añadido

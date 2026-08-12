@@ -498,7 +498,7 @@ const ScreenExport = (() => {
     if (kind === 'list' && key === 'regalo_1x1') {
       const withValue = filtered.filter(r => typeof r._regaloValue === 'number' && isFinite(r._regaloValue));
       if (!withValue.length) { alert('Ninguna referencia visible tiene el modo "1+2" activado en PVP y con coste auditado.'); return; }
-      const fname = ExcelWriter.exportPriceList(filtered, brand.abbr, '_regaloValue', 'Valor Regalo 1+1', tariffDate);
+      const fname = await ExcelWriter.exportPriceList(filtered, brand.abbr, '_regaloValue', 'Valor Regalo 1+1', tariffDate);
       $('exportStatus').innerHTML = `<small style="color: var(--pico-ins-color);">✓ Exportado: <strong>${escapeHtml(fname)}</strong> (${withValue.length} filas).</small>`;
       return;
     }
@@ -507,7 +507,7 @@ const ScreenExport = (() => {
       const spec = PRICE_LIST_TYPES[key];
       const withCost = filtered.filter(r => typeof r[spec.costField] === 'number' && isFinite(r[spec.costField]));
       if (!withCost.length) { alert(`Ninguna referencia visible tiene "${spec.label}" auditado todavía.`); return; }
-      const fname = ExcelWriter.exportPriceList(filtered, brand.abbr, spec.costField, spec.label, tariffDate);
+      const fname = await ExcelWriter.exportPriceList(filtered, brand.abbr, spec.costField, spec.label, tariffDate);
       $('exportStatus').innerHTML = `<small style="color: var(--pico-ins-color);">✓ Exportado: <strong>${escapeHtml(fname)}</strong> (${withCost.length} filas).</small>`;
       return;
     }
@@ -519,7 +519,7 @@ const ScreenExport = (() => {
       const levelForGama = (gama) => byGama ? (byGama[gama] || []).find(l => l.id === 'pvp') : loadLevels(currentBrandId, currentGama).find(l => l.id === 'pvp');
       const resolver = currentGama === '__all__' ? (row) => levelForGama(row.gama) : levelForGama(currentGama);
       if (kind === 'skrit') {
-        const fname = ExcelWriter.exportSkritLean(filtered, brand.abbr, resolver, tariffDate);
+        const fname = await ExcelWriter.exportSkritLean(filtered, brand.abbr, resolver, tariffDate);
         $('exportStatus').innerHTML = `<small style="color: var(--pico-ins-color);">✓ Exportado: <strong>${escapeHtml(fname)}</strong> (${filtered.length} filas).</small>`;
         return;
       }
@@ -557,13 +557,13 @@ const ScreenExport = (() => {
       // levelForGama (que usamos arriba directamente con un string de gama para filtrar
       // por printFormats).
       const resolver = (row) => levelForGama(row.gama);
-      const fname = ExcelWriter.exportSkritV2(exportRows, brand.abbr, resolver, tariffDate, key);
+      const fname = await ExcelWriter.exportSkritV2(exportRows, brand.abbr, resolver, tariffDate, key);
       $('exportStatus').innerHTML = `<small style="color: var(--pico-ins-color);">✓ Exportado: <strong>${escapeHtml(fname)}</strong> (${exportRows.length} filas, nivel "${escapeHtml(anyLevel ? anyLevel.label : key)}", todas las gamas).</small>`;
       return;
     }
     const level = levelForGama(currentGama);
     if (!level) { alert('Ese nivel ya no existe para esta marca/gama.'); return; }
-    const fname = ExcelWriter.exportSkritV2(exportRows, brand.abbr, level, tariffDate);
+    const fname = await ExcelWriter.exportSkritV2(exportRows, brand.abbr, level, tariffDate);
     $('exportStatus').innerHTML = `<small style="color: var(--pico-ins-color);">✓ Exportado: <strong>${escapeHtml(fname)}</strong> (${exportRows.length} filas, nivel "${escapeHtml(level.label)}").</small>`;
   }
 

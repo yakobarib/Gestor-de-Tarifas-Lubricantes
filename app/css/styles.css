@@ -190,9 +190,15 @@ article h4 { font-size: 0.88rem; }
 .filter-row { display: flex; gap: 0.9rem; flex-wrap: wrap; margin-bottom: 0.9rem; }
 .filter-row .field { display: flex; flex-direction: column; gap: 0.22rem; min-width: 170px; flex: 1 1 190px; }
 .filter-row .field label { font-size: 0.7rem; color: var(--pico-muted-color); text-transform: uppercase; letter-spacing: 0.04em; margin: 0; }
-.filter-row .field select, .filter-row .field input {
+.filter-row .field select, .filter-row .field input, .filter-row .field button {
   margin: 0; padding: 0.4rem 0.6rem; font-size: 0.85rem; height: auto; width: 100%;
 }
+
+/* Exportación: Marca/Gama/Tipo/Fecha + el botón Exportar en la misma fila, los 5
+   repartiendo el ancho a partes iguales — con 5 campos, el `flex-basis` de 190px de
+   `.filter-row .field` ya no cabe en un viewport de portátil típico (~1280px) sin
+   pasar el botón a una línea aparte; aquí se reduce solo para esta fila. */
+.export-toolbar .field { flex-basis: 150px; min-width: 130px; }
 
 /* Cuadrícula de tarjetas por marca (pantalla Importación) — auto-fit (no auto-fill) para
    que las tarjetas reales ocupen todo el ancho disponible sin dejar columnas fantasma
