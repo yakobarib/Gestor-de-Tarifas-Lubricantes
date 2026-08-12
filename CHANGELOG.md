@@ -2,6 +2,26 @@
 
 Formato inspirado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [v0.9.18] — 2026-08-12
+
+### Añadido
+- Exportación: dos salidas nuevas para el nivel PVP — "PVP (Skrit)" (Excel
+  mínimo listo para subir: Marca, Referencia, Descripción, Litros, Coste de
+  compra y PVP) y "PVP (Imprimir)" (PDF sin coste, para entregar a un cliente
+  o comercial: Referencia, Producto, Litros y PVP).
+- Comparación: el desplegable de Referencia muestra también los litros de
+  cada una.
+- Botón de Ayuda: manual con una pestaña por pantalla (Importación, Tarifas,
+  Reglas, Comparación, Exportación) explicando qué se puede hacer y el flujo
+  de trabajo esperado en cada una.
+
+### Arreglado
+- Exportación: los filtros de búsqueda/formato/estado solo afectaban a la
+  previsualización — el Excel exportado siempre llevaba todas las filas de
+  la marca/gama, sin filtrar. Ahora se exporta exactamente lo que se ve
+  filtrado en pantalla, en todos los tipos de exportación. Ver
+  [ADR 0031](docs/decisiones/0031-skrit-imprimir-litros-filtros-ayuda.md).
+
 ## [v0.9.17] — 2026-08-11
 
 ### Añadido

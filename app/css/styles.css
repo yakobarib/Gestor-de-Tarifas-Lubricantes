@@ -342,6 +342,24 @@ table.preview th.liters, table.preview td.liters { max-width: 76px; }
 .modal ul { max-height: 40vh; overflow: auto; margin: 0.6rem 0; padding-left: 1.2rem; font-size: 0.85rem; }
 .modal .actions { display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 1rem; }
 
+/* Manual de ayuda: modal más ancho, con pestañas por pantalla (ver ADR 0031). */
+.help-modal { max-width: 720px; width: 92vw; max-height: 85vh; padding: 0; display: flex; flex-direction: column; }
+.help-modal-head { display: flex; align-items: center; justify-content: space-between; padding: 1rem 1.2rem 0.7rem; border-bottom: 1px solid var(--pico-card-border-color); flex-shrink: 0; }
+.help-modal-head h3 { margin: 0; font-size: 1.05rem; }
+.help-modal-close { background: transparent; border: none; cursor: pointer; color: var(--pico-muted-color); font-size: 1.2rem; line-height: 1; padding: 0.25rem 0.5rem; border-radius: var(--radius-sm); }
+.help-modal-close:hover { background: var(--surface-muted); color: var(--text-strong); }
+.help-tabs { display: flex; gap: 0.2rem; padding: 0.6rem 1.2rem 0; flex-wrap: wrap; border-bottom: 1px solid var(--pico-card-border-color); flex-shrink: 0; }
+.help-tab { padding: 0.5rem 0.75rem; border-radius: var(--radius-sm) var(--radius-sm) 0 0; cursor: pointer; font-size: 0.82rem; font-weight: 600; color: var(--pico-muted-color); border-bottom: 2px solid transparent; margin-bottom: -1px; }
+.help-tab:hover { background: var(--surface-muted); }
+.help-tab.active { color: var(--text-strong); border-bottom-color: var(--pico-primary); }
+.help-body { padding: 1rem 1.2rem 1.4rem; overflow-y: auto; font-size: 0.87rem; line-height: 1.55; }
+.help-body h4 { margin: 1.1rem 0 0.4rem; font-size: 0.92rem; color: var(--text-strong); }
+.help-body h4:first-child { margin-top: 0; }
+.help-body p { margin: 0.4rem 0; }
+.help-body ul, .help-body ol { margin: 0.4rem 0 0.8rem; padding-left: 1.25rem; }
+.help-body li { margin: 0.3rem 0; }
+.help-body strong { color: var(--text-strong); }
+
 /* ============================================================================
    Pantallas REGLAS / COMPARACIÓN / EXPORTACIÓN
    ============================================================================ */

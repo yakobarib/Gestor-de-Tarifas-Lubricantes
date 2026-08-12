@@ -8,6 +8,8 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
 <link rel="stylesheet" href="css/styles.css">
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
 </head>
 <body>
 
@@ -56,7 +58,7 @@
     <div class="sidebar-footer">
       <p>Krafted by <strong>Yakoba Moreno</strong></p>
       <p>Designed in <strong>Claude Code</strong></p>
-      <span class="sidebar-version">v0.9.17</span>
+      <span class="sidebar-version">v0.9.18</span>
     </div>
   </aside>
 
@@ -69,7 +71,7 @@
           <svg id="themeIconSun" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
           <svg id="themeIconMoon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="hidden"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
         </button>
-        <button type="button" class="icon-btn" id="btnHelp" title="Ayuda (próximamente)">
+        <button type="button" class="icon-btn" id="btnHelp" title="Manual de ayuda">
           <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9.5"/><path d="M9.5 9.5a2.5 2.5 0 0 1 5 .8c0 1.7-2.5 2.5-2.5 4.2"/><circle cx="12" cy="17.5" r=".8" fill="currentColor" stroke="none"/></svg>
         </button>
         <button type="button" class="icon-btn" id="btnSettings" title="Ajustes (próximamente)">
@@ -326,6 +328,19 @@
 
 <div id="toast" class="toast"></div>
 
+<!-- Manual de ayuda (ver ADR 0031): una pestaña por pantalla, contenido fijo en
+     js/screens/screen-help.js. -->
+<div id="helpModal" class="modal-backdrop hidden">
+  <div class="modal help-modal">
+    <div class="help-modal-head">
+      <h3>Manual de la app</h3>
+      <button type="button" id="btnHelpClose" class="help-modal-close" title="Cerrar" aria-label="Cerrar">✕</button>
+    </div>
+    <div id="helpTabs" class="help-tabs"></div>
+    <div id="helpBody" class="help-body"></div>
+  </div>
+</div>
+
 <!-- ==========================================================================
      Scripts — el orden importa: cada fichero usa `const` de nivel superior que
      el siguiente <script> clásico ya ve como global (sin bundler, sin type=module
@@ -355,6 +370,7 @@
 <script src="js/profiles/profile-castrol.js"></script>
 
 <script src="js/export/excel-writer.js"></script>
+<script src="js/export/pdf-writer.js"></script>
 
 <script src="js/comparison/equivalence-reader.js"></script>
 <script src="js/comparison/equivalence-index.js"></script>
@@ -364,6 +380,7 @@
 <script src="js/screens/screen-rules.js"></script>
 <script src="js/screens/screen-compare.js"></script>
 <script src="js/screens/screen-export.js"></script>
+<script src="js/screens/screen-help.js"></script>
 
 <script src="js/app.js"></script>
 </body>

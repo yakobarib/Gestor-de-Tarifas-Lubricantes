@@ -18,7 +18,7 @@ function setupHeaderActions() {
   if (btnTheme) btnTheme.addEventListener('click', () => Theme.toggle());
 
   const btnHelp = document.getElementById('btnHelp');
-  if (btnHelp) btnHelp.addEventListener('click', () => showToast('Ayuda — próximamente'));
+  if (btnHelp) btnHelp.addEventListener('click', () => ScreenHelp.open(Router.current()));
 
   const btnSettings = document.getElementById('btnSettings');
   if (btnSettings) btnSettings.addEventListener('click', () => showToast('Ajustes — próximamente'));
@@ -35,6 +35,7 @@ document.addEventListener('DOMContentLoaded', () => {
   ScreenRules.init();
   ScreenCompare.init();
   ScreenExport.init();
+  ScreenHelp.init();
   setupHeaderActions();
   Router.init();
 });

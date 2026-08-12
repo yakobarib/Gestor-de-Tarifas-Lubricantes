@@ -139,5 +139,42 @@ const ExcelWriter = (() => {
     return filename;
   }
 
-  return { exportSkrit, exportSkritV2, exportPriceList };
+  /**
+   * "PVP (Skrit)" (ver ADR 0031): el listado mínimo tal cual lo pide Yako para subir a
+   * Skrit — sin las columnas de coste neto-neto/triple-neto ni familia que trae
+   * `exportSkritV2` (esas son para auditoría interna, no las necesita Skrit). Solo
+   * MARCA, REFERENCIA, DESCRIPCION (editada), LITROS (por envase), COSTE COMPRA (el
+   * mismo que usa el nivel para calcular el PVP) y PVP.
+   */
+  function exportSkritLean(rows, brandAbbr, levelConfig, tariffDate) {
+    const resolveLevel = typeof levelConfig === 'function' ? levelConfig : () => levelConfig;
+    const header = ['MARCA', 'REFERENCIA', 'DESCRIPCION', 'LITROS', 'COSTE COMPRA', 'PVP'];
+    const data = [header];
+    for (const r of rows) {
+      const level = resolveLevel(r) || {};
+      const c = Pricing.compute(r, level);
+      if (c.pvp == null) continue; // sin coste base para este nivel
+      const bare = r.ref.startsWith(brandAbbr) ? r.ref.slice(brandAbbr.length) : r.ref;
+      const cost = Pricing.resolveCost(r, level);
+      data.push([brandAbbr, bare, exportDescription(r), r.liters || '', typeof cost === 'number' ? cost : '', c.pvp]);
+    }
+    const ws = XLSX.utils.aoa_to_sheet(data);
+    ws['!cols'] = [{ wch: 8 }, { wch: 14 }, { wch: 50 }, { wch: 8 }, { wch: 14 }, { wch: 12 }];
+    const range = XLSX.utils.decode_range(ws['!ref']);
+    for (let R = 1; R <= range.e.r; ++R) {
+      for (const col of [4, 5]) {
+        const cell = ws[XLSX.utils.encode_cell({ r: R, c: col })];
+        if (cell && typeof cell.v === 'number') cell.z = '#,##0.00 €';
+      }
+    }
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'SKRIT');
+
+    const dateStr = (tariffDate || new Date().toISOString().slice(0, 10));
+    const filename = `pvp-skrit-${brandAbbr.toLowerCase()}-${dateStr}.xlsx`;
+    XLSX.writeFile(wb, filename);
+    return filename;
+  }
+
+  return { exportSkrit, exportSkritV2, exportSkritLean, exportPriceList };
 })();

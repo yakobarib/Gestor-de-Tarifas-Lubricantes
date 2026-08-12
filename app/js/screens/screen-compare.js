@@ -154,7 +154,7 @@ const ScreenCompare = (() => {
         return;
       }
       sel.innerHTML = '<option value="">Elige una referencia…</option>'
-        + rows.map(r => `<option value="${escapeHtml(r.ref)}">${escapeHtml(r.ref)} — ${escapeHtml(r.description || '')}</option>`).join('');
+        + rows.map(r => `<option value="${escapeHtml(r.ref)}">${escapeHtml(r.ref)} — ${escapeHtml(r.description || '')} (${escapeHtml(Parser.formatLabel(r.liters))})</option>`).join('');
     } catch (e) {
       sel.innerHTML = '<option value="">Error leyendo el maestro</option>';
       console.error(e);
