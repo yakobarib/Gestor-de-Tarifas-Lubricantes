@@ -353,16 +353,16 @@ table.preview th.liters, table.preview td.liters { max-width: 76px; }
 .chip { display: inline-block; padding: 0.1rem 0.5rem; border-radius: 1rem; font-size: 0.7rem; background: var(--surface-muted); color: var(--text-strong); border: 1px solid var(--border-muted); }
 .chip.warn { background: rgba(255, 200, 0, 0.15); border-color: rgba(255, 200, 0, 0.5); }
 
-/* Exportación: cuadro de recuento (fijo) + cuadro de errores de tarifa (ocupa el resto
-   del ancho, alineado con el botón Exportar de la fila de arriba — ver ADR 0034). */
-.export-summary-row { display: flex; gap: 0.7rem; margin: 0 0 0.7rem; align-items: stretch; }
+/* Exportación: cuadro de recuento (fijo) + cuadro de errores de tarifa, en la misma fila
+   que los filtros de búsqueda/formato/estado — el de errores ocupa el resto del ancho,
+   llegando hasta el final de la fila (ver ADR 0034). */
 .export-count-box, .export-errors-box {
-  padding: 0.5rem 0.9rem; border-radius: var(--radius-sm); font-size: 0.83rem;
+  padding: 0.4rem 0.9rem; border-radius: var(--radius-sm); font-size: 0.83rem;
   display: flex; align-items: center;
 }
 .export-count-box { flex: 0 0 auto; white-space: nowrap; background: var(--surface-muted); }
 .export-errors-box {
-  flex: 1 1 auto; background: var(--surface-muted); color: var(--pico-muted-color);
+  flex: 1 1 240px; background: var(--surface-muted); color: var(--pico-muted-color);
   transition: background-color 0.2s ease, color 0.2s ease;
 }
 .export-errors-box.has-errors {
