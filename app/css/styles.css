@@ -327,19 +327,56 @@ table.preview th.liters, table.preview td.liters { max-width: 76px; }
 .status-chip.stable { background: #e6f4e6; color: #2d7a2d; }
 
 .filter-bar { display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.55rem; flex-wrap: wrap; }
+/* Mismo padding/tamaño de fuente que `.filter-row .field select/input` (Marca/Gama/
+   Tipo/Fecha) — para que las dos filas de Exportación tengan el mismo alto (pedido por
+   Yako, ver ADR 0034). */
 .filter-bar input[type=search], .filter-bar select {
-  margin: 0; padding: 0.28rem 0.55rem; font-size: 0.8rem; height: auto; line-height: 1.3;
+  margin: 0; padding: 0.4rem 0.6rem; font-size: 0.85rem; height: auto;
 }
 /* El icono de lupa nativo de Pico se posiciona a la izquierda por defecto y se solapaba
    con el texto al reducir el padding — se mueve a la derecha en vez de reservarle hueco
    a la izquierda. */
 .filter-bar input[type=search] {
   min-width: 220px; max-width: 320px; flex: 0 1 300px;
-  padding-left: 0.55rem; padding-right: 1.9rem; background-position: right 0.6rem center;
+  padding-right: 1.9rem; background-position: right 0.6rem center;
 }
 .filter-bar select { min-width: 160px; max-width: 210px; padding-right: 1.8rem; background-position: right 0.55rem center; }
+/* Filtro de formato/estado activo (valor distinto del por defecto) resaltado en verde
+   pastel — pedido por Yako para ver de un vistazo si hay un filtro puesto. */
+.filter-bar select.filter-active { background-color: #e3f6e3; border-color: #8fd19e; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .filter-bar select.filter-active { background-color: #1c3324; border-color: #3a6b45; }
+}
+:root[data-theme="dark"] .filter-bar select.filter-active { background-color: #1c3324; border-color: #3a6b45; }
+:root[data-theme="light"] .filter-bar select.filter-active { background-color: #e3f6e3; border-color: #8fd19e; }
+
 .chip { display: inline-block; padding: 0.1rem 0.5rem; border-radius: 1rem; font-size: 0.7rem; background: var(--surface-muted); color: var(--text-strong); border: 1px solid var(--border-muted); }
 .chip.warn { background: rgba(255, 200, 0, 0.15); border-color: rgba(255, 200, 0, 0.5); }
+
+/* Exportación: cuadro de recuento (fijo) + cuadro de errores de tarifa (ocupa el resto
+   del ancho, alineado con el botón Exportar de la fila de arriba — ver ADR 0034). */
+.export-summary-row { display: flex; gap: 0.7rem; margin: 0 0 0.7rem; align-items: stretch; }
+.export-count-box, .export-errors-box {
+  padding: 0.5rem 0.9rem; border-radius: var(--radius-sm); font-size: 0.83rem;
+  display: flex; align-items: center;
+}
+.export-count-box { flex: 0 0 auto; white-space: nowrap; background: var(--surface-muted); }
+.export-errors-box {
+  flex: 1 1 auto; background: var(--surface-muted); color: var(--pico-muted-color);
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+.export-errors-box.has-errors {
+  color: #7a5d00; animation: export-errors-blink 1.6s ease-in-out infinite;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .export-errors-box.has-errors { color: #f0d98c; }
+}
+:root[data-theme="dark"] .export-errors-box.has-errors { color: #f0d98c; }
+:root[data-theme="light"] .export-errors-box.has-errors { color: #7a5d00; }
+@keyframes export-errors-blink {
+  0%, 100% { background-color: #fdf6d3; }
+  50% { background-color: #fbe9a0; }
+}
 
 /* Modal simple */
 .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; z-index: 100; backdrop-filter: blur(1px); }

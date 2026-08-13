@@ -46,9 +46,11 @@ const PdfWriter = (() => {
     doc.setTextColor(110, 110, 110);
     doc.text(`${gamaLabel ? gamaLabel + ' · ' : ''}Vigente a ${dateStr} · Recambios Ibiza`, 14, 24);
 
+    // Mayúsculas y ref sin espacios (ver ADR 0034) — homogeneiza entre marcas que
+    // entran con distinta capitalización/espaciado.
     const body = rows.map(r => [
-      r.ref,
-      r.description || '',
+      Parser.upperRef(r.ref),
+      Parser.upperOut(r.description || ''),
       r.liters != null ? Parser.formatLabel(r.liters) : '—',
       formatEurPdf(r._printPvp)
     ]);

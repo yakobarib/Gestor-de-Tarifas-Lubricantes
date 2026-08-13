@@ -88,5 +88,18 @@ const Parser = (() => {
     return isFinite(n) ? n : null;
   }
 
-  return { extractLiters, formatKey, formatLabel, cleanDescription, litersFromRefSuffix };
+  /** Texto de cualquier tarifa de SALIDA (Excel/PDF/pantalla) en mayúsculas — homogeneiza
+   *  entre marcas que entran con distinta capitalización (ver ADR 0034). No toca los
+   *  datos del maestro, solo se aplica en el punto de salida. */
+  function upperOut(s) {
+    return String(s ?? '').toUpperCase();
+  }
+
+  /** Referencia de salida: mayúsculas y sin espacios (algunas tarifas de proveedor
+   *  traen la ref con espacios sueltos) — ver ADR 0034. */
+  function upperRef(s) {
+    return String(s ?? '').toUpperCase().replace(/\s+/g, '');
+  }
+
+  return { extractLiters, formatKey, formatLabel, cleanDescription, litersFromRefSuffix, upperOut, upperRef };
 })();

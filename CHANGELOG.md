@@ -2,6 +2,44 @@
 
 Formato inspirado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [v0.9.21] — 2026-08-13
+
+### Cambiado
+- Toda salida de tarifa (pantalla, Excel, PDF) se homogeneiza en mayúsculas;
+  las referencias salen sin espacios aunque entren con ellos.
+- Orden de columnas homogéneo en toda la exportación: Marca, Referencia,
+  Descripción, Litros, Familia, Costes, Ventas (donde la plantilla las
+  tenga). "PVP (Venta)"/"Netos Bonus" reordenan sus 9 columnas a este
+  esquema; "PVP (Skrit)" ya lo cumplía y ahora también muestra Familia en
+  pantalla, igual que en el Excel.
+- "Netos Bonus" tenía la misma vista rica que "PVP (Venta)" (Estado, margen,
+  PVP manual, ganancia) pero su Excel nunca tuvo esas columnas — pasa a
+  tener su propia vista mínima, idéntica a su Excel. "PVP (Venta)" sigue
+  siendo la única excepción al WYSIWYG (esas columnas de trabajo son ayuda
+  de edición, no se exportan).
+- Los listados de Neto Factura/Neto-Neto/Triple Neto/Valor Regalo 1+1 dejan
+  de mostrar en pantalla una columna "Estado" que su Excel no tiene, y pasan
+  a mostrar "Marca", que su Excel sí tiene.
+- La leyenda "Mostrando X de Y referencias" pasa a un cuadro propio, con un
+  segundo cuadro a su derecha (hasta el borde del botón Exportar) que avisa
+  de errores en la tarifa (litros/descripción/precio que falten en alguna
+  referencia visible), con fondo amarillo pastel parpadeante mientras haya
+  alguno.
+- El filtro de formato o de estado, cuando está activo, resalta su fondo en
+  verde pastel.
+
+### Arreglado
+- La fila de filtros de búsqueda/formato/estado medía 4px menos que la fila
+  de Marca/Gama/Tipo/Fecha (un `line-height` distinto entre las dos) — ahora
+  miden lo mismo.
+- El resaltado verde de filtro activo, en su primera versión, se aplicaba
+  también con el tema claro por defecto (`:root:not([data-theme="light"])`
+  fuera de un `@media` coincide con el modo claro sin `data-theme`
+  explícito) — corregido envolviéndolo en `@media (prefers-color-scheme:
+  dark)` junto con reglas explícitas para `data-theme="dark"`/`"light"`.
+
+Ver [ADR 0034](docs/decisiones/0034-homogeneizacion-exportacion.md).
+
 ## [v0.9.20] — 2026-08-13
 
 ### Añadido

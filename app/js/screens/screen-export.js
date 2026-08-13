@@ -43,8 +43,37 @@ const ScreenExport = (() => {
   }
   function truncate(s, n) { return s.length > n ? s.slice(0, n - 1) + '…' : s; }
   /** Descripción renombrada (ej. Repsol, ver ADR 0013) si existe, si no la original —
-   *  la que de verdad sale en cualquier tarifa de salida (Skrit, Excel o PDF). */
-  function exportDescription(r) { return r.descriptionExport || r.description || ''; }
+   *  la que de verdad sale en cualquier tarifa de salida (Skrit, Excel o PDF), en
+   *  mayúsculas (ver ADR 0034 — homogeneiza entre marcas que entran en minúsculas). */
+  function exportDescription(r) { return Parser.upperOut(r.descriptionExport || r.description || ''); }
+  /** Referencia de salida sin el prefijo de marca, mayúsculas y sin espacios (ADR 0034). */
+  function exportRef(r, brandAbbr) {
+    const upper = Parser.upperRef(r.ref);
+    return upper.startsWith(brandAbbr) ? upper.slice(brandAbbr.length) : upper;
+  }
+
+  /** Acumula "huecos" de datos (litros/descripción/precio) de las filas visibles del
+   *  tipo de exportación activo — ver ADR 0034. Un mismo array de errores se reutiliza
+   *  fila a fila en cada rama de `renderPreviewTable`. */
+  function newErrorTally() { return { noLiters: 0, noDescription: 0, noPrice: 0 }; }
+  function trackRowErrors(tally, r, priceMissing) {
+    if (r.liters == null) tally.noLiters++;
+    if (!r.description || !String(r.description).trim()) tally.noDescription++;
+    if (priceMissing) tally.noPrice++;
+  }
+  function renderErrorsBox(tally) {
+    const el = $('exportErrorsBox');
+    if (!el) return;
+    const parts = [];
+    if (tally.noLiters) parts.push(`${tally.noLiters} sin litros`);
+    if (tally.noDescription) parts.push(`${tally.noDescription} sin descripción`);
+    if (tally.noPrice) parts.push(`${tally.noPrice} sin precio`);
+    const hasErrors = parts.length > 0;
+    el.classList.toggle('has-errors', hasErrors);
+    el.innerHTML = hasErrors
+      ? `⚠ Errores en la tarifa: <strong>${parts.join(', ')}</strong>`
+      : 'Sin errores detectados en la tarifa.';
+  }
 
   function configKeyFor(brandId, gama) {
     return gama === 'default' ? `config_${brandId}` : `config_${brandId}_${gama}`;
@@ -247,6 +276,9 @@ const ScreenExport = (() => {
           const l = k === '?' ? null : parseFloat(k);
           return `<option value="${escapeHtml(k)}">${Parser.formatLabel(l)}</option>`;
         }).join('');
+    // Reconstruir las opciones deja el select sin selección — el resaltado verde debe
+    // reflejar eso, no un filtro anterior que ya no aplica (ver ADR 0034).
+    sel.classList.toggle('filter-active', !!sel.value);
   }
 
   /** Carga las filas de la marca/gama/tipo elegidos y las deja listas en `rows` para
@@ -283,23 +315,23 @@ const ScreenExport = (() => {
     $('exportTotalCount').textContent = rows.length;
 
     if (kind === 'list' && key === 'regalo_1x1') {
-      thead.innerHTML = `<tr><th>Ref</th><th>Estado</th><th>Producto</th><th class="num liters">Litros</th><th class="num">Valor Regalo 1+1</th></tr>`;
+      // Sin columna Estado: el Excel exportado tampoco la tiene (ver ADR 0034, WYSIWYG).
+      thead.innerHTML = `<tr><th>Marca</th><th>Referencia</th><th>Producto</th><th class="num liters">Litros</th><th class="num">Valor Regalo 1+1</th></tr>`;
       $('exportVisibleCount').textContent = visible.length;
       const levelCache = {};
       const levelFor = (gama) => (gama in levelCache) ? levelCache[gama] : (levelCache[gama] = pvpLevelFor(currentBrandId, gama));
+      const tally = newErrorTally();
       const frag = document.createDocumentFragment();
       for (const r of visible.slice(0, 500)) {
         const level = levelFor(currentGama === '__all__' ? r.gama : currentGama);
         const value = regaloValueFor(r, level);
         r._regaloValue = value; // se reutiliza tal cual al exportar (WYSIWYG)
+        trackRowErrors(tally, r, value == null);
         const tr = document.createElement('tr');
-        let statusChip = '';
-        if (r._status === 'new') statusChip = '<span class="status-chip new">NUEVA</span>';
-        else if (r._rebrandedFrom) statusChip = `<span class="status-chip stable" title="Antes: ${escapeHtml(r._rebrandedFrom)}">REBRAND</span>`;
         tr.innerHTML = `
-          <td>${escapeHtml(r.ref)}</td>
-          <td>${statusChip}</td>
-          <td title="${escapeHtml(r.description)}">${escapeHtml(truncate(r.description || '', 60))}</td>
+          <td>${escapeHtml(brand.abbr)}</td>
+          <td>${escapeHtml(exportRef(r, brand.abbr))}</td>
+          <td title="${escapeHtml(r.description)}">${escapeHtml(truncate(exportDescription(r), 60))}</td>
           <td class="num liters">${r.liters ?? '—'}</td>
           <td class="num">${formatEur(value)}</td>
         `;
@@ -308,24 +340,25 @@ const ScreenExport = (() => {
       }
       tbody.innerHTML = '';
       tbody.appendChild(frag);
+      renderErrorsBox(tally);
       return;
     }
 
     if (kind === 'list') {
       const spec = PRICE_LIST_TYPES[key];
-      thead.innerHTML = `<tr><th>Ref</th><th>Estado</th><th>Producto</th><th class="num liters">Litros</th><th class="num">${escapeHtml(spec.label)}</th></tr>`;
+      // Sin columna Estado: el Excel exportado tampoco la tiene (ver ADR 0034, WYSIWYG).
+      thead.innerHTML = `<tr><th>Marca</th><th>Referencia</th><th>Producto</th><th class="num liters">Litros</th><th class="num">${escapeHtml(spec.label)}</th></tr>`;
       $('exportVisibleCount').textContent = visible.length;
+      const tally = newErrorTally();
       const frag = document.createDocumentFragment();
       for (const r of visible.slice(0, 500)) {
-        const tr = document.createElement('tr');
-        let statusChip = '';
-        if (r._status === 'new') statusChip = '<span class="status-chip new">NUEVA</span>';
-        else if (r._rebrandedFrom) statusChip = `<span class="status-chip stable" title="Antes: ${escapeHtml(r._rebrandedFrom)}">REBRAND</span>`;
         const cost = r[spec.costField];
+        trackRowErrors(tally, r, cost == null);
+        const tr = document.createElement('tr');
         tr.innerHTML = `
-          <td>${escapeHtml(r.ref)}</td>
-          <td>${statusChip}</td>
-          <td title="${escapeHtml(r.description)}">${escapeHtml(truncate(r.description || '', 60))}</td>
+          <td>${escapeHtml(brand.abbr)}</td>
+          <td>${escapeHtml(exportRef(r, brand.abbr))}</td>
+          <td title="${escapeHtml(r.description)}">${escapeHtml(truncate(exportDescription(r), 60))}</td>
           <td class="num liters">${r.liters ?? '—'}</td>
           <td class="num">${formatEur(cost)}</td>
         `;
@@ -334,6 +367,7 @@ const ScreenExport = (() => {
       }
       tbody.innerHTML = '';
       tbody.appendChild(frag);
+      renderErrorsBox(tally);
       return;
     }
 
@@ -348,19 +382,20 @@ const ScreenExport = (() => {
         return levelCache[gama];
       };
       $('exportVisibleCount').textContent = visible.length;
+      const tally = newErrorTally();
       const frag = document.createDocumentFragment();
       for (const r of visible.slice(0, 500)) {
         const level = levelFor(r.gama);
         const c = level ? Pricing.compute(r, level) : { pvp: null };
         const cost = level ? Pricing.resolveCost(r, level) : null;
-        const bare = r.ref.startsWith(brand.abbr) ? r.ref.slice(brand.abbr.length) : r.ref;
+        trackRowErrors(tally, r, c.pvp == null);
         const tr = document.createElement('tr');
         tr.innerHTML = `
           <td>${escapeHtml(brand.abbr)}</td>
-          <td>${escapeHtml(bare)}</td>
+          <td>${escapeHtml(exportRef(r, brand.abbr))}</td>
           <td title="${escapeHtml(r.description)}">${escapeHtml(truncate(exportDescription(r), 60))}</td>
           <td class="num liters">${r.liters ?? '—'}</td>
-          <td>${escapeHtml(r.fam || '—')}</td>
+          <td>${escapeHtml(Parser.upperOut(r.fam) || '—')}</td>
           <td class="num">${formatEur(cost)}</td>
           <td class="num"><strong>${formatEur(c.pvp)}</strong></td>
         `;
@@ -369,6 +404,7 @@ const ScreenExport = (() => {
       }
       tbody.innerHTML = '';
       tbody.appendChild(frag);
+      renderErrorsBox(tally);
       return;
     }
 
@@ -383,14 +419,16 @@ const ScreenExport = (() => {
         return levelCache[gama];
       };
       $('exportVisibleCount').textContent = visible.length;
+      const tally = newErrorTally();
       const frag = document.createDocumentFragment();
       for (const r of visible.slice(0, 500)) {
         const level = levelFor(r.gama);
         const c = level ? Pricing.compute(r, level) : { pvp: null };
         r._printPvp = c.pvp; // se reutiliza tal cual al generar el PDF (WYSIWYG)
+        trackRowErrors(tally, r, c.pvp == null);
         const tr = document.createElement('tr');
         tr.innerHTML = `
-          <td>${escapeHtml(r.ref)}</td>
+          <td>${escapeHtml(Parser.upperRef(r.ref))}</td>
           <td title="${escapeHtml(r.description)}">${escapeHtml(truncate(exportDescription(r), 60))}</td>
           <td class="num liters">${r.liters ?? '—'}</td>
           <td class="num"><strong>${formatEur(c.pvp)}</strong></td>
@@ -400,10 +438,66 @@ const ScreenExport = (() => {
       }
       tbody.innerHTML = '';
       tbody.appendChild(frag);
+      renderErrorsBox(tally);
       return;
     }
 
-    // kind === 'level'
+    // kind === 'level' && key === 'netos_bonus': vista mínima igual que el Excel
+    // exportado (ver ADR 0034) — sin Estado/margen/PVP manual/ganancia, que son ayudas
+    // de edición exclusivas de PVP (Venta), la única exención al WYSIWYG estricto.
+    if (key === 'netos_bonus') {
+      thead.innerHTML = `
+        <tr>
+          <th>Marca</th><th>Referencia</th><th>Producto</th><th class="num liters">Litros</th><th>Familia</th>
+          <th class="num">Coste factura</th><th class="num">Coste neto-neto</th><th class="num">Coste triple neto</th><th class="num">PVP</th>
+        </tr>`;
+      const byGama = currentGama === '__all__' ? loadLevelsByGama(currentBrandId, brand.gamas) : null;
+      const levelCache = {};
+      const levelFor = (gama) => {
+        if (levelCache[gama]) return levelCache[gama];
+        const lvl = currentGama === '__all__'
+          ? (byGama[gama] || []).find(l => l.id === 'netos_bonus')
+          : loadLevels(currentBrandId, currentGama).find(l => l.id === 'netos_bonus');
+        levelCache[gama] = lvl || null;
+        return levelCache[gama];
+      };
+      // Netos Bonus es una hoja impresa: solo entran los formatos marcados como "Salida
+      // impresa" en Reglas para la gama real de cada fila (ver ADR 0026 v2).
+      visible = visible.filter(r => {
+        const lvl = levelFor(r.gama);
+        return lvl && lvl.printFormats && lvl.printFormats[r.formatKey];
+      });
+      $('exportVisibleCount').textContent = visible.length;
+      const tally = newErrorTally();
+      const frag = document.createDocumentFragment();
+      for (const r of visible.slice(0, 500)) {
+        const level = levelFor(r.gama);
+        const c = level ? Pricing.compute(r, level) : { pvp: null };
+        trackRowErrors(tally, r, c.pvp == null);
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${escapeHtml(brand.abbr)}</td>
+          <td>${escapeHtml(exportRef(r, brand.abbr))}</td>
+          <td title="${escapeHtml(r.description)}">${escapeHtml(truncate(exportDescription(r), 60))}</td>
+          <td class="num liters">${r.liters ?? '—'}</td>
+          <td>${escapeHtml(Parser.upperOut(r.fam) || '—')}</td>
+          <td class="num">${formatEur(r.costFactura)}</td>
+          <td class="num">${formatEur(r.costNetoNeto)}</td>
+          <td class="num">${formatEur(r.costTripleNeto)}</td>
+          <td class="num"><strong>${formatEur(c.pvp)}</strong></td>
+        `;
+        if (c.pvp == null) tr.className = 'warn';
+        frag.appendChild(tr);
+      }
+      tbody.innerHTML = '';
+      tbody.appendChild(frag);
+      renderErrorsBox(tally);
+      return;
+    }
+
+    // kind === 'level' && key === 'pvp' — vista rica para revisar/ajustar antes de
+    // exportar (margen, PVP manual, ganancia y margen real no salen en el Excel — única
+    // exención al WYSIWYG estricto, decisión explícita de Yako, ver ADR 0034).
     thead.innerHTML = `
       <tr>
         <th>Ref</th><th>Estado</th><th>Producto</th><th class="num liters">Litros</th>
@@ -420,27 +514,21 @@ const ScreenExport = (() => {
       levelCache[gama] = lvl || null;
       return levelCache[gama];
     };
-    // Netos Bonus es una hoja impresa: solo entran los formatos marcados como "Salida
-    // impresa" en Reglas para la gama real de cada fila — a diferencia de PVP, que
-    // siempre muestra todo lo que tenga coste (ver ADR 0026 v2).
-    if (key === 'netos_bonus') {
-      visible = visible.filter(r => {
-        const lvl = levelFor(r.gama);
-        return lvl && lvl.printFormats && lvl.printFormats[r.formatKey];
-      });
-    }
     $('exportVisibleCount').textContent = visible.length;
 
+    const tally = newErrorTally();
     const frag = document.createDocumentFragment();
     for (const r of visible.slice(0, 500)) {
       const level = levelFor(r.gama);
       const tr = document.createElement('tr');
       if (!level) {
-        tr.innerHTML = `<td>${escapeHtml(r.ref)}</td><td></td><td title="${escapeHtml(r.description)}">${escapeHtml(truncate(r.description || '', 60))}</td><td class="num liters">${r.liters ?? '—'}</td><td class="num">${formatEur(r.costFactura)}</td><td colspan="5" class="muted" style="font-style:italic;">nivel no configurado en esta gama</td>`;
+        trackRowErrors(tally, r, true);
+        tr.innerHTML = `<td>${escapeHtml(Parser.upperRef(r.ref))}</td><td></td><td title="${escapeHtml(r.description)}">${escapeHtml(truncate(exportDescription(r), 60))}</td><td class="num liters">${r.liters ?? '—'}</td><td class="num">${formatEur(r.costFactura)}</td><td colspan="5" class="muted" style="font-style:italic;">nivel no configurado en esta gama</td>`;
         frag.appendChild(tr);
         continue;
       }
       const c = Pricing.compute(r, level);
+      trackRowErrors(tally, r, c.pvp == null);
       const classes = [];
       if (!r.litersDetected) classes.push('warn');
       if (!r.costFactura || r.costFactura <= 0) classes.push('err');
@@ -451,9 +539,9 @@ const ScreenExport = (() => {
       const manualVal = level.manualOverride ? level.manualOverride[r.ref] : null;
       const pvpTitle = c.isManual ? 'PVP fijado manualmente' : '';
       tr.innerHTML = `
-        <td>${escapeHtml(r.ref)}</td>
+        <td>${escapeHtml(Parser.upperRef(r.ref))}</td>
         <td>${statusChip}</td>
-        <td title="${escapeHtml(r.description)}">${escapeHtml(truncate(r.description || '', 60))}</td>
+        <td title="${escapeHtml(r.description)}">${escapeHtml(truncate(exportDescription(r), 60))}</td>
         <td class="num liters">${r.liters ?? '—'}</td>
         <td class="num">${formatEur(r.costFactura)}</td>
         <td class="num">${c.marginPct != null ? c.marginPct.toFixed(1) + '%' : '—'}</td>
@@ -466,6 +554,7 @@ const ScreenExport = (() => {
     }
     tbody.innerHTML = '';
     tbody.appendChild(frag);
+    renderErrorsBox(tally);
 
     tbody.querySelectorAll('input[data-field="manualPvp"]').forEach(inp => {
       inp.addEventListener('change', (e) => {
@@ -573,8 +662,16 @@ const ScreenExport = (() => {
     $('exportGamaSelect').addEventListener('change', (e) => { currentGama = e.target.value; renderExportOptions(); });
     $('exportTypeSelect').addEventListener('change', (e) => { currentOption = e.target.value; renderPreview(); });
     $('exportSearchInput').addEventListener('input', (e) => { filter.text = e.target.value; renderPreviewTable(); });
-    $('exportFormatFilter').addEventListener('change', (e) => { filter.format = e.target.value; renderPreviewTable(); });
-    $('exportStatusFilter').addEventListener('change', (e) => { filter.status = e.target.value; renderPreviewTable(); });
+    $('exportFormatFilter').addEventListener('change', (e) => {
+      filter.format = e.target.value;
+      e.target.classList.toggle('filter-active', !!e.target.value);
+      renderPreviewTable();
+    });
+    $('exportStatusFilter').addEventListener('change', (e) => {
+      filter.status = e.target.value;
+      e.target.classList.toggle('filter-active', !!e.target.value);
+      renderPreviewTable();
+    });
     $('btnDoExport').addEventListener('click', doExport);
     Store.on('rules:changed', ({ brandId }) => { if (brandId === currentBrandId) renderExportOptions(); });
     Store.on('screen:changed', (screen) => { if (screen === 'export') renderBrandSelect(); });

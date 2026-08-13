@@ -1,5 +1,5 @@
 /* ============================================================================
-   MÓDULO: excelWriter  (export a formato Skrit — ver ADR 0032)
+   MÓDULO: excelWriter  (export a formato Skrit — ver ADR 0032/0034)
    ============================================================================
    Usa ExcelJS (no XLSX.js) para poder escribir estilo real en el .xlsx —
    XLSX.js (SheetJS, la build community cargada para LEER las tarifas de los
@@ -8,16 +8,26 @@
    XLSX.js sigue siendo el lector de todos los perfiles de Importación — este
    fichero es el único que escribe, y solo con ExcelJS.
 
-   exportSkritV2: layout de 8 columnas para la pantalla EXPORTACIÓN (ver ADR
-   0008/0032): MARCA, REFERENCIA, coste factura, coste neto-neto, coste
-   triple-neto, precio del nivel elegido, familia, litros, descripción.
+   Orden general de columnas en toda tarifa de salida (ver ADR 0034): MARCA,
+   REFERENCIA, DESCRIPCION, LITROS, FAMILIA, COSTES, VENTAS — no todas las
+   plantillas tienen las 7, pero las que tienen se ordenan así.
    ============================================================================ */
 const ExcelWriter = (() => {
 
   /** Descripción para cualquier tarifa de salida: usa la renombrada del perfil si
-   *  existe (hoy solo Repsol la trae — ver ADR 0013), si no la original tal cual. */
+   *  existe (hoy solo Repsol la trae — ver ADR 0013), si no la original tal cual —
+   *  en mayúsculas (ver ADR 0034, homogeneiza entre marcas que entran en minúsculas). */
   function exportDescription(r) {
-    return r.descriptionExport || r.description || '';
+    return Parser.upperOut(r.descriptionExport || r.description || '');
+  }
+
+  /** Referencia de salida sin el prefijo de marca — mayúsculas y sin espacios primero
+   *  (ver ADR 0034), luego se quita el prefijo ya normalizado (si la ref viniera en
+   *  minúsculas, comparar contra `brandAbbr` en mayúsculas sin normalizar antes no la
+   *  habría reconocido). */
+  function exportRef(ref, brandAbbr) {
+    const upper = Parser.upperRef(ref);
+    return upper.startsWith(brandAbbr) ? upper.slice(brandAbbr.length) : upper;
   }
 
   /** Cabecera en negrita y centrada — pedido por Yako para todos los Excel exportados. */
@@ -54,13 +64,14 @@ const ExcelWriter = (() => {
   }
 
   /**
-   * Export unificado (pantalla EXPORTACIÓN): una fila del maestro por línea, con MARCA
-   * abreviada + REFERENCIA (sin prefijo), ambos niveles de coste que existan, y el
-   * precio calculado del nivel elegido. `rows` = filas del maestro (MasterDB), de una
-   * marca+gama concreta o de todas sus gamas juntas (export "Todas", ver pantalla
-   * Exportación). `levelConfig` acepta un nivel fijo, o una función `(row) => nivel`
-   * para el caso "Todas" — cada gama puede tener el mismo nivel configurado con
-   * márgenes distintos, así que se resuelve fila a fila según la gama real de esa fila.
+   * Export unificado (pantalla EXPORTACIÓN, "PVP (Venta)" y "Netos Bonus"): una fila del
+   * maestro por línea, con MARCA abreviada + REFERENCIA (sin prefijo), ambos niveles de
+   * coste que existan, y el precio calculado del nivel elegido. `rows` = filas del
+   * maestro (MasterDB), de una marca+gama concreta o de todas sus gamas juntas (export
+   * "Todas", ver pantalla Exportación). `levelConfig` acepta un nivel fijo, o una
+   * función `(row) => nivel` para el caso "Todas" — cada gama puede tener el mismo
+   * nivel configurado con márgenes distintos, así que se resuelve fila a fila según la
+   * gama real de esa fila.
    */
   async function exportSkritV2(rows, brandAbbr, levelConfig, tariffDate, levelId) {
     const resolveLevel = typeof levelConfig === 'function' ? levelConfig : () => levelConfig;
@@ -69,28 +80,27 @@ const ExcelWriter = (() => {
     setColumns(ws, [
       { header: 'MARCA', width: 8 },
       { header: 'REFERENCIA', width: 14 },
+      { header: 'DESCRIPCION', width: 50 },
+      { header: 'LITROS', width: 8 },
+      { header: 'FAMILIA', width: 8 },
       { header: 'COSTE FACTURA', width: 14, euro: true },
       { header: 'COSTE NETO-NETO', width: 16, euro: true },
       { header: 'COSTE TRIPLE NETO', width: 16, euro: true },
-      { header: 'PVP', width: 12, euro: true },
-      { header: 'FAMILIA', width: 8 },
-      { header: 'LITROS', width: 8 },
-      { header: 'DESCRIPCION', width: 50 }
+      { header: 'PVP', width: 12, euro: true }
     ]);
     for (const r of rows) {
       const c = Pricing.compute(r, resolveLevel(r) || {});
       if (c.pvp == null) continue; // sin coste base para este nivel (ej. netoNeto/tripleNeto aún no auditado)
-      const bare = r.ref.startsWith(brandAbbr) ? r.ref.slice(brandAbbr.length) : r.ref;
       ws.addRow([
         brandAbbr,
-        bare,
+        exportRef(r.ref, brandAbbr),
+        exportDescription(r),
+        r.liters || null,
+        Parser.upperOut(r.fam || ''),
         r.costFactura != null ? r.costFactura : null,
         r.costNetoNeto != null ? r.costNetoNeto : null,
         r.costTripleNeto != null ? r.costTripleNeto : null,
-        c.pvp,
-        r.fam || '',
-        r.liters || null,
-        exportDescription(r)
+        c.pvp
       ]);
     }
 
@@ -123,8 +133,7 @@ const ExcelWriter = (() => {
     for (const r of rows) {
       const cost = r[costField];
       if (typeof cost !== 'number' || !isFinite(cost)) continue; // sin este coste auditado todavía
-      const bare = r.ref.startsWith(brandAbbr) ? r.ref.slice(brandAbbr.length) : r.ref;
-      ws.addRow([brandAbbr, bare, exportDescription(r), r.liters || null, cost]);
+      ws.addRow([brandAbbr, exportRef(r.ref, brandAbbr), exportDescription(r), r.liters || null, cost]);
     }
 
     const dateStr = (tariffDate || new Date().toISOString().slice(0, 10));
@@ -135,7 +144,7 @@ const ExcelWriter = (() => {
 
   /**
    * "PVP (Skrit)" (ver ADR 0031): el listado mínimo tal cual lo pide Yako para subir a
-   * Skrit — MARCA, REFERENCIA, DESCRIPCION (editada), FAMILIA, LITROS (por envase),
+   * Skrit — MARCA, REFERENCIA, DESCRIPCION (editada), LITROS (por envase), FAMILIA,
    * COSTE COMPRA (el que usa el nivel para calcular el PVP) y PVP.
    */
   async function exportSkritLean(rows, brandAbbr, levelConfig, tariffDate) {
@@ -155,9 +164,16 @@ const ExcelWriter = (() => {
       const level = resolveLevel(r) || {};
       const c = Pricing.compute(r, level);
       if (c.pvp == null) continue; // sin coste base para este nivel
-      const bare = r.ref.startsWith(brandAbbr) ? r.ref.slice(brandAbbr.length) : r.ref;
       const cost = Pricing.resolveCost(r, level);
-      ws.addRow([brandAbbr, bare, exportDescription(r), r.liters || null, r.fam || '', typeof cost === 'number' ? cost : null, c.pvp]);
+      ws.addRow([
+        brandAbbr,
+        exportRef(r.ref, brandAbbr),
+        exportDescription(r),
+        r.liters || null,
+        Parser.upperOut(r.fam || ''),
+        typeof cost === 'number' ? cost : null,
+        c.pvp
+      ]);
     }
 
     const dateStr = (tariffDate || new Date().toISOString().slice(0, 10));
