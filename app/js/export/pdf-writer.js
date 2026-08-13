@@ -31,7 +31,7 @@ const PdfWriter = (() => {
 
   /** `rows` ya vienen filtradas por pantalla y con `_printPvp` calculado (WYSIWYG, ver
    *  ADR 0023) — aquí solo se maqueta. `gamaLabel` es null/'' para "Todas las gamas". */
-  function exportPriceListPdf(rows, brand, gamaLabel, tariffDate) {
+  function exportPriceListPdf(rows, brand, gamaLabel, tariffDate, typeLabel) {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF({ unit: 'mm', format: 'a4' });
     const accent = hexToRgb(HEADER_COLOR_BY_BRAND[brand.id] || brand.color);
@@ -83,7 +83,7 @@ const PdfWriter = (() => {
       doc.text(`Página ${i} de ${totalPages}`, pageWidth - 30, pageHeight - 8);
     }
 
-    const filename = `pvp-imprimir-${brand.abbr.toLowerCase()}-${dateStr}.pdf`;
+    const filename = ExcelWriter.buildFilename(brand.abbr, typeLabel, tariffDate, 'pdf');
     doc.save(filename);
     return filename;
   }

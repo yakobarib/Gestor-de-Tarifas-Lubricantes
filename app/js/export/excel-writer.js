@@ -30,6 +30,23 @@ const ExcelWriter = (() => {
     return upper.startsWith(brandAbbr) ? upper.slice(brandAbbr.length) : upper;
   }
 
+  /** Nombre de marca "legible" para el nombre de fichero — distinto del abbr interno
+   *  (usado en la columna MARCA y para quitar el prefijo de la referencia). AD Parts se
+   *  acorta a "AD" (pedido explícito de Yako); el resto usa su nombre de marca tal cual
+   *  (ver ADR 0035). */
+  const FILE_BRAND_LABELS = { ADP: 'AD', REP: 'Repsol', CAT: 'Castrol', SHL: 'Shell', ENI: 'Eni Live', RAC: 'Racing Oil' };
+
+  /** Nombre de fichero homogéneo para toda tarifa de salida: "Tarifa {Marca} {Tipo}
+   *  {dd-mm-aaaa}.{ext}" — limpio, sin guiones salvo en la fecha y en los tipos que ya
+   *  los llevan de por sí (Neto-Neto, Triple-Neto). `tariffDate` llega en aaaa-mm-dd
+   *  (input type=date del formulario), se reformatea aquí (ver ADR 0035). */
+  function buildFilename(brandAbbr, typeLabel, tariffDate, ext) {
+    const iso = tariffDate || new Date().toISOString().slice(0, 10);
+    const [y, m, d] = iso.split('-');
+    const brandLabel = FILE_BRAND_LABELS[brandAbbr] || brandAbbr;
+    return `Tarifa ${brandLabel} ${typeLabel} ${d}-${m}-${y}.${ext}`;
+  }
+
   /** Cabecera en negrita y centrada — pedido por Yako para todos los Excel exportados. */
   function styleHeaderRow(ws) {
     const row = ws.getRow(1);
@@ -73,7 +90,7 @@ const ExcelWriter = (() => {
    * nivel configurado con márgenes distintos, así que se resuelve fila a fila según la
    * gama real de esa fila.
    */
-  async function exportSkritV2(rows, brandAbbr, levelConfig, tariffDate, levelId) {
+  async function exportSkritV2(rows, brandAbbr, levelConfig, tariffDate, typeLabel) {
     const resolveLevel = typeof levelConfig === 'function' ? levelConfig : () => levelConfig;
     const wb = new ExcelJS.Workbook();
     const ws = wb.addWorksheet('SKRIT');
@@ -104,13 +121,7 @@ const ExcelWriter = (() => {
       ]);
     }
 
-    const dateStr = (tariffDate || new Date().toISOString().slice(0, 10));
-    // El nivel "pvp" se llama "venta" en el nombre del fichero — para diferenciarlo de
-    // "PVP (Skrit)" (`exportSkritLean`), que también produce un "tarifa-skrit-...-pvp-...".
-    // Sin este alias los dos exports salían con nombres casi idénticos (ver ADR 0033).
-    const rawSlug = (levelId || levelConfig.id || 'nivel').toLowerCase().replace(/[^a-z0-9]+/g, '-');
-    const levelSlug = rawSlug === 'pvp' ? 'venta' : rawSlug;
-    const filename = `tarifa-skrit-${brandAbbr.toLowerCase()}-${levelSlug}-${dateStr}.xlsx`;
+    const filename = buildFilename(brandAbbr, typeLabel, tariffDate, 'xlsx');
     return downloadWorkbook(wb, filename);
   }
 
@@ -120,7 +131,7 @@ const ExcelWriter = (() => {
    * coste tal cual. `costField` es el nombre del campo en `rows` ('costFactura',
    * 'costNetoNeto', 'costTripleNeto' o '_regaloValue').
    */
-  async function exportPriceList(rows, brandAbbr, costField, label, tariffDate) {
+  async function exportPriceList(rows, brandAbbr, costField, label, tariffDate, typeLabel) {
     const wb = new ExcelJS.Workbook();
     const ws = wb.addWorksheet(label.slice(0, 31));
     setColumns(ws, [
@@ -136,9 +147,7 @@ const ExcelWriter = (() => {
       ws.addRow([brandAbbr, exportRef(r.ref, brandAbbr), exportDescription(r), r.liters || null, cost]);
     }
 
-    const dateStr = (tariffDate || new Date().toISOString().slice(0, 10));
-    const labelSlug = label.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
-    const filename = `listado-${labelSlug}-${brandAbbr.toLowerCase()}-${dateStr}.xlsx`;
+    const filename = buildFilename(brandAbbr, typeLabel || label, tariffDate, 'xlsx');
     return downloadWorkbook(wb, filename);
   }
 
@@ -147,7 +156,7 @@ const ExcelWriter = (() => {
    * Skrit — MARCA, REFERENCIA, DESCRIPCION (editada), LITROS (por envase), FAMILIA,
    * COSTE COMPRA (el que usa el nivel para calcular el PVP) y PVP.
    */
-  async function exportSkritLean(rows, brandAbbr, levelConfig, tariffDate) {
+  async function exportSkritLean(rows, brandAbbr, levelConfig, tariffDate, typeLabel) {
     const resolveLevel = typeof levelConfig === 'function' ? levelConfig : () => levelConfig;
     const wb = new ExcelJS.Workbook();
     const ws = wb.addWorksheet('SKRIT');
@@ -176,10 +185,9 @@ const ExcelWriter = (() => {
       ]);
     }
 
-    const dateStr = (tariffDate || new Date().toISOString().slice(0, 10));
-    const filename = `tarifa-skrit-${brandAbbr.toLowerCase()}-pvp-${dateStr}.xlsx`;
+    const filename = buildFilename(brandAbbr, typeLabel, tariffDate, 'xlsx');
     return downloadWorkbook(wb, filename);
   }
 
-  return { exportSkritV2, exportSkritLean, exportPriceList };
+  return { exportSkritV2, exportSkritLean, exportPriceList, buildFilename };
 })();

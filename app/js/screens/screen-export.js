@@ -34,6 +34,21 @@ const ScreenExport = (() => {
     triple_neto: { costField: 'costTripleNeto', label: 'Triple Neto' }
   };
 
+  /** Nombre de "tipo" tal como debe aparecer en el fichero exportado — distinto, en
+   *  algunos casos, de la etiqueta que se ve en el desplegable o en la cabecera del
+   *  Excel (ej. "Triple Neto" en pantalla, "Triple-Neto" en el fichero) — ver ADR 0035.
+   *  Clave = valor de `currentOption` ("kind:key"). */
+  const EXPORT_FILE_TYPE_LABELS = {
+    'level:pvp': 'PVP Venta',
+    'skrit:pvp': 'PVP SKRIT',
+    'print:pvp': 'PVP Comerciales',
+    'level:netos_bonus': 'Neto Bonus',
+    'list:neto_factura': 'Neto Factura',
+    'list:neto_neto': 'Neto-Neto',
+    'list:triple_neto': 'Triple-Neto',
+    'list:regalo_1x1': 'Valor Regalo 1+1'
+  };
+
   function escapeHtml(s) {
     return String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   }
@@ -595,7 +610,7 @@ const ScreenExport = (() => {
     if (kind === 'list' && key === 'regalo_1x1') {
       const withValue = filtered.filter(r => typeof r._regaloValue === 'number' && isFinite(r._regaloValue));
       if (!withValue.length) { alert('Ninguna referencia visible tiene el modo "1+2" activado en PVP y con coste auditado.'); return; }
-      const fname = await ExcelWriter.exportPriceList(filtered, brand.abbr, '_regaloValue', 'Valor Regalo 1+1', tariffDate);
+      const fname = await ExcelWriter.exportPriceList(filtered, brand.abbr, '_regaloValue', 'Valor Regalo 1+1', tariffDate, EXPORT_FILE_TYPE_LABELS[currentOption]);
       $('exportStatus').innerHTML = `<small style="color: var(--pico-ins-color);">✓ Exportado: <strong>${escapeHtml(fname)}</strong> (${withValue.length} filas).</small>`;
       return;
     }
@@ -604,7 +619,7 @@ const ScreenExport = (() => {
       const spec = PRICE_LIST_TYPES[key];
       const withCost = filtered.filter(r => typeof r[spec.costField] === 'number' && isFinite(r[spec.costField]));
       if (!withCost.length) { alert(`Ninguna referencia visible tiene "${spec.label}" auditado todavía.`); return; }
-      const fname = await ExcelWriter.exportPriceList(filtered, brand.abbr, spec.costField, spec.label, tariffDate);
+      const fname = await ExcelWriter.exportPriceList(filtered, brand.abbr, spec.costField, spec.label, tariffDate, EXPORT_FILE_TYPE_LABELS[currentOption]);
       $('exportStatus').innerHTML = `<small style="color: var(--pico-ins-color);">✓ Exportado: <strong>${escapeHtml(fname)}</strong> (${withCost.length} filas).</small>`;
       return;
     }
@@ -616,7 +631,7 @@ const ScreenExport = (() => {
       const levelForGama = (gama) => byGama ? (byGama[gama] || []).find(l => l.id === 'pvp') : loadLevels(currentBrandId, currentGama).find(l => l.id === 'pvp');
       const resolver = currentGama === '__all__' ? (row) => levelForGama(row.gama) : levelForGama(currentGama);
       if (kind === 'skrit') {
-        const fname = await ExcelWriter.exportSkritLean(filtered, brand.abbr, resolver, tariffDate);
+        const fname = await ExcelWriter.exportSkritLean(filtered, brand.abbr, resolver, tariffDate, EXPORT_FILE_TYPE_LABELS[currentOption]);
         $('exportStatus').innerHTML = `<small style="color: var(--pico-ins-color);">✓ Exportado: <strong>${escapeHtml(fname)}</strong> (${filtered.length} filas).</small>`;
         return;
       }
@@ -632,7 +647,7 @@ const ScreenExport = (() => {
       });
       if (!printable.length) { alert('Ninguna referencia visible tiene PVP calculado.'); return; }
       const gamaLabel = currentGama === '__all__' ? '' : (GAMA_LABELS[currentGama] || currentGama);
-      const fname = PdfWriter.exportPriceListPdf(printable, brand, gamaLabel, tariffDate);
+      const fname = PdfWriter.exportPriceListPdf(printable, brand, gamaLabel, tariffDate, EXPORT_FILE_TYPE_LABELS[currentOption]);
       $('exportStatus').innerHTML = `<small style="color: var(--pico-ins-color);">✓ Exportado: <strong>${escapeHtml(fname)}</strong> (${printable.length} filas).</small>`;
       return;
     }
@@ -654,13 +669,13 @@ const ScreenExport = (() => {
       // levelForGama (que usamos arriba directamente con un string de gama para filtrar
       // por printFormats).
       const resolver = (row) => levelForGama(row.gama);
-      const fname = await ExcelWriter.exportSkritV2(exportRows, brand.abbr, resolver, tariffDate, key);
+      const fname = await ExcelWriter.exportSkritV2(exportRows, brand.abbr, resolver, tariffDate, EXPORT_FILE_TYPE_LABELS[currentOption]);
       $('exportStatus').innerHTML = `<small style="color: var(--pico-ins-color);">✓ Exportado: <strong>${escapeHtml(fname)}</strong> (${exportRows.length} filas, nivel "${escapeHtml(anyLevel ? anyLevel.label : key)}", todas las gamas).</small>`;
       return;
     }
     const level = levelForGama(currentGama);
     if (!level) { alert('Ese nivel ya no existe para esta marca/gama.'); return; }
-    const fname = await ExcelWriter.exportSkritV2(exportRows, brand.abbr, level, tariffDate);
+    const fname = await ExcelWriter.exportSkritV2(exportRows, brand.abbr, level, tariffDate, EXPORT_FILE_TYPE_LABELS[currentOption]);
     $('exportStatus').innerHTML = `<small style="color: var(--pico-ins-color);">✓ Exportado: <strong>${escapeHtml(fname)}</strong> (${exportRows.length} filas, nivel "${escapeHtml(level.label)}").</small>`;
   }
 

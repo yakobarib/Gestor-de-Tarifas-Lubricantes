@@ -2,6 +2,18 @@
 
 Formato inspirado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [v0.9.22] — 2026-08-13
+
+### Cambiado
+- Nomenclatura de todos los ficheros exportados (Excel y PDF), homogénea para
+  las 7 marcas: `Tarifa {Marca} {Tipo} dd-mm-aaaa.{ext}` — sin guiones salvo
+  en la fecha y en Neto-Neto/Triple-Neto. Por ejemplo: `Tarifa AD PVP Venta
+  13-08-2026.xlsx`, `Tarifa Repsol PVP SKRIT 13-08-2026.xlsx`, `Tarifa AD PVP
+  Comerciales 13-08-2026.pdf` (PVP Imprimir), `Tarifa AD Neto Bonus
+  13-08-2026.xlsx`. AD Parts usa "AD" en el nombre de fichero (ni "AD Parts"
+  ni el abreviado interno "ADP", que sigue igual en la columna MARCA del
+  Excel). Ver [ADR 0035](docs/decisiones/0035-nomenclatura-limpia-ficheros-exportados.md).
+
 ## [v0.9.21] — 2026-08-13
 
 ### Cambiado
