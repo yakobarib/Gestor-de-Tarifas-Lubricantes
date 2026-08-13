@@ -95,7 +95,11 @@ const ExcelWriter = (() => {
     }
 
     const dateStr = (tariffDate || new Date().toISOString().slice(0, 10));
-    const levelSlug = (levelId || levelConfig.id || 'nivel').toLowerCase().replace(/[^a-z0-9]+/g, '-');
+    // El nivel "pvp" se llama "venta" en el nombre del fichero — para diferenciarlo de
+    // "PVP (Skrit)" (`exportSkritLean`), que también produce un "tarifa-skrit-...-pvp-...".
+    // Sin este alias los dos exports salían con nombres casi idénticos (ver ADR 0033).
+    const rawSlug = (levelId || levelConfig.id || 'nivel').toLowerCase().replace(/[^a-z0-9]+/g, '-');
+    const levelSlug = rawSlug === 'pvp' ? 'venta' : rawSlug;
     const filename = `tarifa-skrit-${brandAbbr.toLowerCase()}-${levelSlug}-${dateStr}.xlsx`;
     return downloadWorkbook(wb, filename);
   }
@@ -142,8 +146,8 @@ const ExcelWriter = (() => {
       { header: 'MARCA', width: 8 },
       { header: 'REFERENCIA', width: 14 },
       { header: 'DESCRIPCION', width: 50 },
-      { header: 'FAMILIA', width: 8 },
       { header: 'LITROS', width: 8 },
+      { header: 'FAMILIA', width: 8 },
       { header: 'COSTE COMPRA', width: 14, euro: true },
       { header: 'PVP', width: 12, euro: true }
     ]);
@@ -153,11 +157,11 @@ const ExcelWriter = (() => {
       if (c.pvp == null) continue; // sin coste base para este nivel
       const bare = r.ref.startsWith(brandAbbr) ? r.ref.slice(brandAbbr.length) : r.ref;
       const cost = Pricing.resolveCost(r, level);
-      ws.addRow([brandAbbr, bare, exportDescription(r), r.fam || '', r.liters || null, typeof cost === 'number' ? cost : null, c.pvp]);
+      ws.addRow([brandAbbr, bare, exportDescription(r), r.liters || null, r.fam || '', typeof cost === 'number' ? cost : null, c.pvp]);
     }
 
     const dateStr = (tariffDate || new Date().toISOString().slice(0, 10));
-    const filename = `pvp-skrit-${brandAbbr.toLowerCase()}-${dateStr}.xlsx`;
+    const filename = `tarifa-skrit-${brandAbbr.toLowerCase()}-pvp-${dateStr}.xlsx`;
     return downloadWorkbook(wb, filename);
   }
 

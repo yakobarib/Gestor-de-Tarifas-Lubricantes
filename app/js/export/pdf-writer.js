@@ -7,6 +7,18 @@
    interno. Usa jsPDF + jspdf-autotable (CDN, ver index.html).
    ============================================================================ */
 const PdfWriter = (() => {
+  // Color de cabecera específico de este PDF (ver ADR 0033) — independiente de
+  // `brand.color` (usado en otras partes de la UI, ej. la tarjeta de Importación),
+  // porque Yako lo pidió solo "para la selección PVP (Imprimir)". Las marcas sin
+  // entrada aquí (hoy solo Castrol) caen a `brand.color` de siempre.
+  const HEADER_COLOR_BY_BRAND = {
+    ad_parts_aceite: '#3b82f6', // azul AD
+    repsol: '#f97316',          // naranja Repsol
+    shell: '#eab308',           // amarillo Shell
+    eni: '#38bdf8',             // azul claro Eni Live
+    racing_oil: '#6b7280'       // gris medio
+  };
+
   function hexToRgb(hex) {
     const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex || '');
     return m ? [parseInt(m[1], 16), parseInt(m[2], 16), parseInt(m[3], 16)] : [51, 65, 85];
@@ -22,7 +34,7 @@ const PdfWriter = (() => {
   function exportPriceListPdf(rows, brand, gamaLabel, tariffDate) {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF({ unit: 'mm', format: 'a4' });
-    const accent = hexToRgb(brand.color);
+    const accent = hexToRgb(HEADER_COLOR_BY_BRAND[brand.id] || brand.color);
     const dateStr = tariffDate || new Date().toISOString().slice(0, 10);
 
     doc.setFont('helvetica', 'bold');

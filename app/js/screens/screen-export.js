@@ -338,7 +338,7 @@ const ScreenExport = (() => {
     }
 
     if (kind === 'skrit') {
-      thead.innerHTML = `<tr><th>Marca</th><th>Referencia</th><th>Producto</th><th class="num liters">Litros</th><th class="num">Coste compra</th><th class="num">PVP</th></tr>`;
+      thead.innerHTML = `<tr><th>Marca</th><th>Referencia</th><th>Producto</th><th class="num liters">Litros</th><th>Familia</th><th class="num">Coste compra</th><th class="num">PVP</th></tr>`;
       const byGama = currentGama === '__all__' ? loadLevelsByGama(currentBrandId, brand.gamas) : null;
       const levelCache = {};
       const levelFor = (gama) => {
@@ -360,6 +360,7 @@ const ScreenExport = (() => {
           <td>${escapeHtml(bare)}</td>
           <td title="${escapeHtml(r.description)}">${escapeHtml(truncate(exportDescription(r), 60))}</td>
           <td class="num liters">${r.liters ?? '—'}</td>
+          <td>${escapeHtml(r.fam || '—')}</td>
           <td class="num">${formatEur(cost)}</td>
           <td class="num"><strong>${formatEur(c.pvp)}</strong></td>
         `;

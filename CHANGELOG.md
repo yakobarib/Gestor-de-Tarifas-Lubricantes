@@ -2,6 +2,23 @@
 
 Formato inspirado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [v0.9.20] — 2026-08-13
+
+### Añadido
+- "PVP (Imprimir)" usa el color real de cada marca en la cabecera del PDF:
+  azul AD, naranja Repsol, amarillo Shell, azul claro Eni Live, gris medio
+  Racing Oil.
+
+### Arreglado
+- La previsualización en pantalla de "PVP (Skrit)" no mostraba la columna
+  Familia (sí salía en el Excel) — ahora se ve igual en los dos sitios y en
+  el mismo orden: Marca, Referencia, Producto, Litros, Familia, Coste
+  compra, PVP.
+- "PVP (Venta)" y "PVP (Skrit)" generaban nombres de fichero casi idénticos
+  — ahora `tarifa-skrit-{marca}-venta-{fecha}.xlsx` y
+  `tarifa-skrit-{marca}-pvp-{fecha}.xlsx` respectivamente. Ver
+  [ADR 0033](docs/decisiones/0033-colores-pdf-columna-familia-nombres-fichero.md).
+
 ## [v0.9.19] — 2026-08-12
 
 ### Añadido
