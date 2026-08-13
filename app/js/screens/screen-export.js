@@ -28,10 +28,14 @@ const ScreenExport = (() => {
 
   // "Neto Factura" / "Neto-Neto" son listados simples (sin cálculo de margen, ver
   // conversación con Yako 2026-07-31) — no usan `priceLevels`, solo el coste tal cual.
+  // `columnHeader` (si difiere de `label`) es el texto de la columna de coste, en
+  // pantalla y en el Excel (ahí en mayúsculas) — pedido explícito de Yako para
+  // diferenciar el propio coste ("Neto-Neto") de la columna que lo muestra ("Compra
+  // Neto-Neto"), ver ADR 0035.
   const PRICE_LIST_TYPES = {
-    neto_factura: { costField: 'costFactura', label: 'Neto Factura' },
-    neto_neto: { costField: 'costNetoNeto', label: 'Neto-Neto' },
-    triple_neto: { costField: 'costTripleNeto', label: 'Triple Neto' }
+    neto_factura: { costField: 'costFactura', label: 'Neto Factura', columnHeader: 'Compra Factura' },
+    neto_neto: { costField: 'costNetoNeto', label: 'Neto-Neto', columnHeader: 'Compra Neto-Neto' },
+    triple_neto: { costField: 'costTripleNeto', label: 'Triple Neto', columnHeader: 'Compra Triple-Neto' }
   };
 
   /** Nombre de "tipo" tal como debe aparecer en el fichero exportado — distinto, en
@@ -369,7 +373,7 @@ const ScreenExport = (() => {
     if (kind === 'list') {
       const spec = PRICE_LIST_TYPES[key];
       // Sin columna Estado: el Excel exportado tampoco la tiene (ver ADR 0034, WYSIWYG).
-      thead.innerHTML = `<tr><th>Marca</th><th>Referencia</th><th>Producto</th><th class="num liters">Litros</th><th class="num">${escapeHtml(spec.label)}</th></tr>`;
+      thead.innerHTML = `<tr><th>Marca</th><th>Referencia</th><th>Producto</th><th class="num liters">Litros</th><th class="num">${escapeHtml(spec.columnHeader || spec.label)}</th></tr>`;
       updateCountBox(visible.length, rows.length);
       const tally = newErrorTally();
       const frag = document.createDocumentFragment();
@@ -394,7 +398,7 @@ const ScreenExport = (() => {
     }
 
     if (kind === 'skrit') {
-      thead.innerHTML = `<tr><th>Marca</th><th>Referencia</th><th>Producto</th><th class="num liters">Litros</th><th>Familia</th><th class="num">Coste compra</th><th class="num">PVP</th></tr>`;
+      thead.innerHTML = `<tr><th>Marca</th><th>Referencia</th><th>Producto</th><th class="num liters">Litros</th><th>Familia</th><th class="num">Coste factura</th><th class="num">PVP</th></tr>`;
       const byGama = currentGama === '__all__' ? loadLevelsByGama(currentBrandId, brand.gamas) : null;
       const levelCache = {};
       const levelFor = (gama) => {
@@ -619,7 +623,7 @@ const ScreenExport = (() => {
       const spec = PRICE_LIST_TYPES[key];
       const withCost = filtered.filter(r => typeof r[spec.costField] === 'number' && isFinite(r[spec.costField]));
       if (!withCost.length) { alert(`Ninguna referencia visible tiene "${spec.label}" auditado todavía.`); return; }
-      const fname = await ExcelWriter.exportPriceList(filtered, brand.abbr, spec.costField, spec.label, tariffDate, EXPORT_FILE_TYPE_LABELS[currentOption]);
+      const fname = await ExcelWriter.exportPriceList(filtered, brand.abbr, spec.costField, spec.label, tariffDate, EXPORT_FILE_TYPE_LABELS[currentOption], spec.columnHeader);
       $('exportStatus').innerHTML = `<small style="color: var(--pico-ins-color);">✓ Exportado: <strong>${escapeHtml(fname)}</strong> (${withCost.length} filas).</small>`;
       return;
     }

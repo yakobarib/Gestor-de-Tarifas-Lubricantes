@@ -2,6 +2,17 @@
 
 Formato inspirado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [v0.9.23] — 2026-08-13
+
+### Cambiado
+- Cabeceras de columna de coste más claras y consistentes entre tipos de
+  exportación: "PVP (Skrit)" pasa de "Coste compra" a **Coste factura**
+  (Excel y pantalla); los listados de coste simple pasan de "Neto Factura"
+  / "Neto-Neto" / "Triple Neto" a **Compra Factura** / **Compra Neto-Neto**
+  / **Compra Triple-Neto**. El nombre del tipo (desplegable, nombre de hoja)
+  no cambia, solo el texto de la columna. Ver
+  [ADR 0036](docs/decisiones/0036-columna-coste-precio-por-tipo-exportacion.md).
+
 ## [v0.9.22] — 2026-08-13
 
 ### Cambiado

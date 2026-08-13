@@ -131,7 +131,7 @@ const ExcelWriter = (() => {
    * coste tal cual. `costField` es el nombre del campo en `rows` ('costFactura',
    * 'costNetoNeto', 'costTripleNeto' o '_regaloValue').
    */
-  async function exportPriceList(rows, brandAbbr, costField, label, tariffDate, typeLabel) {
+  async function exportPriceList(rows, brandAbbr, costField, label, tariffDate, typeLabel, columnHeader) {
     const wb = new ExcelJS.Workbook();
     const ws = wb.addWorksheet(label.slice(0, 31));
     setColumns(ws, [
@@ -139,7 +139,7 @@ const ExcelWriter = (() => {
       { header: 'REFERENCIA', width: 14 },
       { header: 'DESCRIPCION', width: 50 },
       { header: 'LITROS', width: 8 },
-      { header: label.toUpperCase(), width: 14, euro: true }
+      { header: (columnHeader || label).toUpperCase(), width: 14, euro: true }
     ]);
     for (const r of rows) {
       const cost = r[costField];
@@ -166,7 +166,7 @@ const ExcelWriter = (() => {
       { header: 'DESCRIPCION', width: 50 },
       { header: 'LITROS', width: 8 },
       { header: 'FAMILIA', width: 8 },
-      { header: 'COSTE COMPRA', width: 14, euro: true },
+      { header: 'COSTE FACTURA', width: 14, euro: true },
       { header: 'PVP', width: 12, euro: true }
     ]);
     for (const r of rows) {
