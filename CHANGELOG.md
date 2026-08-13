@@ -2,6 +2,20 @@
 
 Formato inspirado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [v0.9.24] — 2026-08-13
+
+### Añadido
+- Reglas/Netos Bonus: nueva fila "Obsequio (€)" por formato, debajo del
+  margen — el importe se suma al coste antes de calcular el PVP de Netos
+  Bonus (antes era un valor fijo de 50€/100€ sin forma de cambiarlo desde
+  la pantalla). Ver [ADR 0037](docs/decisiones/0037-obsequio-por-formato-netos-bonus.md).
+
+### Arreglado
+- Reglas: el margen por formato (fila "Margen (%)" de PVP y Netos Bonus) no
+  se guardaba nunca al editarlo — un `data-index` que faltaba en el propio
+  input hacía que el cambio se descartara en silencio. Corregido junto con
+  la nueva fila de Obsequio, que usaba el mismo mecanismo.
+
 ## [v0.9.23] — 2026-08-13
 
 ### Cambiado

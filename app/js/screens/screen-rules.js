@@ -206,8 +206,11 @@ const ScreenRules = (() => {
   }
 
   function formatTableHtml(lvl, formats) {
+    // `data-index` en el propio input (no solo en la <table> contenedora) — lo lee
+    // directamente el listener de "change" de más abajo; sin él, editar el margen/
+    // obsequio por formato no llegaba nunca a guardarse (bug real, ver ADR 0037).
     const marginRow = `<tr><th>Margen (%)</th>${formats.map(f => `
-      <td><input type="number" min="0" max="500" step="0.5" data-field="byFormat" data-format="${escapeHtml(f.key)}" placeholder="${lvl.defaultMargin}" value="${lvl.byFormat && lvl.byFormat[f.key] != null ? lvl.byFormat[f.key] : ''}"></td>
+      <td><input type="number" min="0" max="500" step="0.5" data-field="byFormat" data-index="${lvl._index}" data-format="${escapeHtml(f.key)}" placeholder="${lvl.defaultMargin}" value="${lvl.byFormat && lvl.byFormat[f.key] != null ? lvl.byFormat[f.key] : ''}"></td>
     `).join('')}</tr>`;
 
     let extraRows = '';
@@ -217,12 +220,15 @@ const ScreenRules = (() => {
         <tr><th>PVP Neto</th>${formats.map(f => (f.key !== '?' && parseFloat(f.key) >= PVP_NETO_MIN_LITERS) ? formatToggleCell(lvl, f.key, 'pvp_neto') : '<td class="disabled">—</td>').join('')}</tr>
       `;
     } else if (lvl.id === 'netos_bonus') {
-      extraRows = `<tr><th>Salida impresa</th>${formats.map(f => printToggleCell(lvl, f.key)).join('')}</tr>`;
+      const premiumRow = `<tr><th>Obsequio (€)</th>${formats.map(f => `
+        <td><input type="number" min="0" step="0.5" data-field="premiumByFormat" data-index="${lvl._index}" data-format="${escapeHtml(f.key)}" placeholder="0" value="${lvl.premiumByFormat && lvl.premiumByFormat[f.key] != null ? lvl.premiumByFormat[f.key] : ''}"></td>
+      `).join('')}</tr>`;
+      extraRows = `${premiumRow}<tr><th>Salida impresa</th>${formats.map(f => printToggleCell(lvl, f.key)).join('')}</tr>`;
     }
 
     return `
       <div class="format-table-wrap">
-        <label>Margen por formato (%) — deja vacío para usar el margen por defecto${lvl.id === 'pvp' ? '. "1+2" y "PVP Neto" sustituyen ese margen por su fórmula fija cuando están activados para ese formato' : ''}</label>
+        <label>Margen por formato (%) — deja vacío para usar el margen por defecto${lvl.id === 'pvp' ? '. "1+2" y "PVP Neto" sustituyen ese margen por su fórmula fija cuando están activados para ese formato' : ''}${lvl.id === 'netos_bonus' ? '. "Obsequio" es el coste en € del regalo de ese formato — se suma al coste antes de calcular el margen (deja vacío = sin obsequio)' : ''}</label>
         <div class="format-table-scroll">
           <table class="format-table" data-index="${lvl._index}">
             <thead><tr><th></th>${formats.map(f => `<th>${escapeHtml(f.label)}<small>${f.count} refs</small></th>`).join('')}</tr></thead>
@@ -319,6 +325,23 @@ const ScreenRules = (() => {
   /** Activa/desactiva el modo especial de un formato en el nivel PVP — mutuamente
    *  excluyente por construcción: es un único valor por formatKey, así que marcar
    *  "pvp_neto" desplaza automáticamente "1x2" para ese mismo formato y viceversa. */
+  /** Coste del obsequio de Netos Bonus, por formato — se suma al coste (en pricing.js)
+   *  antes de aplicar el margen. A diferencia del margen, sin valor por defecto: un
+   *  formato sin importe puesto no lleva obsequio (premium 0), ver ADR 0037. */
+  function updatePremiumByFormat(index, formatKey, rawValue) {
+    const cfg = loadConfig(currentBrandId, currentGama);
+    const lvl = cfg.priceLevels[index];
+    if (!lvl) return;
+    if (!lvl.premiumByFormat) lvl.premiumByFormat = {};
+    if (rawValue === '' || rawValue == null) {
+      delete lvl.premiumByFormat[formatKey];
+    } else {
+      const v = parseFloat(rawValue);
+      if (isFinite(v)) lvl.premiumByFormat[formatKey] = v; else delete lvl.premiumByFormat[formatKey];
+    }
+    saveConfig(currentBrandId, currentGama, cfg);
+  }
+
   function toggleFormatMode(index, formatKey, mode) {
     const cfg = loadConfig(currentBrandId, currentGama);
     const lvl = cfg.priceLevels[index];
@@ -357,6 +380,7 @@ const ScreenRules = (() => {
       const field = t.dataset.field;
       if (!field) return;
       if (field === 'byFormat') { updateByFormat(parseInt(index, 10), t.dataset.format, t.value); return; }
+      if (field === 'premiumByFormat') { updatePremiumByFormat(parseInt(index, 10), t.dataset.format, t.value); return; }
       const value = field === 'goesToSkrit' ? t.checked : t.value;
       updateLevelField(parseInt(index, 10), field, value);
       if (field === 'goesToSkrit' || field === 'baseCost') renderLevels();
