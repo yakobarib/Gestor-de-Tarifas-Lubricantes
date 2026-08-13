@@ -61,6 +61,13 @@ const ScreenExport = (() => {
     if (!r.description || !String(r.description).trim()) tally.noDescription++;
     if (priceMissing) tally.noPrice++;
   }
+  /** Recuento de filas visibles: verde pastel si coincide con el total (sin filtrar),
+   *  amarillo pastel si hay un filtro reduciendo lo que se ve — ver ADR 0034. */
+  function updateCountBox(visibleLen, totalLen) {
+    $('exportVisibleCount').textContent = visibleLen;
+    const box = $('exportVisibleCount').closest('.export-count-box');
+    if (box) box.classList.toggle('filtered', visibleLen !== totalLen);
+  }
   function renderErrorsBox(tally) {
     const el = $('exportErrorsBox');
     if (!el) return;
@@ -317,7 +324,7 @@ const ScreenExport = (() => {
     if (kind === 'list' && key === 'regalo_1x1') {
       // Sin columna Estado: el Excel exportado tampoco la tiene (ver ADR 0034, WYSIWYG).
       thead.innerHTML = `<tr><th>Marca</th><th>Referencia</th><th>Producto</th><th class="num liters">Litros</th><th class="num">Valor Regalo 1+1</th></tr>`;
-      $('exportVisibleCount').textContent = visible.length;
+      updateCountBox(visible.length, rows.length);
       const levelCache = {};
       const levelFor = (gama) => (gama in levelCache) ? levelCache[gama] : (levelCache[gama] = pvpLevelFor(currentBrandId, gama));
       const tally = newErrorTally();
@@ -348,7 +355,7 @@ const ScreenExport = (() => {
       const spec = PRICE_LIST_TYPES[key];
       // Sin columna Estado: el Excel exportado tampoco la tiene (ver ADR 0034, WYSIWYG).
       thead.innerHTML = `<tr><th>Marca</th><th>Referencia</th><th>Producto</th><th class="num liters">Litros</th><th class="num">${escapeHtml(spec.label)}</th></tr>`;
-      $('exportVisibleCount').textContent = visible.length;
+      updateCountBox(visible.length, rows.length);
       const tally = newErrorTally();
       const frag = document.createDocumentFragment();
       for (const r of visible.slice(0, 500)) {
@@ -381,7 +388,7 @@ const ScreenExport = (() => {
         levelCache[gama] = lvl || null;
         return levelCache[gama];
       };
-      $('exportVisibleCount').textContent = visible.length;
+      updateCountBox(visible.length, rows.length);
       const tally = newErrorTally();
       const frag = document.createDocumentFragment();
       for (const r of visible.slice(0, 500)) {
@@ -418,7 +425,7 @@ const ScreenExport = (() => {
         levelCache[gama] = lvl || null;
         return levelCache[gama];
       };
-      $('exportVisibleCount').textContent = visible.length;
+      updateCountBox(visible.length, rows.length);
       const tally = newErrorTally();
       const frag = document.createDocumentFragment();
       for (const r of visible.slice(0, 500)) {
@@ -467,7 +474,7 @@ const ScreenExport = (() => {
         const lvl = levelFor(r.gama);
         return lvl && lvl.printFormats && lvl.printFormats[r.formatKey];
       });
-      $('exportVisibleCount').textContent = visible.length;
+      updateCountBox(visible.length, rows.length);
       const tally = newErrorTally();
       const frag = document.createDocumentFragment();
       for (const r of visible.slice(0, 500)) {
@@ -514,7 +521,7 @@ const ScreenExport = (() => {
       levelCache[gama] = lvl || null;
       return levelCache[gama];
     };
-    $('exportVisibleCount').textContent = visible.length;
+    updateCountBox(visible.length, rows.length);
 
     const tally = newErrorTally();
     const frag = document.createDocumentFragment();

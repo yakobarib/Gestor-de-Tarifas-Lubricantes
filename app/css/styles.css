@@ -355,24 +355,35 @@ table.preview th.liters, table.preview td.liters { max-width: 76px; }
 
 /* Exportación: cuadro de recuento (fijo) + cuadro de errores de tarifa, en la misma fila
    que los filtros de búsqueda/formato/estado — el de errores ocupa el resto del ancho,
-   llegando hasta el final de la fila (ver ADR 0034). */
+   llegando hasta el final de la fila (ver ADR 0034). Los dos comparten la misma paleta de
+   estado: verde pastel = "todo bien" (sin filtrar / sin errores), amarillo pastel = aviso
+   (filtrado / con errores, este último además parpadea). */
 .export-count-box, .export-errors-box {
   padding: 0.4rem 0.9rem; border-radius: var(--radius-sm); font-size: 0.83rem;
-  display: flex; align-items: center;
+  display: flex; align-items: center; transition: background-color 0.2s ease, color 0.2s ease;
 }
-.export-count-box { flex: 0 0 auto; white-space: nowrap; background: var(--surface-muted); }
-.export-errors-box {
-  flex: 1 1 240px; background: var(--surface-muted); color: var(--pico-muted-color);
-  transition: background-color 0.2s ease, color 0.2s ease;
-}
+.export-count-box { flex: 0 0 auto; white-space: nowrap; }
+.export-errors-box { flex: 1 1 240px; }
+
+.export-count-box, .export-errors-box { background: #e3f6e3; color: #2d7a2d; }
+.export-count-box.filtered { background: #fdf6d3; color: #7a5d00; }
 .export-errors-box.has-errors {
-  color: #7a5d00; animation: export-errors-blink 1.6s ease-in-out infinite;
+  background: #fdf6d3; color: #7a5d00; animation: export-errors-blink 1.6s ease-in-out infinite;
 }
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) .export-errors-box.has-errors { color: #f0d98c; }
+  :root:not([data-theme="light"]) .export-count-box,
+  :root:not([data-theme="light"]) .export-errors-box { background: #1c3324; color: #a8e0ae; }
+  :root:not([data-theme="light"]) .export-count-box.filtered,
+  :root:not([data-theme="light"]) .export-errors-box.has-errors { background: #3a331c; color: #f0d98c; }
 }
-:root[data-theme="dark"] .export-errors-box.has-errors { color: #f0d98c; }
-:root[data-theme="light"] .export-errors-box.has-errors { color: #7a5d00; }
+:root[data-theme="dark"] .export-count-box,
+:root[data-theme="dark"] .export-errors-box { background: #1c3324; color: #a8e0ae; }
+:root[data-theme="dark"] .export-count-box.filtered,
+:root[data-theme="dark"] .export-errors-box.has-errors { background: #3a331c; color: #f0d98c; }
+:root[data-theme="light"] .export-count-box,
+:root[data-theme="light"] .export-errors-box { background: #e3f6e3; color: #2d7a2d; }
+:root[data-theme="light"] .export-count-box.filtered,
+:root[data-theme="light"] .export-errors-box.has-errors { background: #fdf6d3; color: #7a5d00; }
 @keyframes export-errors-blink {
   0%, 100% { background-color: #fdf6d3; }
   50% { background-color: #fbe9a0; }
