@@ -195,11 +195,15 @@ article h4 { font-size: 0.88rem; }
 }
 
 /* Reglas: Marca/Gama apiladas en una columna a la izquierda (con la leyenda de "Todas
-   las gamas" debajo de Gama, como antes) y el bloque de exportar políticas de precios a
-   la derecha, ver ADR 0041. */
+   las gamas" debajo de Gama, como antes) y el botón + selector de exportar políticas de
+   precios apilados a la derecha, alineados con Marca y Gama respectivamente (ver ADR
+   0042). `.filter-row .field` trae `flex: 1 1 190px` pensado para una fila HORIZONTAL —
+   dentro de estas columnas VERTICALES ese flex-grow estira cada campo para repartirse
+   el alto disponible, dejando un hueco enorme entre Marca y Gama (bug real corregido
+   aquí: `flex: 0 0 auto` en los campos de ambas columnas). */
 .rules-top-row { align-items: flex-start; }
-.rules-marca-gama { display: flex; flex-direction: column; gap: 0.9rem; flex: 1 1 260px; min-width: 220px; }
-.rules-policy-export button { margin-top: 0.5rem; }
+.rules-marca-gama, .rules-policy-export { display: flex; flex-direction: column; gap: 0.9rem; flex: 1 1 260px; min-width: 220px; }
+.rules-marca-gama .field, .rules-policy-export .field { flex: 0 0 auto; }
 
 /* Exportación: Marca/Gama/Tipo/Fecha + el botón Exportar en la misma fila, los 5
    repartiendo el ancho a partes iguales — con 5 campos, el `flex-basis` de 190px de

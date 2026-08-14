@@ -59,7 +59,7 @@
     <div class="sidebar-footer">
       <p>Krafted by <strong>Yakoba Moreno</strong></p>
       <p>Designed in <strong>Claude Code</strong></p>
-      <span class="sidebar-version">v0.9.29</span>
+      <span class="sidebar-version">v0.9.30</span>
     </div>
   </aside>
 
@@ -229,10 +229,15 @@
           <p class="hint" style="margin:0.3rem 0 0;">Con "Todas las gamas" seleccionada, guardar aplica la misma configuración a todas las gamas de la marca a la vez (sobrescribe cualquier diferencia que hubiera entre ellas). Elige una gama suelta si necesita un margen distinto al resto.</p>
         </div>
       </div>
-      <div class="field rules-policy-export">
-        <label for="rulesPolicyBrandSelect">Marca a exportar</label>
-        <select id="rulesPolicyBrandSelect"></select>
-        <button id="btnExportPolicies" type="button">Exportar Políticas de Precios</button>
+      <div class="rules-policy-export">
+        <div class="field">
+          <label>&nbsp;</label>
+          <button id="btnExportPolicies" type="button">Exportar Políticas de Precios</button>
+        </div>
+        <div class="field">
+          <label for="rulesPolicyBrandSelect">Política a exportar</label>
+          <select id="rulesPolicyBrandSelect"></select>
+        </div>
       </div>
     </div>
   </article>

@@ -2,6 +2,19 @@
 
 Formato inspirado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [v0.9.30] — 2026-08-14
+
+### Arreglado
+- Reglas: el hueco entre Marca y Gama era enorme (un `flex-grow` heredado
+  de la fila horizontal se aplicaba también dentro de la columna vertical)
+  — ahora queda justo el espacio esperado.
+
+### Cambiado
+- Reglas: en el bloque de exportar políticas de precios, el botón
+  "Exportar Políticas de Precios" pasa a la altura de Marca y el
+  desplegable (renombrado a "Política a exportar") a la altura de Gama.
+  Ver [ADR 0042](docs/decisiones/0042-reordenar-bloque-politicas-de-precios.md).
+
 ## [v0.9.29] — 2026-08-14
 
 ### Añadido
