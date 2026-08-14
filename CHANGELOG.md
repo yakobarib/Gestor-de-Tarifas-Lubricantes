@@ -2,6 +2,14 @@
 
 Formato inspirado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [v0.9.25] — 2026-08-13
+
+### Arreglado
+- El cuadro "Mostrando X de Y referencias" de Exportación se veía sin
+  espacios ("Mostrando2de689referencias") — los espacios normales entre el
+  texto y los números se colapsaban al estar dentro de un contenedor
+  `display: flex`. Sustituidos por `&nbsp;`, que no se colapsan.
+
 ## [v0.9.24] — 2026-08-13
 
 ### Añadido
