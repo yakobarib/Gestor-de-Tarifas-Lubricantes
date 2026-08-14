@@ -59,7 +59,7 @@
     <div class="sidebar-footer">
       <p>Krafted by <strong>Yakoba Moreno</strong></p>
       <p>Designed in <strong>Claude Code</strong></p>
-      <span class="sidebar-version">v0.9.28</span>
+      <span class="sidebar-version">v0.9.29</span>
     </div>
   </aside>
 
@@ -214,18 +214,25 @@
       "1+2" (el cliente paga 1 caja y se lleva 3, hasta 5L, 83,33% de margen sobre venta) o
       "PVP Neto" (bidones ~200L al 20%, cubas ~1000L al 15%, a partir de ~150L). En Netos Bonus,
       el coste siempre es el más bajo disponible (triple-neto, si no neto-neto, si no factura) más
-      un "precio del premio" fijo (50€ bidones / 100€ cubas) antes de aplicar el margen; la fila
-      "Salida impresa" decide qué formatos entran en la hoja que se imprime.
+      el "Obsequio" en € que se ponga por formato antes de aplicar el margen (deja vacío = sin
+      obsequio); la fila "Salida impresa" decide qué formatos entran en la hoja que se imprime.
     </p>
-    <div class="filter-row">
-      <div class="field">
-        <label for="rulesBrandSelect">Marca</label>
-        <select id="rulesBrandSelect"></select>
+    <div class="filter-row rules-top-row">
+      <div class="rules-marca-gama">
+        <div class="field">
+          <label for="rulesBrandSelect">Marca</label>
+          <select id="rulesBrandSelect"></select>
+        </div>
+        <div class="field">
+          <label for="rulesGamaSelect">Gama</label>
+          <select id="rulesGamaSelect"></select>
+          <p class="hint" style="margin:0.3rem 0 0;">Con "Todas las gamas" seleccionada, guardar aplica la misma configuración a todas las gamas de la marca a la vez (sobrescribe cualquier diferencia que hubiera entre ellas). Elige una gama suelta si necesita un margen distinto al resto.</p>
+        </div>
       </div>
-      <div class="field">
-        <label for="rulesGamaSelect">Gama</label>
-        <select id="rulesGamaSelect"></select>
-        <p class="hint" style="margin:0.3rem 0 0;">Con "Todas las gamas" seleccionada, guardar aplica la misma configuración a todas las gamas de la marca a la vez (sobrescribe cualquier diferencia que hubiera entre ellas). Elige una gama suelta si necesita un margen distinto al resto.</p>
+      <div class="field rules-policy-export">
+        <label for="rulesPolicyBrandSelect">Marca a exportar</label>
+        <select id="rulesPolicyBrandSelect"></select>
+        <button id="btnExportPolicies" type="button">Exportar Políticas de Precios</button>
       </div>
     </div>
   </article>

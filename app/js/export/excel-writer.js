@@ -36,15 +36,25 @@ const ExcelWriter = (() => {
    *  (ver ADR 0035). */
   const FILE_BRAND_LABELS = { ADP: 'AD', REP: 'Repsol', CAT: 'Castrol', SHL: 'Shell', ENI: 'Eni Live', RAC: 'Racing Oil' };
 
-  /** Nombre de fichero homogéneo para toda tarifa de salida: "Tarifa {Marca} {Tipo}
-   *  {dd-mm-aaaa}.{ext}" — limpio, sin guiones salvo en la fecha y en los tipos que ya
-   *  los llevan de por sí (Neto-Neto, Triple-Neto). `tariffDate` llega en aaaa-mm-dd
-   *  (input type=date del formulario), se reformatea aquí (ver ADR 0035). */
-  function buildFilename(brandAbbr, typeLabel, tariffDate, ext) {
+  /** dd-mm-aaaa a partir de aaaa-mm-dd (input type=date) — reusado por cualquier nombre
+   *  de fichero de salida, ver ADR 0035. */
+  function dateSlug(tariffDate) {
     const iso = tariffDate || new Date().toISOString().slice(0, 10);
     const [y, m, d] = iso.split('-');
-    const brandLabel = FILE_BRAND_LABELS[brandAbbr] || brandAbbr;
-    return `Tarifa ${brandLabel} ${typeLabel} ${d}-${m}-${y}.${ext}`;
+    return `${d}-${m}-${y}`;
+  }
+
+  /** Nombre de marca "legible" para nombre de fichero, expuesto para otros documentos
+   *  que no son una tarifa (ej. "Política de Precios", ver ADR 0041). */
+  function fileBrandLabel(brandAbbr) {
+    return FILE_BRAND_LABELS[brandAbbr] || brandAbbr;
+  }
+
+  /** Nombre de fichero homogéneo para toda tarifa de salida: "Tarifa {Marca} {Tipo}
+   *  {dd-mm-aaaa}.{ext}" — limpio, sin guiones salvo en la fecha y en los tipos que ya
+   *  los llevan de por sí (Neto-Neto, Triple-Neto) (ver ADR 0035). */
+  function buildFilename(brandAbbr, typeLabel, tariffDate, ext) {
+    return `Tarifa ${fileBrandLabel(brandAbbr)} ${typeLabel} ${dateSlug(tariffDate)}.${ext}`;
   }
 
   /** Cabecera en negrita y centrada — pedido por Yako para todos los Excel exportados. */
@@ -189,5 +199,5 @@ const ExcelWriter = (() => {
     return downloadWorkbook(wb, filename);
   }
 
-  return { exportSkritV2, exportSkritLean, exportPriceList, buildFilename };
+  return { exportSkritV2, exportSkritLean, exportPriceList, buildFilename, dateSlug, fileBrandLabel };
 })();

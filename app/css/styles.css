@@ -194,6 +194,13 @@ article h4 { font-size: 0.88rem; }
   margin: 0; padding: 0.4rem 0.6rem; font-size: 0.85rem; height: auto; width: 100%;
 }
 
+/* Reglas: Marca/Gama apiladas en una columna a la izquierda (con la leyenda de "Todas
+   las gamas" debajo de Gama, como antes) y el bloque de exportar políticas de precios a
+   la derecha, ver ADR 0041. */
+.rules-top-row { align-items: flex-start; }
+.rules-marca-gama { display: flex; flex-direction: column; gap: 0.9rem; flex: 1 1 260px; min-width: 220px; }
+.rules-policy-export button { margin-top: 0.5rem; }
+
 /* Exportación: Marca/Gama/Tipo/Fecha + el botón Exportar en la misma fila, los 5
    repartiendo el ancho a partes iguales — con 5 campos, el `flex-basis` de 190px de
    `.filter-row .field` ya no cabe en un viewport de portátil típico (~1280px) sin

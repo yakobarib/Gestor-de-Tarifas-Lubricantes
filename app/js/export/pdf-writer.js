@@ -93,5 +93,149 @@ const PdfWriter = (() => {
     return filename;
   }
 
-  return { exportPriceListPdf };
+  // Etiquetas para el PDF de políticas de precios (ver ADR 0041) — mismos valores que
+  // ya usan los <select> de Reglas (screen-rules.js), copiados aquí porque este módulo
+  // no depende de ese fichero.
+  const BASE_COST_LABELS = { factura: 'Coste factura', netoNeto: 'Coste neto-neto', tripleNeto: 'Coste triple neto' };
+  const MODE_LABELS = { sale: 'Sobre venta', cost: 'Sobre compra' };
+  const ROUNDING_LABELS = { none: 'Sin redondeo', '2dec': '2 decimales', psy99: 'Acabado en ,99', psy95: 'Acabado en ,95', step05: 'Múltiplo de 0,05 €', int: 'Entero' };
+
+  /** Margen efectivo de un formato para un nivel — reusa `Pricing.compute` con una fila
+   *  ficticia (coste 100 en los tres campos, para que cualquier `baseCostField`/
+   *  `costCascade` encuentre coste y no se pierda por el hueco de "sin coste") en vez de
+   *  duplicar aquí la prioridad formatModes > byFormat > defaultMargin. El propio precio
+   *  resultante no importa — un documento de políticas explica la REGLA (%), no un PVP
+   *  en €, que depende del coste real de cada producto. */
+  function effectiveMarginInfo(lvl, formatKey) {
+    const liters = formatKey === '?' ? null : parseFloat(formatKey);
+    const fakeRow = { ref: '__policy_preview__', formatKey, liters, costFactura: 100, costNetoNeto: 100, costTripleNeto: 100 };
+    const c = Pricing.compute(fakeRow, lvl);
+    const mode = lvl.formatModes && lvl.formatModes[formatKey];
+    return { pct: c.marginPct, note: mode === '1x2' ? '1+2' : mode === 'pvp_neto' ? 'PVP Neto' : '' };
+  }
+
+  /** Documento de referencia (no una tarifa): resume, formato a formato, qué regla
+   *  aplica hoy para PVP y Netos Bonus de una marca — sin precios en €, que dependen del
+   *  coste real de cada producto, solo la fórmula (ver ADR 0041). A4 apaisado, para que
+   *  quepan las dos tablas lado a lado en una sola hoja incluso con muchos formatos. */
+  function exportPolicyPdf(brand, formats, pvp, bonus) {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'landscape' });
+    const accent = hexToRgb(HEADER_COLOR_BY_BRAND[brand.id] || brand.color);
+    const todayStr = new Date().toISOString().slice(0, 10);
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const half = pageWidth / 2;
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(16);
+    doc.setTextColor(30, 30, 30);
+    doc.text(`Políticas de Precios — ${brand.label}`, 14, 16);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.setTextColor(110, 110, 110);
+    doc.text(`Generado el ${todayStr} · Recambios Ibiza`, 14, 21);
+
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(60, 60, 60);
+    doc.text('PVP (va a Skrit)', 14, 29);
+    doc.text('Netos Bonus (uso interno)', half + 6, 29);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8.5);
+    doc.text(`${BASE_COST_LABELS[pvp.baseCost] || BASE_COST_LABELS.factura} · Margen ${MODE_LABELS[pvp.mode] || MODE_LABELS.sale} · Por defecto ${pvp.defaultMargin}% · Redondeo: ${ROUNDING_LABELS[pvp.rounding] || pvp.rounding}`, 14, 34);
+    doc.text(`Coste el más bajo disponible (triple-neto → neto-neto → factura) · Por defecto ${bonus.defaultMargin}% sobre venta · Redondeo: ${ROUNDING_LABELS[bonus.rounding] || bonus.rounding}`, half + 6, 34, { maxWidth: half - 20 });
+
+    const pvpBody = formats.map(f => {
+      const info = effectiveMarginInfo(pvp, f.key);
+      return [f.label, info.pct != null ? info.pct.toFixed(1) + '%' : '—', info.note || '—'];
+    });
+    const bonusBody = formats.map(f => {
+      const info = effectiveMarginInfo(bonus, f.key);
+      const premium = bonus.premiumByFormat && bonus.premiumByFormat[f.key];
+      const printed = !!(bonus.printFormats && bonus.printFormats[f.key]);
+      return [f.label, info.pct != null ? info.pct.toFixed(1) + '%' : '—', premium != null ? formatEurPdf(premium) : '—', printed ? 'Sí' : 'No'];
+    });
+    const tableStyles = { fontSize: 8, cellPadding: 1.6 };
+    const headStyles = { fillColor: accent, textColor: 255, fontStyle: 'bold' };
+    const altStyles = { fillColor: [246, 247, 249] };
+
+    doc.autoTable({
+      startY: 38,
+      head: [['Formato', 'Margen aplicado', 'Modo especial']],
+      body: pvpBody,
+      styles: tableStyles, headStyles, alternateRowStyles: altStyles,
+      tableWidth: half - 20,
+      margin: { left: 14 }
+    });
+    doc.autoTable({
+      startY: 38,
+      head: [['Formato', 'Margen aplicado', 'Obsequio', 'Salida impresa']],
+      body: bonusBody,
+      styles: tableStyles, headStyles, alternateRowStyles: altStyles,
+      tableWidth: half - 20,
+      margin: { left: half + 6 }
+    });
+
+    doc.setFontSize(8);
+    doc.setTextColor(150);
+    doc.text('Página 1 de 1', pageWidth - 30, doc.internal.pageSize.getHeight() - 8);
+
+    const filename = `Política de Precios ${ExcelWriter.fileBrandLabel(brand.abbr)} ${ExcelWriter.dateSlug()}.pdf`;
+    doc.save(filename);
+    return filename;
+  }
+
+  /** Resumen compacto (sin desglose por formato, para que entren las 6 marcas en una
+   *  sola hoja) — ver ADR 0041. */
+  function exportAllPoliciesPdf(brandPolicies) {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+    const todayStr = new Date().toISOString().slice(0, 10);
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(16);
+    doc.setTextColor(30, 30, 30);
+    doc.text('Políticas de Precios — Todas las marcas', 14, 18);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    doc.setTextColor(110, 110, 110);
+    doc.text(`Generado el ${todayStr} · Recambios Ibiza`, 14, 24);
+
+    const body = brandPolicies.map(({ brand, pvp, bonus }) => {
+      const modes = (pvp.formatModes && Object.values(pvp.formatModes)) || [];
+      const notes = [];
+      if (modes.includes('1x2')) notes.push('1+2 activo');
+      if (modes.includes('pvp_neto')) notes.push('PVP Neto activo');
+      const obsequioCount = bonus.premiumByFormat ? Object.keys(bonus.premiumByFormat).length : 0;
+      if (obsequioCount) notes.push(`Obsequio en ${obsequioCount} formato${obsequioCount > 1 ? 's' : ''}`);
+      return [
+        brand.label,
+        BASE_COST_LABELS[pvp.baseCost] || BASE_COST_LABELS.factura,
+        `${pvp.defaultMargin}% (${MODE_LABELS[pvp.mode] || MODE_LABELS.sale})`,
+        ROUNDING_LABELS[pvp.rounding] || pvp.rounding,
+        `${bonus.defaultMargin}%`,
+        notes.join(' · ') || '—'
+      ];
+    });
+
+    doc.autoTable({
+      startY: 30,
+      head: [['Marca', 'PVP: coste', 'PVP: margen', 'PVP: redondeo', 'Bonus: margen', 'Notas']],
+      body,
+      styles: { fontSize: 9, cellPadding: 2.4 },
+      headStyles: { fillColor: [51, 65, 85], textColor: 255, fontStyle: 'bold' },
+      alternateRowStyles: { fillColor: [246, 247, 249] }
+    });
+
+    const pageWidth = doc.internal.pageSize.getWidth();
+    doc.setFontSize(8);
+    doc.setTextColor(150);
+    doc.text('Página 1 de 1', pageWidth - 30, doc.internal.pageSize.getHeight() - 8);
+
+    const filename = `Política de Precios Todas las Marcas ${ExcelWriter.dateSlug()}.pdf`;
+    doc.save(filename);
+    return filename;
+  }
+
+  return { exportPriceListPdf, exportPolicyPdf, exportAllPoliciesPdf };
 })();

@@ -2,6 +2,22 @@
 
 Formato inspirado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [v0.9.29] — 2026-08-14
+
+### Añadido
+- Reglas: nuevo botón "Exportar Políticas de Precios", con su propio
+  selector de alcance ("Todas las marcas" o cada una) — genera un PDF de
+  una hoja que explica, por formato, las reglas vigentes hoy para calcular
+  PVP y Netos Bonus de esa marca (o un resumen de las 6 si eliges "Todas
+  las marcas"). Sin precios en €: explica la regla/margen, no un importe,
+  que depende del coste real de cada producto. Ver
+  [ADR 0041](docs/decisiones/0041-exportar-politicas-de-precios.md).
+
+### Cambiado
+- Reglas: Marca y Gama pasan a ir apiladas en una columna (antes en dos
+  columnas separadas), dejando sitio a la derecha para el nuevo bloque de
+  exportar políticas de precios.
+
 ## [v0.9.28] — 2026-08-14
 
 ### Cambiado

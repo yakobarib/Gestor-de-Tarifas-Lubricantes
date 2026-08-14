@@ -134,6 +134,51 @@ const ScreenRules = (() => {
     renderGamaSelect();
   }
 
+  /** Selector independiente del de arriba — "qué marca(s) resumir" en el PDF de
+   *  políticas de precios, no "qué marca estoy editando" (ver ADR 0041). */
+  function renderPolicyBrandSelect() {
+    const sel = $('rulesPolicyBrandSelect');
+    sel.innerHTML = '<option value="__all__">Todas las marcas</option>'
+      + BRANDS.filter(b => !b.pending).map(b => `<option value="${b.id}">${escapeHtml(b.label)}</option>`).join('');
+  }
+
+  /** Reúne la config vigente (representativa de "todas las gamas", igual que el resto
+   *  de Reglas trata "Todas las gamas") + los formatos reales de una marca, para el PDF
+   *  de políticas de precios — ver ADR 0041. Efecto colateral aceptado: si la marca
+   *  nunca se abrió en Reglas, sintetiza y guarda sus niveles por defecto, igual que
+   *  haría `renderLevels()` la primera vez que se visita esa marca. */
+  async function gatherBrandPolicy(brandId) {
+    const brand = findBrand(brandId);
+    const cfg = loadConfig(brandId, '__all__');
+    const formats = await availableFormats(brandId, '__all__');
+    if (migrateLevels(cfg, formats)) saveConfig(brandId, '__all__', cfg);
+    return {
+      brand,
+      formats,
+      pvp: cfg.priceLevels.find(l => l.id === 'pvp'),
+      bonus: cfg.priceLevels.find(l => l.id === 'netos_bonus')
+    };
+  }
+
+  async function doExportPolicies() {
+    const btn = $('btnExportPolicies');
+    const scope = $('rulesPolicyBrandSelect').value;
+    btn.disabled = true;
+    try {
+      if (scope === '__all__') {
+        const brandPolicies = [];
+        for (const b of BRANDS.filter(x => !x.pending)) brandPolicies.push(await gatherBrandPolicy(b.id));
+        PdfWriter.exportAllPoliciesPdf(brandPolicies);
+      } else {
+        const policy = await gatherBrandPolicy(scope);
+        if (!policy.formats.length) { alert('Esta marca no tiene ninguna tarifa importada todavía — no hay formatos que resumir.'); return; }
+        PdfWriter.exportPolicyPdf(policy.brand, policy.formats, policy.pvp, policy.bonus);
+      }
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
   function renderGamaSelect() {
     const brand = findBrand(currentBrandId);
     const sel = $('rulesGamaSelect');
@@ -402,10 +447,12 @@ const ScreenRules = (() => {
         togglePrintFormat(index, printBtn.dataset.format);
       }
     });
+    $('btnExportPolicies').addEventListener('click', doExportPolicies);
   }
 
   function init() {
     renderBrandSelect();
+    renderPolicyBrandSelect();
     setupListeners();
   }
 
