@@ -2,6 +2,24 @@
 
 Formato inspirado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [v0.9.28] — 2026-08-14
+
+### Cambiado
+- Reglas: cambiar "Margen por defecto" ahora se refleja al instante en las
+  casillas de margen por formato que no tienen un valor propio (antes se
+  quedaban con el placeholder viejo hasta cambiar de gama). Las casillas
+  con un valor puesto a mano (Margen y Obsequio, en PVP y Netos Bonus) se
+  resaltan con fondo gris medio y negrita.
+
+### Arreglado
+- Netos Bonus, al crearse por primera vez, rellenaba de fábrica el margen
+  (20%/15%) y el obsequio (50€/100€) por formato de bidones/cubas, guardado
+  igual que un valor manual — esas casillas nunca seguían "Margen por
+  defecto". Los niveles nuevos empiezan ahora sin esa semilla; los ya
+  guardados se limpian una sola vez (solo lo que nunca se tocó a mano; lo
+  editado de verdad se conserva). Ver
+  [ADR 0040](docs/decisiones/0040-margen-por-defecto-en-vivo-y-resaltado.md).
+
 ## [v0.9.27] — 2026-08-14
 
 ### Añadido

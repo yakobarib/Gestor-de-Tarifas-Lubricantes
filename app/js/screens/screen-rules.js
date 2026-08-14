@@ -26,22 +26,20 @@ const ScreenRules = (() => {
   const PROMO_1X2_MAX_LITERS = 5;
   const PVP_NETO_MIN_LITERS = 150;
 
-  // Bidones ~200L (185/200/205/208/209 según proveedor) al 20% sobre venta, cubas
-  // ~1000L al 15% — mismos valores que usa la fórmula fija de "PVP Neto" en pricing.js,
-  // aquí solo como semilla de margen por formato al crear Netos Bonus por primera vez.
-  const CUBAS_MARGIN_BY_FORMAT = { '185': 20, '200': 20, '205': 20, '208': 20, '209': 20, '1000': 15 };
-  const BONUS_PREMIUM_BY_FORMAT = { '185': 50, '200': 50, '205': 50, '208': 50, '209': 50, '1000': 100 };
-
   /** Netos Bonus: coste en cascada (siempre el más bajo disponible, ver ADR 0016), nunca
    *  va a Skrit — son hojas impresas para comerciales, no dependen de Skrit — y en vez de
    *  `onlyFormats` (que antes decidía a la vez "tiene precio" y "se imprime") ahora
    *  `printFormats` solo decide qué formatos se incluyen en la hoja impresa; el precio se
-   *  calcula para cualquier formato con coste disponible. */
+   *  calcula para cualquier formato con coste disponible. `byFormat`/`premiumByFormat`
+   *  empiezan vacíos (antes traían una semilla fija de 20%/15% y 50€/100€ para bidones/
+   *  cubas, indistinguible de un valor puesto a mano — Margen por defecto no la seguía
+   *  al cambiarla, bug real, ver ADR 0040) — cada formato sigue "Margen por defecto"
+   *  hasta que Yako escriba algo a mano. */
   function defaultNetosBonusLevel() {
     return {
       id: 'netos_bonus', label: 'Netos Bonus', baseCost: 'tripleNeto', baseCostField: 'costTripleNeto',
       costCascade: ['costTripleNeto', 'costNetoNeto', 'costFactura'], mode: 'sale', defaultMargin: 20,
-      byFormat: Object.assign({}, CUBAS_MARGIN_BY_FORMAT), premiumByFormat: Object.assign({}, BONUS_PREMIUM_BY_FORMAT),
+      byFormat: {}, premiumByFormat: {},
       printFormats: {}, rounding: '2dec', manualOverride: {}, goesToSkrit: false
     };
   }
@@ -209,9 +207,10 @@ const ScreenRules = (() => {
     // `data-index` en el propio input (no solo en la <table> contenedora) — lo lee
     // directamente el listener de "change" de más abajo; sin él, editar el margen/
     // obsequio por formato no llegaba nunca a guardarse (bug real, ver ADR 0037).
-    const marginRow = `<tr><th>Margen (%)</th>${formats.map(f => `
-      <td><input type="number" min="0" max="500" step="0.5" data-field="byFormat" data-index="${lvl._index}" data-format="${escapeHtml(f.key)}" placeholder="${lvl.defaultMargin}" value="${lvl.byFormat && lvl.byFormat[f.key] != null ? lvl.byFormat[f.key] : ''}"></td>
-    `).join('')}</tr>`;
+    const marginRow = `<tr><th>Margen (%)</th>${formats.map(f => {
+      const hasValue = lvl.byFormat && lvl.byFormat[f.key] != null;
+      return `<td><input type="number" min="0" max="500" step="0.5" class="${hasValue ? 'has-value' : ''}" data-field="byFormat" data-index="${lvl._index}" data-format="${escapeHtml(f.key)}" placeholder="${lvl.defaultMargin}" value="${hasValue ? lvl.byFormat[f.key] : ''}"></td>`;
+    }).join('')}</tr>`;
 
     let extraRows = '';
     if (lvl.id === 'pvp') {
@@ -220,9 +219,10 @@ const ScreenRules = (() => {
         <tr><th>PVP Neto</th>${formats.map(f => (f.key !== '?' && parseFloat(f.key) >= PVP_NETO_MIN_LITERS) ? formatToggleCell(lvl, f.key, 'pvp_neto') : '<td class="disabled">—</td>').join('')}</tr>
       `;
     } else if (lvl.id === 'netos_bonus') {
-      const premiumRow = `<tr><th>Obsequio (€)</th>${formats.map(f => `
-        <td><input type="number" min="0" step="0.5" data-field="premiumByFormat" data-index="${lvl._index}" data-format="${escapeHtml(f.key)}" placeholder="0" value="${lvl.premiumByFormat && lvl.premiumByFormat[f.key] != null ? lvl.premiumByFormat[f.key] : ''}"></td>
-      `).join('')}</tr>`;
+      const premiumRow = `<tr><th>Obsequio (€)</th>${formats.map(f => {
+        const hasValue = lvl.premiumByFormat && lvl.premiumByFormat[f.key] != null;
+        return `<td><input type="number" min="0" step="0.5" class="${hasValue ? 'has-value' : ''}" data-field="premiumByFormat" data-index="${lvl._index}" data-format="${escapeHtml(f.key)}" placeholder="0" value="${hasValue ? lvl.premiumByFormat[f.key] : ''}"></td>`;
+      }).join('')}</tr>`;
       extraRows = `${premiumRow}<tr><th>Salida impresa</th>${formats.map(f => printToggleCell(lvl, f.key)).join('')}</tr>`;
     }
 
@@ -379,11 +379,15 @@ const ScreenRules = (() => {
       if (index == null) return;
       const field = t.dataset.field;
       if (!field) return;
-      if (field === 'byFormat') { updateByFormat(parseInt(index, 10), t.dataset.format, t.value); return; }
-      if (field === 'premiumByFormat') { updatePremiumByFormat(parseInt(index, 10), t.dataset.format, t.value); return; }
+      // Solo se cambia la clase del propio input (no un renderLevels() completo) para no
+      // perder el foco/orden de tabulación al rellenar varias celdas seguidas — a
+      // diferencia de "Margen por defecto", que sí necesita repintar toda la fila porque
+      // cambia el placeholder de las demás celdas vacías (ver ADR 0040).
+      if (field === 'byFormat') { updateByFormat(parseInt(index, 10), t.dataset.format, t.value); t.classList.toggle('has-value', t.value !== ''); return; }
+      if (field === 'premiumByFormat') { updatePremiumByFormat(parseInt(index, 10), t.dataset.format, t.value); t.classList.toggle('has-value', t.value !== ''); return; }
       const value = field === 'goesToSkrit' ? t.checked : t.value;
       updateLevelField(parseInt(index, 10), field, value);
-      if (field === 'goesToSkrit' || field === 'baseCost') renderLevels();
+      if (field === 'goesToSkrit' || field === 'baseCost' || field === 'defaultMargin') renderLevels();
     });
     $('levelsContainer').addEventListener('click', (e) => {
       const modeBtn = e.target.closest('[data-action="toggle-mode"]');

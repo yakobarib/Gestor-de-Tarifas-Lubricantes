@@ -21,18 +21,56 @@ const Migration = (() => {
     };
   }
 
-  function run() {
-    if (Storage.get('migrated_v1')) return;
-    const keys = Storage.list();
-    for (const key of keys) {
-      if (!key.startsWith('config_')) continue;
-      const cfg = Storage.get(key);
-      if (cfg && !cfg.priceLevels) {
-        cfg.priceLevels = [synthesizePvpLevel(cfg)];
-        Storage.set(key, cfg);
+  // Semilla original de Netos Bonus al crear el nivel por primera vez (ver
+  // ADR 0016/screen-rules.js) — copiada aquí solo para esta limpieza de una vez;
+  // migration.js corre antes que screen-rules.js, no puede importar sus constantes.
+  const SEED_MARGIN_BY_FORMAT = { '185': 20, '200': 20, '205': 20, '208': 20, '209': 20, '1000': 15 };
+  const SEED_PREMIUM_BY_FORMAT = { '185': 50, '200': 50, '205': 50, '208': 50, '209': 50, '1000': 100 };
+
+  /** Yako nunca escribió a mano el margen/obsequio de fábrica de Netos Bonus — se
+   *  guardaba igual que un valor manual, así que no seguía "Margen por defecto" al
+   *  cambiarlo (bug real, ver ADR 0040). Limpieza de una vez: solo borra las celdas que
+   *  siguen EXACTAMENTE en su valor de semilla (si Yako la tocó a mano, aunque coincida
+   *  con otro formato, se queda igual — no hay forma de distinguir "nunca tocada" de
+   *  "tocada y puesta igual", así que se prioriza no perder ediciones reales). */
+  function clearUntouchedBonusSeed(cfg) {
+    let changed = false;
+    const bonus = (cfg.priceLevels || []).find(l => l.id === 'netos_bonus');
+    if (!bonus) return false;
+    if (bonus.byFormat) {
+      for (const [k, seedVal] of Object.entries(SEED_MARGIN_BY_FORMAT)) {
+        if (bonus.byFormat[k] === seedVal) { delete bonus.byFormat[k]; changed = true; }
       }
     }
-    Storage.set('migrated_v1', true);
+    if (bonus.premiumByFormat) {
+      for (const [k, seedVal] of Object.entries(SEED_PREMIUM_BY_FORMAT)) {
+        if (bonus.premiumByFormat[k] === seedVal) { delete bonus.premiumByFormat[k]; changed = true; }
+      }
+    }
+    return changed;
+  }
+
+  function run() {
+    if (!Storage.get('migrated_v1')) {
+      const keys = Storage.list();
+      for (const key of keys) {
+        if (!key.startsWith('config_')) continue;
+        const cfg = Storage.get(key);
+        if (cfg && !cfg.priceLevels) {
+          cfg.priceLevels = [synthesizePvpLevel(cfg)];
+          Storage.set(key, cfg);
+        }
+      }
+      Storage.set('migrated_v1', true);
+    }
+    if (!Storage.get('migrated_v2_clear_bonus_seed')) {
+      for (const key of Storage.list()) {
+        if (!key.startsWith('config_')) continue;
+        const cfg = Storage.get(key);
+        if (cfg && cfg.priceLevels && clearUntouchedBonusSeed(cfg)) Storage.set(key, cfg);
+      }
+      Storage.set('migrated_v2_clear_bonus_seed', true);
+    }
   }
 
   return { run, synthesizePvpLevel };
