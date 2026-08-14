@@ -47,6 +47,7 @@ const ScreenExport = (() => {
     'skrit:pvp': 'PVP SKRIT',
     'print:pvp': 'PVP Comerciales',
     'level:netos_bonus': 'Neto Bonus',
+    'print:netos_bonus': 'PVP Bonus',
     'list:neto_factura': 'Neto Factura',
     'list:neto_neto': 'Neto-Neto',
     'list:triple_neto': 'Triple-Neto',
@@ -247,6 +248,10 @@ const ScreenExport = (() => {
         levelOptions.push('<option value="level:pvp">PVP (Venta)</option>');
         levelOptions.push('<option value="skrit:pvp">PVP (Skrit)</option>');
         levelOptions.push('<option value="print:pvp">PVP (Imprimir)</option>');
+      } else if (l.id === 'netos_bonus') {
+        levelOptions.push(`<option value="level:${escapeHtml(l.id)}">${escapeHtml(l.label)}${l.goesToSkrit ? ' (Venta)' : ' (uso interno)'}</option>`);
+        // PDF sin coste para comerciales, solo con las filas de Netos Bonus (ver ADR 0039).
+        levelOptions.push('<option value="print:netos_bonus">PVP (Bonus)</option>');
       } else {
         levelOptions.push(`<option value="level:${escapeHtml(l.id)}">${escapeHtml(l.label)}${l.goesToSkrit ? ' (Venta)' : ' (uso interno)'}</option>`);
       }
@@ -435,15 +440,27 @@ const ScreenExport = (() => {
     }
 
     if (kind === 'print') {
-      thead.innerHTML = `<tr><th>Referencia</th><th>Producto</th><th class="num liters">Litros</th><th class="num">PVP</th></tr>`;
+      // "PVP (Imprimir)" usa siempre el nivel "pvp"; "PVP (Bonus)" (ver ADR 0039) usa
+      // "netos_bonus" y, como su Excel, solo entran los formatos con "Salida impresa"
+      // marcada — mismo criterio que la rama `key === 'netos_bonus'` de más abajo.
+      const isBonus = key === 'netos_bonus';
+      thead.innerHTML = isBonus
+        ? `<tr><th>Referencia</th><th>Descripción</th><th class="num liters">Litros</th><th class="num">PVP Bonus</th></tr>`
+        : `<tr><th>Referencia</th><th>Producto</th><th class="num liters">Litros</th><th class="num">PVP</th></tr>`;
       const byGama = currentGama === '__all__' ? loadLevelsByGama(currentBrandId, brand.gamas) : null;
       const levelCache = {};
       const levelFor = (gama) => {
         if (levelCache[gama]) return levelCache[gama];
-        const lvl = byGama ? (byGama[gama] || []).find(l => l.id === 'pvp') : loadLevels(currentBrandId, currentGama).find(l => l.id === 'pvp');
+        const lvl = byGama ? (byGama[gama] || []).find(l => l.id === key) : loadLevels(currentBrandId, currentGama).find(l => l.id === key);
         levelCache[gama] = lvl || null;
         return levelCache[gama];
       };
+      if (isBonus) {
+        visible = visible.filter(r => {
+          const lvl = levelFor(r.gama);
+          return lvl && lvl.printFormats && lvl.printFormats[r.formatKey];
+        });
+      }
       updateCountBox(visible.length, rows.length);
       const tally = newErrorTally();
       const frag = document.createDocumentFragment();
@@ -628,11 +645,12 @@ const ScreenExport = (() => {
       return;
     }
 
-    // 'skrit' y 'print' usan siempre el nivel "pvp" — en "Todas" se resuelve fila a
-    // fila según la gama real de cada fila, igual que 'level'.
+    // 'skrit' y 'print' usan el nivel de `key` ("pvp" para Skrit/Imprimir, "netos_bonus"
+    // para "PVP (Bonus)", ver ADR 0039) — en "Todas" se resuelve fila a fila según la
+    // gama real de cada fila, igual que 'level'.
     if (kind === 'skrit' || kind === 'print') {
       const byGama = currentGama === '__all__' ? loadLevelsByGama(currentBrandId, brand.gamas) : null;
-      const levelForGama = (gama) => byGama ? (byGama[gama] || []).find(l => l.id === 'pvp') : loadLevels(currentBrandId, currentGama).find(l => l.id === 'pvp');
+      const levelForGama = (gama) => byGama ? (byGama[gama] || []).find(l => l.id === key) : loadLevels(currentBrandId, currentGama).find(l => l.id === key);
       const resolver = currentGama === '__all__' ? (row) => levelForGama(row.gama) : levelForGama(currentGama);
       if (kind === 'skrit') {
         const fname = await ExcelWriter.exportSkritLean(filtered, brand.abbr, resolver, tariffDate, EXPORT_FILE_TYPE_LABELS[currentOption]);
@@ -641,17 +659,26 @@ const ScreenExport = (() => {
       }
       // 'print': solo las filas con PVP calculado (mismo criterio que la previsualización).
       // Se recalcula `_printPvp` aquí en vez de fiarse del último render de la tabla, por
-      // si los filtros cambiaron sin repintar.
+      // si los filtros cambiaron sin repintar. "PVP (Bonus)" además solo incluye los
+      // formatos marcados "Salida impresa" — mismo criterio que su Excel (ADR 0026 v2).
       const resolveLevel = typeof resolver === 'function' ? resolver : () => resolver;
-      const printable = filtered.filter(r => {
+      const isBonus = key === 'netos_bonus';
+      let printable = filtered.filter(r => {
         const level = resolveLevel(r);
         const pvp = level ? Pricing.compute(r, level).pvp : null;
         r._printPvp = pvp;
         return pvp != null;
       });
-      if (!printable.length) { alert('Ninguna referencia visible tiene PVP calculado.'); return; }
+      if (isBonus) {
+        printable = printable.filter(r => {
+          const lvl = resolveLevel(r);
+          return lvl && lvl.printFormats && lvl.printFormats[r.formatKey];
+        });
+      }
+      if (!printable.length) { alert(isBonus ? 'Ningún formato visible está marcado con "Salida impresa" en Netos Bonus.' : 'Ninguna referencia visible tiene PVP calculado.'); return; }
       const gamaLabel = currentGama === '__all__' ? '' : (GAMA_LABELS[currentGama] || currentGama);
-      const fname = PdfWriter.exportPriceListPdf(printable, brand, gamaLabel, tariffDate, EXPORT_FILE_TYPE_LABELS[currentOption]);
+      const pdfOpts = isBonus ? { title: 'Tarifa Netos Bonus', columns: ['Referencia', 'Descripción', 'Litros', 'PVP Bonus'] } : undefined;
+      const fname = PdfWriter.exportPriceListPdf(printable, brand, gamaLabel, tariffDate, EXPORT_FILE_TYPE_LABELS[currentOption], pdfOpts);
       $('exportStatus').innerHTML = `<small style="color: var(--pico-ins-color);">✓ Exportado: <strong>${escapeHtml(fname)}</strong> (${printable.length} filas).</small>`;
       return;
     }

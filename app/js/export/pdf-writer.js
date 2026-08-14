@@ -30,8 +30,13 @@ const PdfWriter = (() => {
   }
 
   /** `rows` ya vienen filtradas por pantalla y con `_printPvp` calculado (WYSIWYG, ver
-   *  ADR 0023) — aquí solo se maqueta. `gamaLabel` es null/'' para "Todas las gamas". */
-  function exportPriceListPdf(rows, brand, gamaLabel, tariffDate, typeLabel) {
+   *  ADR 0023) — aquí solo se maqueta. `gamaLabel` es null/'' para "Todas las gamas".
+   *  `opts.title`/`opts.columns` permiten reusar el mismo maquetado para "PVP (Bonus)"
+   *  (ver ADR 0039) sin duplicar la función — por defecto, el de "PVP (Imprimir)". */
+  function exportPriceListPdf(rows, brand, gamaLabel, tariffDate, typeLabel, opts) {
+    const cfg = opts || {};
+    const title = cfg.title || 'Tarifa de venta';
+    const columns = cfg.columns || ['Referencia', 'Producto', 'Litros', 'PVP'];
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF({ unit: 'mm', format: 'a4' });
     const accent = hexToRgb(HEADER_COLOR_BY_BRAND[brand.id] || brand.color);
@@ -40,7 +45,7 @@ const PdfWriter = (() => {
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(16);
     doc.setTextColor(30, 30, 30);
-    doc.text(`Tarifa de venta — ${brand.label}`, 14, 18);
+    doc.text(`${title} — ${brand.label}`, 14, 18);
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(10);
     doc.setTextColor(110, 110, 110);
@@ -57,7 +62,7 @@ const PdfWriter = (() => {
 
     doc.autoTable({
       startY: 30,
-      head: [['Referencia', 'Producto', 'Litros', 'PVP']],
+      head: [columns],
       body,
       styles: { fontSize: 9, cellPadding: 2.2 },
       headStyles: { fillColor: accent, textColor: 255, fontStyle: 'bold' },

@@ -2,6 +2,14 @@
 
 Formato inspirado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [v0.9.27] — 2026-08-14
+
+### Añadido
+- Nuevo tipo de exportación "PVP (Bonus)": PDF sin coste, mismo maquetado
+  que "PVP (Imprimir)", con el resultado de Netos Bonus (solo los formatos
+  marcados "Salida impresa") en 4 columnas — Referencia, Descripción,
+  Litros, PVP Bonus. Ver [ADR 0039](docs/decisiones/0039-pvp-bonus-pdf.md).
+
 ## [v0.9.26] — 2026-08-14
 
 ### Arreglado
