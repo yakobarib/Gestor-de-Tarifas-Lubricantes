@@ -2,6 +2,16 @@
 
 Formato inspirado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [v0.9.26] — 2026-08-14
+
+### Arreglado
+- Detección de litros: cuando la descripción no trae ningún tamaño con
+  unidad explícita pero termina en un código de familia tipo "-400" (ej.
+  "GREASE CG-400"), se interpreta como gramos → litros (400 → 0,4 L),
+  confirmado por Yako. Se excluyen los códigos de viscosidad ("5W-40",
+  "10W-60") para no confundirlos con un tamaño de envase. Ver
+  [ADR 0038](docs/decisiones/0038-litros-desde-codigo-de-familia.md).
+
 ## [v0.9.25] — 2026-08-13
 
 ### Arreglado

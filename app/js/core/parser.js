@@ -41,6 +41,20 @@ const Parser = (() => {
       if (liters >= 0.05 && liters <= 2000) candidates.push(liters);
     }
 
+    // Patrón 3 (respaldo, solo si ningún patrón anterior encontró nada): código de
+    // familia terminado en "-NNN" sin unidad explícita — ej. "GREASE CG-400" — Yako
+    // confirma que ese sufijo es el peso en gramos del envase (400 → 0,4 L para
+    // nosotros, misma equivalencia 1g≈1ml que ya usa `toLiters` con GR/KG). Se excluye
+    // si el código es en realidad una viscosidad tipo "5W-40"/"10W-60" (el trozo antes
+    // del guion es dígitos+W), que no es un tamaño de envase.
+    if (candidates.length === 0) {
+      const mCode = /\b([A-Z]{1,6})-(\d{2,4})\s*$/i.exec(desc);
+      if (mCode && !/^\d+W$/i.test(mCode[1])) {
+        const grams = parseInt(mCode[2], 10);
+        if (grams >= 50 && grams <= 2000) candidates.push(grams / 1000);
+      }
+    }
+
     if (candidates.length === 0) return null;
     return Math.max(...candidates);
   }
