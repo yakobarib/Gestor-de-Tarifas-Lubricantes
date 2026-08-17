@@ -27,9 +27,9 @@ function setupHeaderActions() {
   if (btnLogin) btnLogin.addEventListener('click', () => showToast('Inicio de sesión — próximamente'));
 }
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
   Theme.init();
-  Migration.run();
+  await Migration.run(); // ahora asíncrona: aplica el maestro de descripciones a filas ya importadas (ver ADR 0043)
   ScreenImport.init();
   ScreenTarifas.init();
   ScreenRules.init();

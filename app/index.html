@@ -59,7 +59,7 @@
     <div class="sidebar-footer">
       <p>Krafted by <strong>Yakoba Moreno</strong></p>
       <p>Designed in <strong>Claude Code</strong></p>
-      <span class="sidebar-version">v0.9.30</span>
+      <span class="sidebar-version">v0.9.31</span>
     </div>
   </aside>
 
@@ -145,7 +145,10 @@
 
     <div id="gamaTabs" class="mode-toggle hidden" style="margin-bottom:0.6rem;"></div>
     <div id="historyBanner" class="history-banner hidden"></div>
-    <p class="hint">Tarifa entrante tal cual llega del proveedor, sin margen — configúralo en <a href="#rules">Reglas</a> y mira el listado final calculado en <a href="#export">Exportación</a>.</p>
+    <div id="descValidationBanner" class="desc-validation-banner hidden"></div>
+    <p class="hint">Tarifa entrante tal cual llega del proveedor, sin margen — configúralo en <a href="#rules">Reglas</a> y mira el listado final calculado en <a href="#export">Exportación</a>.
+      <span id="descOverridesNotice" class="desc-overrides-notice hidden"></span>
+    </p>
     <div class="kpis" id="kpis"></div>
 
     <div class="filter-bar">
@@ -193,6 +196,25 @@
       <ul id="obsoleteList"></ul>
       <div class="actions">
         <button class="secondary-btn" onclick="document.getElementById('modalObsolete').classList.add('hidden')">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal de validación de descripciones/litros (ver ADR 0043) -->
+  <div id="modalDescValidation" class="modal-backdrop hidden">
+    <div class="modal modal-wide">
+      <h3>Validar descripciones y litros</h3>
+      <p class="muted" style="font-size:0.85rem;">
+        Estas referencias no están todavía en el maestro de descripciones verificadas de esta marca — corrígelas y se
+        recordarán siempre para esta referencia, sustituyendo lo que traiga la tarifa del proveedor.
+      </p>
+      <p class="desc-overrides-warning">
+        ⚠ Estas correcciones se guardan solo en <strong>este navegador</strong>. Para que estén disponibles en cualquier
+        dispositivo, avisa al administrador de la app para que las incorpore al maestro.
+      </p>
+      <div class="desc-validation-list" id="descValidationList"></div>
+      <div class="actions">
+        <button class="secondary-btn" onclick="document.getElementById('modalDescValidation').classList.add('hidden')">Cerrar</button>
       </div>
     </div>
   </div>
@@ -370,6 +392,8 @@
 <script src="js/core/history.js"></script>
 <script src="js/core/rebrand-map.js"></script>
 <script src="js/core/brands.js"></script>
+<script src="js/data/master-descriptions.js"></script>
+<script src="js/core/description-overrides.js"></script>
 <script src="js/core/db.js"></script>
 <script src="js/core/migration.js"></script>
 <script src="js/core/store.js"></script>

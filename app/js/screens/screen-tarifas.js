@@ -291,6 +291,82 @@ const ScreenTarifas = (() => {
     }
   }
 
+  /* ----- maestro de descripciones verificadas (ver ADR 0043) ----- */
+
+  /** Filas de la marca/gama actual que no están en el maestro (de fábrica ni corregidas
+   *  a mano en este navegador) — `descVerified` lo pone `MasterDB.putRows`. */
+  function pendingDescRows() {
+    return rows.filter(r => !r.descVerified);
+  }
+
+  /** Banner parpadeante mientras queden referencias sin descripción verificada — se
+   *  calma solo cuando `pendingDescRows()` llega a cero. Clicable: abre el modal. */
+  function renderDescValidationBanner() {
+    const el = $('descValidationBanner');
+    const pending = pendingDescRows();
+    if (pending.length === 0) { el.classList.add('hidden'); return; }
+    el.classList.remove('hidden');
+    el.innerHTML = `⚠ ${pending.length} referencia${pending.length > 1 ? 's' : ''} sin descripción verificada — <a>validar ahora →</a>`;
+    el.onclick = openDescValidationModal;
+  }
+
+  /** Aviso persistente (no parpadea) de cuántas correcciones hechas en este navegador
+   *  siguen sin incorporarse al maestro de fábrica — independiente de la marca/gama que
+   *  se esté viendo, para que Yako no se olvide de pedir que se incorporen. */
+  function renderDescOverridesNotice() {
+    const el = $('descOverridesNotice');
+    const n = DescriptionOverrides.countAll();
+    if (n === 0) { el.classList.add('hidden'); return; }
+    el.classList.remove('hidden');
+    el.textContent = ` ⚠ ${n} corrección${n > 1 ? 'es' : ''} de descripción guardada${n > 1 ? 's' : ''} solo en este navegador — pide que se incorporen al maestro.`;
+  }
+
+  function openDescValidationModal() {
+    const pending = pendingDescRows();
+    if (!pending.length) return;
+    const list = $('descValidationList');
+    list.innerHTML = pending.map(r => `
+      <div class="desc-validation-row" data-ref="${escapeHtml(r.ref)}">
+        <div class="ref-col">${escapeHtml(r.ref)}</div>
+        <div class="raw-col" title="Descripción detectada automáticamente">${escapeHtml(r.description || '(sin descripción)')}</div>
+        <input type="text" data-field="desc" value="${escapeHtml(r.description || '')}" placeholder="Descripción correcta">
+        <input type="number" step="0.01" data-field="liters" value="${r.liters ?? ''}" placeholder="Litros">
+        <button type="button" class="secondary-btn" data-action="save-desc">Guardar</button>
+      </div>
+    `).join('');
+    $('modalDescValidation').classList.remove('hidden');
+  }
+
+  function saveDescValidation(rowEl) {
+    const ref = rowEl.dataset.ref;
+    const descInput = rowEl.querySelector('input[data-field="desc"]');
+    const litersInput = rowEl.querySelector('input[data-field="liters"]');
+    const description = descInput.value.trim();
+    if (!description) { descInput.focus(); return; }
+    const litersVal = litersInput.value.trim();
+    const liters = litersVal === '' ? null : parseFloat(litersVal);
+
+    DescriptionOverrides.set(currentBrandId, ref, description, isFinite(liters) ? liters : null);
+
+    const row = rows.find(r => r.ref === ref);
+    if (row) {
+      row.description = description;
+      row.liters = isFinite(liters) ? liters : null;
+      row.formatKey = Parser.formatKey(row.liters);
+      row.litersDetected = row.liters != null;
+      row.descVerified = true;
+    }
+    rowEl.classList.add('done');
+    rowEl.querySelectorAll('input, button').forEach(el => el.disabled = true);
+
+    renderFormatFilter();
+    renderTable();
+    renderKpis();
+    renderDescValidationBanner();
+    renderDescOverridesNotice();
+    if (pendingDescRows().length === 0) $('modalDescValidation').classList.add('hidden');
+  }
+
   window.__openObsoleteModal = function() {
     const d = diff;
     if (!d || !d.obsoleteRefs || d.obsoleteRefs.length === 0) return;
@@ -313,6 +389,7 @@ const ScreenTarifas = (() => {
       $('tarifasEmptyText').textContent = 'Elige una marca arriba para ver su tarifa.';
       $('tarifasEmpty').classList.remove('hidden');
       $('tarifasContent').classList.add('hidden');
+      renderDescOverridesNotice(); // independiente de la marca — se muestra igual
       return;
     }
     $('tarifasTitle').textContent = brand.label;
@@ -341,6 +418,8 @@ const ScreenTarifas = (() => {
     renderHistoryBanner();
     renderTable();
     renderKpis();
+    renderDescValidationBanner();
+    renderDescOverridesNotice();
     $('loadStatusTarifas').classList.add('hidden');
   }
 
@@ -396,12 +475,19 @@ const ScreenTarifas = (() => {
       rows = refreshed.rows;
       diff = refreshed.diff;
       renderHistoryBanner(); renderKpis(); renderTable();
+      renderDescValidationBanner(); renderDescOverridesNotice();
       $('loadStatusTarifas').classList.remove('hidden');
       $('loadStatusTarifas').innerHTML = `<small style="color: var(--pico-ins-color);">✓ Tarifa vigente de ${escapeHtml(label)} actualizada.</small>`;
     });
 
     $('btnBackToImport').addEventListener('click', () => {
       Router.show('import');
+    });
+
+    $('descValidationList').addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-action="save-desc"]');
+      if (!btn) return;
+      saveDescValidation(btn.closest('.desc-validation-row'));
     });
 
     Store.on('tariff:loaded', () => { if (Router.current() === 'tarifas') jumpToLoaded(); });

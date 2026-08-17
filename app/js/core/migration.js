@@ -50,7 +50,27 @@ const Migration = (() => {
     return changed;
   }
 
-  function run() {
+  /** Aplica el maestro de descripciones/litros verificados (ver ADR 0043) a las filas
+   *  YA importadas antes de que existiera esta funcionalidad — sin esto, cualquier
+   *  referencia que de verdad esté en el maestro se vería igual "pendiente de validar"
+   *  hasta la próxima vez que se reimporte esa tarifa. Reusa `MasterDB.putRows` (mismo
+   *  camino que un import real) agrupando por marca/gama en vez de fila a fila. */
+  async function applyMasterDescriptions() {
+    const allRows = await MasterDB.getAll();
+    const groups = {};
+    for (const r of allRows) {
+      const key = `${r.brandId}::${r.gama}`;
+      (groups[key] = groups[key] || []).push({ ref: r.ref });
+    }
+    for (const key of Object.keys(groups)) {
+      const sep = key.indexOf('::');
+      const brandId = key.slice(0, sep);
+      const gama = key.slice(sep + 2);
+      await MasterDB.putRows(brandId, gama, groups[key], null);
+    }
+  }
+
+  async function run() {
     if (!Storage.get('migrated_v1')) {
       const keys = Storage.list();
       for (const key of keys) {
@@ -70,6 +90,10 @@ const Migration = (() => {
         if (cfg && cfg.priceLevels && clearUntouchedBonusSeed(cfg)) Storage.set(key, cfg);
       }
       Storage.set('migrated_v2_clear_bonus_seed', true);
+    }
+    if (!Storage.get('migrated_v3_apply_master_descriptions')) {
+      await applyMasterDescriptions();
+      Storage.set('migrated_v3_apply_master_descriptions', true);
     }
   }
 

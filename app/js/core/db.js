@@ -9,6 +9,10 @@
    filas ya existentes en vez de crear un catálogo paralelo.
    Los metadatos de "última tarifa importada" (pequeños, se pintan al instante)
    viven en localStorage vía Storage, no aquí — ver screens/screen-import.js.
+
+   `putRows` también sustituye descripción/litros por la versión verificada de
+   MasterDescriptions/DescriptionOverrides cuando existe, marcando `descVerified`
+   — ver ADR 0043.
 */
 const MasterDB = (() => {
   const DB_NAME = 'tarifador_master_v1';
@@ -51,19 +55,26 @@ const MasterDB = (() => {
         req.onsuccess = () => resolve(req.result || null);
         req.onerror = () => reject(req.error);
       });
+      // Descripción/litros verificados por Yako (ver ADR 0043) mandan sobre lo que traiga
+      // la tarifa del proveedor este mes — primero la corrección hecha a mano en este
+      // navegador (DescriptionOverrides, la más reciente), si no la de fábrica incrustada
+      // (MasterDescriptions). Sin ninguna de las dos, se queda la detección automática de
+      // siempre — sin cambios de comportamiento para las refs que aún no están validadas.
+      const verified = DescriptionOverrides.get(brandId, r.ref) || MasterDescriptions.lookup(brandId, r.ref);
       const merged = Object.assign(
         { id, brandId, gama, ref: r.ref },
         existing || {},
         {
-          description: r.description || (existing && existing.description) || '',
+          description: verified ? verified.description : (r.description || (existing && existing.description) || ''),
           descriptionRaw: r.description || (existing && existing.descriptionRaw) || '',
           // Solo algunos perfiles (Repsol) traen una versión renombrada para exports —
           // el resto no la trae, y las tarifas de salida caen de vuelta a `description`.
           descriptionExport: r.descriptionExport || (existing ? existing.descriptionExport : null),
-          liters: r.liters != null ? r.liters : (existing ? existing.liters : null),
-          formatKey: r.formatKey || (existing ? existing.formatKey : '?'),
+          liters: verified ? verified.liters : (r.liters != null ? r.liters : (existing ? existing.liters : null)),
+          formatKey: verified ? Parser.formatKey(verified.liters) : (r.formatKey || (existing ? existing.formatKey : '?')),
           fam: r.fam != null ? r.fam : (existing ? existing.fam : null),
-          litersDetected: !!r.litersDetected
+          litersDetected: verified ? verified.liters != null : !!r.litersDetected,
+          descVerified: !!verified
         }
       );
       // Guardia: solo tocar el coste del `tariffType` de este import si la fila trae de

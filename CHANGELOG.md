@@ -2,6 +2,22 @@
 
 Formato inspirado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [v0.9.31] — 2026-08-17
+
+### Añadido
+- Maestro de descripciones y litros verificados por Yako, incrustado en el
+  propio código (3.284 referencias en las 6 marcas, sin depender de subir
+  ningún fichero ni de un servicio externo). Al importar, si la referencia
+  está en el maestro, la descripción y los litros que se guardan son
+  siempre los verificados, sustituyendo lo que traiga la tarifa de ese mes.
+- Tarifas: panel de validación para las referencias que aún no están en el
+  maestro — un aviso parpadeante en amarillo pastel abre una ventana donde
+  corregir descripción y litros; se guardan al instante en el navegador.
+  Un aviso recuerda cuántas correcciones siguen sin incorporarse al
+  maestro de fábrica (no viajan solas entre dispositivos — hay que pedir
+  que se incorporen). Ver
+  [ADR 0043](docs/decisiones/0043-maestro-de-descripciones-verificadas.md).
+
 ## [v0.9.30] — 2026-08-14
 
 ### Arreglado

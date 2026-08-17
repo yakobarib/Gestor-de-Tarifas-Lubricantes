@@ -407,6 +407,56 @@ table.preview th.liters, table.preview td.liters { max-width: 76px; }
 .modal ul { max-height: 40vh; overflow: auto; margin: 0.6rem 0; padding-left: 1.2rem; font-size: 0.85rem; }
 .modal .actions { display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 1rem; }
 
+/* Modal de validación de descripciones: más ancho que el simple, para caber
+   ref + descripción + litros + botón por fila (ver ADR 0043). */
+.modal-wide { max-width: 780px; width: 94vw; }
+
+/* Banner de referencias pendientes de validar descripción (pantalla Tarifas) —
+   parpadea en amarillo pastel mientras haya alguna, mismo espíritu que el
+   aviso de errores de Exportación (ver ADR 0034/0043). Clicable: abre el
+   modal de validación. */
+.desc-validation-banner {
+  padding: 0.5rem 0.75rem; border-radius: var(--radius-sm); font-size: 0.82rem;
+  margin-bottom: 0.65rem; cursor: pointer; background: #fdf6d3; color: #7a5d00;
+  animation: export-errors-blink 1.6s ease-in-out infinite;
+}
+.desc-validation-banner a { color: inherit; font-weight: 600; text-decoration: underline; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .desc-validation-banner { color: #f0d98c; }
+}
+:root[data-theme="dark"] .desc-validation-banner { color: #f0d98c; }
+:root[data-theme="light"] .desc-validation-banner { color: #7a5d00; }
+
+/* Aviso persistente de correcciones sin incorporar al maestro (ver ADR 0043) —
+   discreto, no parpadea (a diferencia del banner de pendientes: esto no es un
+   error, solo un recordatorio). */
+.desc-overrides-notice { display: block; margin-top: 0.3rem; color: #7a5d00; font-size: 0.8rem; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .desc-overrides-notice { color: #f0d98c; }
+}
+:root[data-theme="dark"] .desc-overrides-notice { color: #f0d98c; }
+:root[data-theme="light"] .desc-overrides-notice { color: #7a5d00; }
+
+.desc-overrides-warning {
+  background: #fdf6d3; color: #7a5d00; border-radius: var(--radius-sm);
+  padding: 0.5rem 0.7rem; font-size: 0.8rem; margin: 0.6rem 0;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .desc-overrides-warning { background: #3a331c; color: #f0d98c; }
+}
+:root[data-theme="dark"] .desc-overrides-warning { background: #3a331c; color: #f0d98c; }
+:root[data-theme="light"] .desc-overrides-warning { background: #fdf6d3; color: #7a5d00; }
+
+.desc-validation-list { max-height: 50vh; overflow: auto; margin: 0.6rem 0; }
+.desc-validation-row {
+  display: grid; grid-template-columns: 100px 1fr 1fr 70px auto; gap: 0.5rem;
+  align-items: center; padding: 0.4rem 0; border-bottom: 1px solid var(--border-muted); font-size: 0.82rem;
+}
+.desc-validation-row .ref-col { font-weight: 600; word-break: break-all; }
+.desc-validation-row .raw-col { color: var(--pico-muted-color); font-size: 0.78rem; }
+.desc-validation-row input { margin: 0; padding: 0.3rem 0.45rem; font-size: 0.82rem; }
+.desc-validation-row.done { opacity: 0.5; }
+
 /* Manual de ayuda: modal más ancho, con pestañas por pantalla (ver ADR 0031). */
 .help-modal { max-width: 720px; width: 92vw; max-height: 85vh; padding: 0; display: flex; flex-direction: column; }
 .help-modal-head { display: flex; align-items: center; justify-content: space-between; padding: 1rem 1.2rem 0.7rem; border-bottom: 1px solid var(--pico-card-border-color); flex-shrink: 0; }
