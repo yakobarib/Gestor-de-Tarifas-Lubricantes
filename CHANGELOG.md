@@ -2,6 +2,25 @@
 
 Formato inspirado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [v0.9.33] — 2026-08-17
+
+### Añadido
+- Panel de validación de descripciones (Tarifas): pestaña "Ya validadas",
+  con buscador, para corregir una referencia que ya se había validado
+  antes — antes solo se podían corregir las pendientes.
+
+### Cambiado
+- Toda descripción que se valide (nueva o ya corregida antes) termina
+  siempre en el mismo formato de litros ("5L", "1000L", "230ML"), sin
+  importar cómo se haya escrito — homogéneo entre marcas.
+
+### Arreglado
+- Validar una descripción no se guardaba de verdad en el maestro — solo
+  quedaba en memoria y se perdía al recargar la página hasta la próxima
+  importación real. Ahora se persiste al instante.
+
+Ver [ADR 0044](docs/decisiones/0044-consistencia-sufijo-litros-editar-validadas.md).
+
 ## [v0.9.32] — 2026-08-17
 
 ### Arreglado

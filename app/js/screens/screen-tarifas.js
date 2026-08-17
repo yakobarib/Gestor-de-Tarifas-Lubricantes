@@ -291,12 +291,34 @@ const ScreenTarifas = (() => {
     }
   }
 
-  /* ----- maestro de descripciones verificadas (ver ADR 0043) ----- */
+  /* ----- maestro de descripciones verificadas (ver ADR 0043/0044) ----- */
+
+  let descValidationTab = 'pending'; // 'pending' | 'validated'
 
   /** Filas de la marca/gama actual que no están en el maestro (de fábrica ni corregidas
    *  a mano en este navegador) — `descVerified` lo pone `MasterDB.putRows`. */
   function pendingDescRows() {
     return rows.filter(r => !r.descVerified);
+  }
+  function validatedDescRows() {
+    return rows.filter(r => r.descVerified);
+  }
+
+  /** Quita cualquier tamaño ya escrito al final del texto (100X125ML, 5L, 20KG…) antes
+   *  de añadir el sufijo canónico — así da igual lo que Yako haya tecleado o traído del
+   *  proveedor, el resultado siempre acaba en el mismo formato. */
+  function stripTrailingSizeToken(desc) {
+    return desc.replace(/\s*\d+(?:[.,]\d+)?\s*(ML|MLS|L|LT|LTR|LTRS|LITROS?|KG|KGS|GR|GRS|G)\s*$/i, '').trim();
+  }
+
+  /** Sufijo de litros homogéneo para toda descripción verificada — "5L"/"1000L" (sin
+   *  espacio, mayúscula) o "230ML" por debajo de 1L, igual que ya usa la mayoría del
+   *  maestro de fábrica (ver ADR 0044: Yako pide que sea siempre igual, sin
+   *  inconsistencias entre marcas). */
+  function canonicalLitersSuffix(liters) {
+    if (liters == null || !isFinite(liters)) return '';
+    if (liters < 1) return `${Math.round(liters * 1000)}ML`;
+    return `${Number.isInteger(liters) ? liters : liters.toFixed(2)}L`;
   }
 
   /** Banner parpadeante mientras queden referencias sin descripción verificada — se
@@ -307,7 +329,7 @@ const ScreenTarifas = (() => {
     if (pending.length === 0) { el.classList.add('hidden'); return; }
     el.classList.remove('hidden');
     el.innerHTML = `⚠ ${pending.length} referencia${pending.length > 1 ? 's' : ''} sin descripción verificada — <a>validar ahora →</a>`;
-    el.onclick = openDescValidationModal;
+    el.onclick = () => openDescValidationModal('pending');
   }
 
   /** Aviso persistente (no parpadea) de cuántas correcciones hechas en este navegador
@@ -321,50 +343,90 @@ const ScreenTarifas = (() => {
     el.textContent = ` ⚠ ${n} corrección${n > 1 ? 'es' : ''} de descripción guardada${n > 1 ? 's' : ''} solo en este navegador — pide que se incorporen al maestro.`;
   }
 
-  function openDescValidationModal() {
-    const pending = pendingDescRows();
-    if (!pending.length) return;
-    const list = $('descValidationList');
-    list.innerHTML = pending.map(r => `
+  function descValidationRowHtml(r) {
+    return `
       <div class="desc-validation-row" data-ref="${escapeHtml(r.ref)}">
         <div class="ref-col">${escapeHtml(r.ref)}</div>
-        <div class="raw-col" title="Descripción detectada automáticamente">${escapeHtml(r.description || '(sin descripción)')}</div>
+        <div class="raw-col" title="Descripción actual">${escapeHtml(r.description || '(sin descripción)')}</div>
         <input type="text" data-field="desc" value="${escapeHtml(r.description || '')}" placeholder="Descripción correcta">
         <input type="number" step="0.01" data-field="liters" value="${r.liters ?? ''}" placeholder="Litros">
         <button type="button" class="secondary-btn" data-action="save-desc">Guardar</button>
       </div>
-    `).join('');
+    `;
+  }
+
+  /** Repinta la lista del modal según la pestaña activa ('pending'/'validated') y el
+   *  texto de búsqueda (solo aplica en "Ya validadas" — pendientes suele ser una lista
+   *  corta, no hace falta filtrarla). */
+  function renderDescValidationList() {
+    const isValidated = descValidationTab === 'validated';
+    $('descValidationSearch').classList.toggle('hidden', !isValidated);
+    let list = isValidated ? validatedDescRows() : pendingDescRows();
+    if (isValidated) {
+      const q = $('descValidationSearch').value.trim().toLowerCase();
+      if (q) list = list.filter(r => (r.ref + ' ' + (r.description || '')).toLowerCase().includes(q));
+    }
+    $('descValidationList').innerHTML = list.length
+      ? list.map(descValidationRowHtml).join('')
+      : `<p class="muted" style="font-size:0.85rem;">${isValidated ? 'Ninguna referencia validada todavía.' : '¡Todas las referencias de esta marca/gama están validadas!'}</p>`;
+  }
+
+  function renderDescValidationTabs() {
+    const pendingCount = pendingDescRows().length;
+    const validatedCount = validatedDescRows().length;
+    $('descValidationTabs').innerHTML = `
+      <button type="button" class="mode-btn ${descValidationTab === 'pending' ? 'active' : ''}" data-tab="pending" aria-pressed="${descValidationTab === 'pending'}">Pendientes (${pendingCount})</button>
+      <button type="button" class="mode-btn ${descValidationTab === 'validated' ? 'active' : ''}" data-tab="validated" aria-pressed="${descValidationTab === 'validated'}">Ya validadas (${validatedCount})</button>
+    `;
+  }
+
+  function openDescValidationModal(tab) {
+    descValidationTab = tab || 'pending';
+    $('descValidationSearch').value = '';
+    renderDescValidationTabs();
+    renderDescValidationList();
     $('modalDescValidation').classList.remove('hidden');
   }
 
-  function saveDescValidation(rowEl) {
+  async function saveDescValidation(rowEl) {
     const ref = rowEl.dataset.ref;
     const descInput = rowEl.querySelector('input[data-field="desc"]');
     const litersInput = rowEl.querySelector('input[data-field="liters"]');
-    const description = descInput.value.trim();
+    let description = descInput.value.trim();
     if (!description) { descInput.focus(); return; }
     const litersVal = litersInput.value.trim();
     const liters = litersVal === '' ? null : parseFloat(litersVal);
+    const litersOk = isFinite(liters) ? liters : null;
 
-    DescriptionOverrides.set(currentBrandId, ref, description, isFinite(liters) ? liters : null);
+    // Siempre el mismo formato de sufijo de litros en el texto, sin importar lo que
+    // hubiera escrito antes (ver ADR 0044).
+    description = stripTrailingSizeToken(description);
+    const suffix = canonicalLitersSuffix(litersOk);
+    if (suffix) description = `${description} ${suffix}`.trim();
+
+    DescriptionOverrides.set(currentBrandId, ref, description, litersOk);
 
     const row = rows.find(r => r.ref === ref);
     if (row) {
       row.description = description;
-      row.liters = isFinite(liters) ? liters : null;
+      row.liters = litersOk;
       row.formatKey = Parser.formatKey(row.liters);
       row.litersDetected = row.liters != null;
       row.descVerified = true;
+      // Sin esto, el override solo vivía en memoria (se perdía al recargar) hasta la
+      // próxima importación real — se persiste ya en el maestro (IndexedDB), mismo
+      // camino que usa la migración de una vez (ver ADR 0043/0044).
+      await MasterDB.putRows(currentBrandId, row.gama, [{ ref }], null);
     }
-    rowEl.classList.add('done');
-    rowEl.querySelectorAll('input, button').forEach(el => el.disabled = true);
 
     renderFormatFilter();
     renderTable();
     renderKpis();
     renderDescValidationBanner();
     renderDescOverridesNotice();
-    if (pendingDescRows().length === 0) $('modalDescValidation').classList.add('hidden');
+    renderDescValidationTabs();
+    renderDescValidationList();
+    if (descValidationTab === 'pending' && pendingDescRows().length === 0) $('modalDescValidation').classList.add('hidden');
   }
 
   window.__openObsoleteModal = function() {
@@ -484,11 +546,20 @@ const ScreenTarifas = (() => {
       Router.show('import');
     });
 
-    $('descValidationList').addEventListener('click', (e) => {
+    $('descValidationList').addEventListener('click', async (e) => {
       const btn = e.target.closest('[data-action="save-desc"]');
       if (!btn) return;
-      saveDescValidation(btn.closest('.desc-validation-row'));
+      btn.disabled = true;
+      await saveDescValidation(btn.closest('.desc-validation-row'));
     });
+    $('descValidationTabs').addEventListener('click', (e) => {
+      const btn = e.target.closest('button[data-tab]');
+      if (!btn) return;
+      descValidationTab = btn.dataset.tab;
+      renderDescValidationTabs();
+      renderDescValidationList();
+    });
+    $('descValidationSearch').addEventListener('input', renderDescValidationList);
 
     Store.on('tariff:loaded', () => { if (Router.current() === 'tarifas') jumpToLoaded(); });
     Store.on('screen:changed', (screen) => { if (screen === 'tarifas') jumpToLoaded(); });
