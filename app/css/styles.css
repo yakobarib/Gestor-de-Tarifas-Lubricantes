@@ -455,6 +455,7 @@ table.preview th.liters, table.preview td.liters { max-width: 76px; }
 .desc-validation-row .ref-col { font-weight: 600; word-break: break-all; }
 .desc-validation-row .raw-col { color: var(--pico-muted-color); font-size: 0.78rem; }
 .desc-validation-row input { margin: 0; padding: 0.3rem 0.45rem; font-size: 0.82rem; }
+.desc-validation-row button { margin: 0; padding: 0.3rem 0.6rem; font-size: 0.82rem; white-space: nowrap; }
 .desc-validation-row.done { opacity: 0.5; }
 
 /* Manual de ayuda: modal más ancho, con pestañas por pantalla (ver ADR 0031). */

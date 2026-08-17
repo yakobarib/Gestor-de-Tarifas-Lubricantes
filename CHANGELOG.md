@@ -2,6 +2,13 @@
 
 Formato inspirado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [v0.9.32] — 2026-08-17
+
+### Arreglado
+- Panel de validación de descripciones (Tarifas): el botón "Guardar"
+  quedaba un poco más alto que los campos de texto de su misma fila —
+  heredaba un margen por defecto que los inputs ya tenían puesto a 0.
+
 ## [v0.9.31] — 2026-08-17
 
 ### Añadido
