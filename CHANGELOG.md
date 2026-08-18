@@ -2,6 +2,17 @@
 
 Formato inspirado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [v0.9.35] — 2026-08-17
+
+### Arreglado
+- Modal de validación de descripciones: casillas de litros más anchas
+  (1000 ya no se cortaba), referencias y descripciones anchas ya no se
+  parten en dos líneas ni se recortan a media palabra, y el modal en
+  conjunto es lo bastante alto para que solo la lista de referencias
+  haga scroll — el título, los avisos, las pestañas y "Cerrar" se quedan
+  siempre visibles. Ver
+  [ADR 0045](docs/decisiones/0045-maquetado-modal-validacion.md).
+
 ## [v0.9.34] — 2026-08-17
 
 ### Arreglado

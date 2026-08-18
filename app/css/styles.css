@@ -408,8 +408,20 @@ table.preview th.liters, table.preview td.liters { max-width: 76px; }
 .modal .actions { display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 1rem; }
 
 /* Modal de validación de descripciones: más ancho que el simple, para caber
-   ref + descripción + litros + botón por fila (ver ADR 0043). */
-.modal-wide { max-width: 780px; width: 94vw; }
+   ref + descripción + litros + botón por fila (ver ADR 0043/0045). */
+/* El modal base hace scroll de sí mismo (`overflow: auto`) si el contenido no cabe en
+   80vh — para el de validación eso creaba una barra de scroll doble (la del propio
+   modal Y la de la lista de referencias, ya scrolleable). Aquí se anula: el modal se
+   fija a una altura generosa y en columna flex, para que solo `.desc-validation-list`
+   (la que de verdad puede tener cientos de filas) haga scroll — el título, los avisos,
+   las pestañas y el botón Cerrar se quedan fijos, siempre visibles (ver ADR 0045). */
+.modal-wide {
+  max-width: 1180px; width: 96vw;
+  height: 88vh; max-height: 88vh;
+  display: flex; flex-direction: column; overflow: hidden;
+}
+.modal-wide > * { flex: 0 0 auto; }
+.modal-wide .desc-validation-list { flex: 1 1 auto; min-height: 0; max-height: none; }
 
 /* Banner de referencias pendientes de validar descripción (pantalla Tarifas) —
    parpadea en amarillo pastel mientras haya alguna, mismo espíritu que el
@@ -447,15 +459,19 @@ table.preview th.liters, table.preview td.liters { max-width: 76px; }
 :root[data-theme="dark"] .desc-overrides-warning { background: #3a331c; color: #f0d98c; }
 :root[data-theme="light"] .desc-overrides-warning { background: #fdf6d3; color: #7a5d00; }
 
-.desc-validation-list { max-height: 50vh; overflow: auto; margin: 0.6rem 0; }
+.desc-validation-list { max-height: 55vh; overflow: auto; margin: 0.6rem 0; }
 .desc-validation-row {
-  display: grid; grid-template-columns: 100px 1fr 1fr 70px auto; gap: 0.5rem;
-  align-items: center; padding: 0.4rem 0; border-bottom: 1px solid var(--border-muted); font-size: 0.82rem;
+  display: grid; grid-template-columns: 150px 1.3fr 1.3fr 100px auto; gap: 0.9rem;
+  align-items: center; padding: 0.55rem 0; border-bottom: 1px solid var(--border-muted); font-size: 0.9rem;
 }
-.desc-validation-row .ref-col { font-weight: 600; word-break: break-all; }
-.desc-validation-row .raw-col { color: var(--pico-muted-color); font-size: 0.78rem; }
-.desc-validation-row input { margin: 0; padding: 0.3rem 0.45rem; font-size: 0.82rem; }
-.desc-validation-row button { margin: 0; padding: 0.3rem 0.6rem; font-size: 0.82rem; white-space: nowrap; }
+/* Referencia sin partir a media palabra ("RPG300BCH" + "C" en dos líneas) — con la
+   columna más ancha (150px) le sobra sitio en una sola línea; `nowrap` en vez de
+   `break-all` para que solo si un día no cupiera se saliera, en vez de partirla. */
+.desc-validation-row .ref-col { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.desc-validation-row .raw-col { color: var(--pico-muted-color); font-size: 0.85rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.desc-validation-row input { margin: 0; padding: 0.45rem 0.55rem; font-size: 0.9rem; }
+.desc-validation-row input[data-field="liters"] { min-width: 0; width: 100%; }
+.desc-validation-row button { margin: 0; padding: 0.45rem 0.85rem; font-size: 0.9rem; white-space: nowrap; }
 .desc-validation-row.done { opacity: 0.5; }
 
 /* Manual de ayuda: modal más ancho, con pestañas por pantalla (ver ADR 0031). */
