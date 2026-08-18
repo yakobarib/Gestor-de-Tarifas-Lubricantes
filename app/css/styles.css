@@ -481,6 +481,17 @@ table.preview th.liters, table.preview td.liters { max-width: 76px; }
    ============================================================================ */
 .screen-section { padding: 0 1.4rem 2rem; }
 
+/* Tarifas: Marca/Fecha se quedan fijos al hacer scroll dentro de `.app-main`, justo
+   debajo de `.app-header` (que ya es sticky, ver ADR 0028) — sin esto, en una tarifa
+   larga (tabla + banners + KPIs) el scroll se los llevaba por delante junto con el
+   resto. `top` = alto real de `.app-header` (100px, medido — altura fija: icono 44px +
+   padding 0.9rem, sin contenido variable que la cambie) para que encajen justo debajo
+   sin hueco ni solape, mismo patrón que dos barras sticky apiladas. */
+#screen-tarifas > .filter-row {
+  position: sticky; top: 100px; z-index: 4;
+  background: var(--page-bg); padding-top: 0.6rem; margin-bottom: 0.3rem;
+}
+
 /* Niveles de precio: cada campo en su propia columna compacta (label arriba,
    input abajo) en vez de una fila entera apilada por campo — es lo que hacía
    falta scroll en Reglas antes de este rediseño. */

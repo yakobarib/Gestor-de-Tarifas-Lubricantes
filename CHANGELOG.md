@@ -2,6 +2,13 @@
 
 Formato inspirado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [v0.9.34] — 2026-08-17
+
+### Arreglado
+- Tarifas: los desplegables de Marca y Fecha se quedan fijos al hacer
+  scroll (justo debajo de la cabecera), en vez de desaparecer con el resto
+  del contenido en tarifas largas.
+
 ## [v0.9.33] — 2026-08-17
 
 ### Añadido
