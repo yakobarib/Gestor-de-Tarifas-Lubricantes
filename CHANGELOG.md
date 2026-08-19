@@ -2,6 +2,22 @@
 
 Formato inspirado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [v0.9.36] — 2026-08-17
+
+### Añadido
+- Segundo lote de descripciones y litros verificados: 80 referencias más
+  de AD Parts (refrigerantes y otros químicos). El maestro pasa de un
+  flag "aplicado una vez" a un número de versión — los próximos lotes se
+  reaplican solos a las tarifas ya importadas, sin esperar a reimportarlas.
+
+### Arreglado
+- 2 referencias de AD Parts (`ADP20005`, `ADP22005`) resultaron ser un
+  error de fábrica del proveedor (la misma referencia usada para dos
+  productos distintos) — se descartó el refrigerante duplicado, sin
+  tocar los productos ya verificados.
+
+Ver [ADR 0046](docs/decisiones/0046-lote-refrigerantes-quimicos-y-version-maestro.md).
+
 ## [v0.9.35] — 2026-08-17
 
 ### Arreglado

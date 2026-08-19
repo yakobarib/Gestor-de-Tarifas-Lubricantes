@@ -91,9 +91,14 @@ const Migration = (() => {
       }
       Storage.set('migrated_v2_clear_bonus_seed', true);
     }
-    if (!Storage.get('migrated_v3_apply_master_descriptions')) {
+    // Por versión, no por flag de una sola vez (ver ADR 0046): cada lote nuevo de
+    // referencias validadas que se incorpore a MasterDescriptions sube `VERSION` — así
+    // se reaplica el maestro a las filas ya importadas sin esperar a que se reimporte
+    // esa tarifa, cada vez que llega un lote nuevo, no solo la primera.
+    const appliedVersion = Storage.get('applied_master_version') || 0;
+    if (appliedVersion < MasterDescriptions.VERSION) {
       await applyMasterDescriptions();
-      Storage.set('migrated_v3_apply_master_descriptions', true);
+      Storage.set('applied_master_version', MasterDescriptions.VERSION);
     }
   }
 
