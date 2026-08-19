@@ -530,7 +530,10 @@ const ScreenTarifas = (() => {
     $('tarifasBrandSelect').addEventListener('change', (e) => {
       currentBrandId = e.target.value;
       const brand = findBrand(currentBrandId);
-      currentGama = brand && brand.gamas.length ? brand.gamas[0] : 'default';
+      // "Todas" por defecto para cualquier marca, no la primera gama de la lista — Yako
+      // pide que no induzca a confusión (antes se abría en una gama concreta, distinta
+      // según la marca, sin ningún indicio de que hubiera más).
+      currentGama = brand && brand.gamas.length ? '__all__' : 'default';
       loadTariffData();
     });
     $('gamaTabs').addEventListener('click', (e) => {

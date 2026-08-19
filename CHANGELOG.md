@@ -2,6 +2,13 @@
 
 Formato inspirado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [v0.9.40] — 2026-08-19
+
+### Cambiado
+- Tarifas: al cambiar de marca, la gama por defecto es siempre "Todas"
+  (antes era la primera gama de la lista, distinta según la marca). Ver
+  [ADR 0050](docs/decisiones/0050-gama-todas-por-defecto-tarifas.md).
+
 ## [v0.9.39] — 2026-08-19
 
 ### Arreglado
