@@ -2,6 +2,18 @@
 
 Formato inspirado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [v0.9.42] — 2026-08-19
+
+### Añadido
+- Panel de validación de descripciones (Tarifas): el aviso de "correcciones
+  guardadas solo en este navegador" ahora tiene un enlace "exportar para
+  incorporar al maestro →" que abre un modal con todas las correcciones y
+  descartes (de todas las marcas) en un único JSON, con botones para
+  copiarlo o descargarlo como fichero — antes había que abrir las
+  herramientas de desarrollador a mano para sacar esos datos del
+  navegador. Ver
+  [ADR 0052](docs/decisiones/0052-exportar-correcciones-locales.md).
+
 ## [v0.9.41] — 2026-08-19
 
 ### Arreglado

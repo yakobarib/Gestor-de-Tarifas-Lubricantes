@@ -55,5 +55,18 @@ const DescriptionOverrides = (() => {
     return n;
   }
 
-  return { get, getAll, set, remove, countAll };
+  /** Todas las correcciones de todas las marcas, para el botón "Exportar correcciones"
+   *  del panel de validación — mismo shape que guarda cada clave, agrupado por marca. */
+  function exportAll() {
+    const out = {};
+    for (const key of Storage.list()) {
+      if (!key.startsWith('desc_override_')) continue;
+      const brandId = key.slice('desc_override_'.length);
+      const data = Storage.get(key, {});
+      if (Object.keys(data).length) out[brandId] = data;
+    }
+    return out;
+  }
+
+  return { get, getAll, set, remove, countAll, exportAll };
 })();

@@ -59,7 +59,7 @@
     <div class="sidebar-footer">
       <p>Krafted by <strong>Yakoba Moreno</strong></p>
       <p>Designed in <strong>Claude Code</strong></p>
-      <span class="sidebar-version">v0.9.41</span>
+      <span class="sidebar-version">v0.9.42</span>
     </div>
   </aside>
 
@@ -217,6 +217,24 @@
       <div class="desc-validation-list" id="descValidationList"></div>
       <div class="actions">
         <button class="secondary-btn" onclick="document.getElementById('modalDescValidation').classList.add('hidden')">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal de exportación de correcciones/descartes locales (ver ADR 0052) -->
+  <div id="modalExportOverrides" class="modal-backdrop hidden">
+    <div class="modal">
+      <h3>Exportar correcciones para el maestro</h3>
+      <p class="muted" style="font-size:0.85rem;">
+        Todas las correcciones y descartes guardados en este navegador, de todas las marcas. Copia este texto o
+        descarga el fichero y pásaselo al administrador de la app para que las incorpore al maestro de fábrica.
+      </p>
+      <textarea id="exportOverridesText" readonly style="width:100%; height:280px; font-family:monospace; font-size:0.8rem;"></textarea>
+      <p id="exportOverridesStatus" class="muted" style="font-size:0.85rem; min-height:1.2em;"></p>
+      <div class="actions">
+        <button type="button" class="secondary-btn" id="btnDownloadExportOverrides">Descargar fichero</button>
+        <button type="button" id="btnCopyExportOverrides">Copiar</button>
+        <button class="secondary-btn" onclick="document.getElementById('modalExportOverrides').classList.add('hidden')">Cerrar</button>
       </div>
     </div>
   </div>

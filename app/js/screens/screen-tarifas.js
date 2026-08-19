@@ -340,7 +340,29 @@ const ScreenTarifas = (() => {
     const n = DescriptionOverrides.countAll() + LocalInvalidRefs.countAll();
     if (n === 0) { el.classList.add('hidden'); return; }
     el.classList.remove('hidden');
-    el.textContent = ` ⚠ ${n} corrección${n > 1 ? 'es' : ''}/descarte${n > 1 ? 's' : ''} guardado${n > 1 ? 's' : ''} solo en este navegador — pide que se incorporen al maestro.`;
+    el.innerHTML = ` ⚠ ${n} correcci${n > 1 ? 'ones' : 'ón'}/descarte${n > 1 ? 's' : ''} guardado${n > 1 ? 's' : ''} solo en este navegador — <a data-action="export-overrides">exportar para incorporar al maestro →</a>`;
+  }
+
+  /** Vuelca todas las correcciones/descartes de todas las marcas (no solo la que se esté
+   *  viendo) en un único JSON — pensado para copiar/pegar o descargar y pasárselo al
+   *  administrador de la app, que lo incorpora al maestro de fábrica y lo despliega. */
+  function buildOverridesExportJson() {
+    const overrides = DescriptionOverrides.exportAll();
+    const invalidRefs = LocalInvalidRefs.exportAll();
+    return JSON.stringify({
+      generatedAt: new Date().toISOString(),
+      overrides,
+      invalidRefs
+    }, null, 2);
+  }
+
+  function openExportOverridesModal() {
+    const json = buildOverridesExportJson();
+    const textarea = $('exportOverridesText');
+    textarea.value = json;
+    $('modalExportOverrides').classList.remove('hidden');
+    textarea.focus();
+    textarea.select();
   }
 
   function descValidationRowHtml(r) {
@@ -599,6 +621,27 @@ const ScreenTarifas = (() => {
       renderDescValidationList();
     });
     $('descValidationSearch').addEventListener('input', renderDescValidationList);
+
+    $('descOverridesNotice').addEventListener('click', (e) => {
+      if (e.target.closest('[data-action="export-overrides"]')) openExportOverridesModal();
+    });
+    $('btnCopyExportOverrides').addEventListener('click', async () => {
+      const textarea = $('exportOverridesText');
+      textarea.select();
+      let ok = false;
+      try { await navigator.clipboard.writeText(textarea.value); ok = true; }
+      catch { ok = document.execCommand('copy'); }
+      $('exportOverridesStatus').textContent = ok ? '✓ Copiado.' : 'No se pudo copiar automáticamente — selecciona el texto y copia con Ctrl+C.';
+    });
+    $('btnDownloadExportOverrides').addEventListener('click', () => {
+      const blob = new Blob([$('exportOverridesText').value], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `correcciones-maestro-${new Date().toISOString().slice(0, 10)}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    });
 
     Store.on('tariff:loaded', () => { if (Router.current() === 'tarifas') jumpToLoaded(); });
     Store.on('screen:changed', (screen) => { if (screen === 'tarifas') jumpToLoaded(); });

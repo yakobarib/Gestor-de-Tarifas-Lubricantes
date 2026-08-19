@@ -46,5 +46,18 @@ const LocalInvalidRefs = (() => {
     return n;
   }
 
-  return { getAll, has, add, countAll };
+  /** Todos los descartes de todas las marcas, para el botón "Exportar correcciones" del
+   *  panel de validación — mismo shape que guarda cada clave, agrupado por marca. */
+  function exportAll() {
+    const out = {};
+    for (const key of Storage.list()) {
+      if (!key.startsWith('local_invalid_refs_')) continue;
+      const brandId = key.slice('local_invalid_refs_'.length);
+      const data = Storage.get(key, []);
+      if (data.length) out[brandId] = data;
+    }
+    return out;
+  }
+
+  return { getAll, has, add, countAll, exportAll };
 })();
