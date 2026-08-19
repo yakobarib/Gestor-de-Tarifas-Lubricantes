@@ -2,6 +2,18 @@
 
 Formato inspirado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [v0.9.43] — 2026-08-19
+
+### Cambiado
+- Maestro de descripciones vaciado por completo (las 3.284 referencias que
+  tenía se acabaron mezclando datos de fuentes distintas en conflicto entre
+  sí). Se reconstruye desde cero a partir de un Excel por marca, revisado
+  con calma fuera de la app, en `Archivo Maestro/` — hasta que se
+  incorporen esos Excel, todas las referencias importadas aparecen como
+  "pendientes de validar" en Tarifas (salvo las que ya tengan una
+  corrección guardada en el navegador). Ver
+  [ADR 0053](docs/decisiones/0053-maestro-vaciado-excel-externo.md).
+
 ## [v0.9.42] — 2026-08-19
 
 ### Añadido
