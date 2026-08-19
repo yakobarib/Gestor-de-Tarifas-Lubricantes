@@ -49,6 +49,11 @@ const MasterDB = (() => {
     const store = tx.objectStore(STORE);
 
     for (const r of rows) {
+      // Referencias que el proveedor manda en su tarifa pero que Yako confirma que no
+      // existen como producto real (ver ADR 0047) — se descartan aquí, no llegan siquiera
+      // a guardarse (si ya estaban de una importación anterior, `Migration.run()` las
+      // borra por su cuenta la próxima vez que se abra la app).
+      if (MasterDescriptions.isInvalidRef(brandId, r.ref)) continue;
       const id = rowId(brandId, gama, r.ref);
       const existing = await new Promise((resolve, reject) => {
         const req = store.get(id);
@@ -140,5 +145,17 @@ const MasterDB = (() => {
     });
   }
 
-  return { putRows, getByBrand, getByRef, getAll, rowId };
+  /** Borra una fila por id (`brandId::gama::ref`) — usado por `Migration.run()` para
+   *  quitar referencias ya importadas que luego se confirman inválidas (ver ADR 0047). */
+  async function deleteRow(brandId, gama, ref) {
+    const db = await open();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE, 'readwrite');
+      tx.objectStore(STORE).delete(rowId(brandId, gama, ref));
+      tx.oncomplete = resolve;
+      tx.onerror = () => reject(tx.error);
+    });
+  }
+
+  return { putRows, getByBrand, getByRef, getAll, deleteRow, rowId };
 })();

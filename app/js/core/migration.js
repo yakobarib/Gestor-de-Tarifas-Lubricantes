@@ -54,11 +54,18 @@ const Migration = (() => {
    *  YA importadas antes de que existiera esta funcionalidad — sin esto, cualquier
    *  referencia que de verdad esté en el maestro se vería igual "pendiente de validar"
    *  hasta la próxima vez que se reimporte esa tarifa. Reusa `MasterDB.putRows` (mismo
-   *  camino que un import real) agrupando por marca/gama en vez de fila a fila. */
+   *  camino que un import real) agrupando por marca/gama en vez de fila a fila. También
+   *  borra las filas ya importadas que ahora están en `MasterDescriptions.INVALID_REFS`
+   *  (ver ADR 0047) — `putRows` ya las descarta en futuras importaciones, pero eso no
+   *  quita las que ya estaban guardadas de antes; aquí sí. */
   async function applyMasterDescriptions() {
     const allRows = await MasterDB.getAll();
     const groups = {};
     for (const r of allRows) {
+      if (MasterDescriptions.isInvalidRef(r.brandId, r.ref)) {
+        await MasterDB.deleteRow(r.brandId, r.gama, r.ref);
+        continue;
+      }
       const key = `${r.brandId}::${r.gama}`;
       (groups[key] = groups[key] || []).push({ ref: r.ref });
     }

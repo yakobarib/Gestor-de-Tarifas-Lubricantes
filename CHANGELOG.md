@@ -2,6 +2,20 @@
 
 Formato inspirado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [v0.9.37] — 2026-08-17
+
+### Añadido
+- Referencia faltante de AD Parts (`ADP12302`) incorporada al maestro, y
+  corregido el texto de las 37 entradas de refrigerante ya existentes
+  ("AD" añadido, typo "REFRIGEANTE" arreglado).
+- Referencias de AD Parts confirmadas como inexistentes en catálogo
+  (`ADP11505`, `ADP16403`, `ADP16502`, `ADP16503`) se descartan al
+  importar y se borran solas si ya estaban importadas de antes — no
+  vuelven a aparecer como pendientes de validar.
+
+Ver [ADR 0046](docs/decisiones/0046-lote-refrigerantes-quimicos-y-version-maestro.md) y
+[ADR 0047](docs/decisiones/0047-referencias-invalidas-descartadas.md).
+
 ## [v0.9.36] — 2026-08-17
 
 ### Añadido
