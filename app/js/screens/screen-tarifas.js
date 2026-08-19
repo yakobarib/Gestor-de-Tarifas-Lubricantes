@@ -197,7 +197,7 @@ const ScreenTarifas = (() => {
       tr.innerHTML = `
         <td>${escapeHtml(r.ref)}</td>
         <td>${statusChip}</td>
-        <td title="${escapeHtml(r.description)}">${escapeHtml(truncate(r.description, 60))}</td>
+        <td title="${escapeHtml(Parser.upperOut(r.description))}">${escapeHtml(truncate(Parser.upperOut(r.description), 60))}</td>
         <td class="num liters"><input type="number" step="0.01" value="${r.liters ?? ''}" data-ref="${escapeHtml(r.ref)}" data-field="liters"></td>
         <td class="num" title="${escapeHtml(costTitle)}">${formatEur(r.costFactura)}</td>
       `;
@@ -347,8 +347,8 @@ const ScreenTarifas = (() => {
     return `
       <div class="desc-validation-row" data-ref="${escapeHtml(r.ref)}">
         <div class="ref-col">${escapeHtml(r.ref)}</div>
-        <div class="raw-col" title="Descripción actual">${escapeHtml(r.description || '(sin descripción)')}</div>
-        <input type="text" data-field="desc" value="${escapeHtml(r.description || '')}" placeholder="Descripción correcta">
+        <div class="raw-col" title="Descripción actual">${escapeHtml(r.description ? Parser.upperOut(r.description) : '(sin descripción)')}</div>
+        <input type="text" data-field="desc" value="${escapeHtml(Parser.upperOut(r.description || ''))}" placeholder="Descripción correcta">
         <input type="number" step="0.01" data-field="liters" value="${r.liters ?? ''}" placeholder="Litros">
         <button type="button" class="secondary-btn" data-action="save-desc">Guardar</button>
         <button type="button" class="secondary-btn" data-action="discard-desc" title="Esta referencia no existe como producto real">Eliminar</button>
@@ -399,6 +399,8 @@ const ScreenTarifas = (() => {
     const liters = litersVal === '' ? null : parseFloat(litersVal);
     const litersOk = isFinite(liters) ? liters : null;
 
+    // Mayúsculas siempre, sin importar cómo lo haya escrito Yako (ver ADR 0034/0051).
+    description = Parser.upperOut(description);
     // Siempre el mismo formato de sufijo de litros en el texto, sin importar lo que
     // hubiera escrito antes (ver ADR 0044).
     description = stripTrailingSizeToken(description);
@@ -462,7 +464,7 @@ const ScreenTarifas = (() => {
     if (!d || !d.obsoleteRefs || d.obsoleteRefs.length === 0) return;
     const ul = $('obsoleteList');
     ul.innerHTML = d.obsoleteRefs.map(r => {
-      const desc = r.description ? escapeHtml(r.description) : '<em class="muted">(sin descripción)</em>';
+      const desc = r.description ? escapeHtml(Parser.upperOut(r.description)) : '<em class="muted">(sin descripción)</em>';
       const cost = r.cost != null ? ` — ${formatEur(r.cost)}` : '';
       return `<li><strong>${escapeHtml(r.ref)}</strong>: ${desc}${cost}</li>`;
     }).join('');

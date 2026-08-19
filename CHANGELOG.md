@@ -2,6 +2,19 @@
 
 Formato inspirado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [v0.9.41] — 2026-08-19
+
+### Arreglado
+- Tarifas mostraba descripciones en mayúsculas o minúsculas según si la
+  referencia ya estaba verificada o no (verificadas = maestro, siempre en
+  mayúsculas; sin verificar = texto crudo del proveedor, capitalización
+  variable), dando un aspecto inconsistente en la misma tabla (ej. Castrol).
+  Ahora la tabla principal, el panel de validación (vista y campo editable)
+  y el modal de "Referencias desaparecidas" muestran siempre en mayúsculas,
+  y una corrección tecleada a mano se guarda también en mayúsculas — el
+  aspecto ya no depende del estado de verificación de la referencia. Ver
+  [ADR 0051](docs/decisiones/0051-mayusculas-siempre-en-tarifas.md).
+
 ## [v0.9.40] — 2026-08-19
 
 ### Cambiado
