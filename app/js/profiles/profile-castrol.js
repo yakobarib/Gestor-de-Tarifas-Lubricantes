@@ -141,7 +141,13 @@
       const oldRefRaw = idxSustituye >= 0 ? r[idxSustituye] : null;
       const oldRef = oldRefRaw != null ? String(oldRefRaw).trim() : '';
       if (oldRef !== '' && oldRef.toUpperCase() !== 'NUEVO') {
-        rows.push(Object.assign({}, row, { ref: 'CAT' + oldRef }));
+        // `_aliasOf`: el código antiguo nunca va a estar en el maestro de descripciones
+        // (está retirado, por definición) — sin esto, MasterDB.putRows() lo marcaba
+        // "pendiente de validar" para siempre, aunque el código nuevo (`row.ref`) ya
+        // esté verificado. `_aliasOf` le dice que herede la verificación de su gemelo en
+        // vez de pedir una validación aparte para lo que es el mismo producto (ver ADR
+        // 0049). No se guarda en el maestro — solo lo lee `putRows` al procesar el lote.
+        rows.push(Object.assign({}, row, { ref: 'CAT' + oldRef, _aliasOf: row.ref }));
       }
     }
     const gamas = [...new Set(rows.map(r => r.gama))];

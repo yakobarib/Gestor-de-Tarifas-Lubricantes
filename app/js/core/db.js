@@ -48,6 +48,23 @@ const MasterDB = (() => {
     const tx = db.transaction(STORE, 'readwrite');
     const store = tx.objectStore(STORE);
 
+    // Verificación de todo el lote de una vez, ANTES de guardar nada — hace falta para
+    // resolver `_aliasOf` (ver ADR 0049): algunos perfiles (Castrol, "Sustituye a")
+    // duplican una fila bajo un código antiguo retirado, que por definición nunca va a
+    // estar en el maestro. Sin esto, ese duplicado se quedaba "pendiente de validar"
+    // para siempre aunque el código nuevo (`_aliasOf`) ya estuviera verificado — ahora
+    // hereda esa misma verificación en vez de pedir una validación aparte para lo que es
+    // el mismo producto.
+    const verifiedByRef = new Map();
+    for (const r of rows) {
+      verifiedByRef.set(r.ref, DescriptionOverrides.get(brandId, r.ref) || MasterDescriptions.lookup(brandId, r.ref));
+    }
+    for (const r of rows) {
+      if (!verifiedByRef.get(r.ref) && r._aliasOf && verifiedByRef.has(r._aliasOf)) {
+        verifiedByRef.set(r.ref, verifiedByRef.get(r._aliasOf));
+      }
+    }
+
     for (const r of rows) {
       // Referencias que el proveedor manda en su tarifa pero que Yako confirma que no
       // existen como producto real (ver ADR 0047) — se descartan aquí, no llegan siquiera
@@ -65,9 +82,10 @@ const MasterDB = (() => {
       // Descripción/litros verificados por Yako (ver ADR 0043) mandan sobre lo que traiga
       // la tarifa del proveedor este mes — primero la corrección hecha a mano en este
       // navegador (DescriptionOverrides, la más reciente), si no la de fábrica incrustada
-      // (MasterDescriptions). Sin ninguna de las dos, se queda la detección automática de
-      // siempre — sin cambios de comportamiento para las refs que aún no están validadas.
-      const verified = DescriptionOverrides.get(brandId, r.ref) || MasterDescriptions.lookup(brandId, r.ref);
+      // (MasterDescriptions), si no la heredada de `_aliasOf` (ver ADR 0049). Sin ninguna
+      // de las tres, se queda la detección automática de siempre — sin cambios de
+      // comportamiento para las refs que aún no están validadas.
+      const verified = verifiedByRef.get(r.ref);
       const merged = Object.assign(
         { id, brandId, gama, ref: r.ref },
         existing || {},

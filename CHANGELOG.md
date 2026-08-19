@@ -2,6 +2,19 @@
 
 Formato inspirado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [v0.9.39] — 2026-08-19
+
+### Arreglado
+- Castrol mostraba muchas referencias "sin verificar" que en realidad ya
+  estaban validadas — cuando Castrol renombra un código de producto, la
+  tarifa duplica la fila bajo el código antiguo (para no romper stock),
+  y ese código retirado nunca iba a estar en el maestro. Ahora hereda la
+  verificación del código nuevo en vez de pedir una validación aparte
+  para el mismo producto. Solo afecta a Castrol (el único perfil con este
+  patrón); requiere reimportar su tarifa para que se corrijan las filas
+  ya importadas. Ver
+  [ADR 0049](docs/decisiones/0049-alias-castrol-hereda-verificacion.md).
+
 ## [v0.9.38] — 2026-08-17
 
 ### Añadido
