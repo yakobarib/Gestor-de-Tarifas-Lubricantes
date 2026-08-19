@@ -6,7 +6,7 @@
 
 ## Contexto
 
-Del lote de referencias pendientes de AD Parts (patrón "CC {litros}l. {%} {color}"),
+Del lote de referencias pendientes de AD Parts (patrón "CC [litros]l. [porcentaje]% [color]"),
 Yako revisó el catálogo real y confirma que `ADP11505`, `ADP16403`, `ADP16502` y
 `ADP16503` **no existen como producto** — la tarifa del proveedor las trae, pero son un
 error de origen (probablemente arrastre de una referencia retirada o mal codificada).

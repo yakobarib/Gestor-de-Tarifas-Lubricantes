@@ -29,7 +29,7 @@ const MasterDescriptions = (() => {
   /** Referencias que el proveedor incluye en su tarifa pero que Yako confirma, tras
    *  revisar el catálogo real, que NO existen como producto — se descartan al importar
    *  (no llegan a guardarse en el maestro) y se borran si ya estaban importadas de antes
-   *  (ver ADR 0047). Confirmado 2026-08-17: AD Parts trae "CC {litros}l. {%} {color}" en
+   *  (ver ADR 0047). Confirmado 2026-08-17: AD Parts trae "CC [litros]l. [porcentaje]% [color]" en
    *  varios formatos/colores que no corresponden a ningún producto real. */
   const INVALID_REFS = {
     ad_parts_aceite: ['ADP11505', 'ADP16403', 'ADP16502', 'ADP16503']
