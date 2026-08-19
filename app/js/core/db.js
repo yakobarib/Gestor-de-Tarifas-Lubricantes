@@ -52,8 +52,10 @@ const MasterDB = (() => {
       // Referencias que el proveedor manda en su tarifa pero que Yako confirma que no
       // existen como producto real (ver ADR 0047) — se descartan aquí, no llegan siquiera
       // a guardarse (si ya estaban de una importación anterior, `Migration.run()` las
-      // borra por su cuenta la próxima vez que se abra la app).
-      if (MasterDescriptions.isInvalidRef(brandId, r.ref)) continue;
+      // borra por su cuenta la próxima vez que se abra la app). `LocalInvalidRefs` es la
+      // misma idea pero descartada a mano desde el panel de Tarifas, en este navegador,
+      // todavía sin incorporar a la lista de fábrica (ver ADR 0048).
+      if (MasterDescriptions.isInvalidRef(brandId, r.ref) || LocalInvalidRefs.has(brandId, r.ref)) continue;
       const id = rowId(brandId, gama, r.ref);
       const existing = await new Promise((resolve, reject) => {
         const req = store.get(id);

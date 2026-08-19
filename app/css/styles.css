@@ -416,7 +416,7 @@ table.preview th.liters, table.preview td.liters { max-width: 76px; }
    (la que de verdad puede tener cientos de filas) haga scroll — el título, los avisos,
    las pestañas y el botón Cerrar se quedan fijos, siempre visibles (ver ADR 0045). */
 .modal-wide {
-  max-width: 1180px; width: 96vw;
+  max-width: 1340px; width: 97vw;
   height: 88vh; max-height: 88vh;
   display: flex; flex-direction: column; overflow: hidden;
 }
@@ -460,8 +460,10 @@ table.preview th.liters, table.preview td.liters { max-width: 76px; }
 :root[data-theme="light"] .desc-overrides-warning { background: #fdf6d3; color: #7a5d00; }
 
 .desc-validation-list { max-height: 55vh; overflow: auto; margin: 0.6rem 0; }
+/* Fila con una columna más (botón "Eliminar", ver ADR 0048) — el modal se ensanchó a
+   juego (1340px) para que no se junten los campos. */
 .desc-validation-row {
-  display: grid; grid-template-columns: 150px 1.3fr 1.3fr 100px auto; gap: 0.9rem;
+  display: grid; grid-template-columns: 150px 1.2fr 1.2fr 100px auto auto; gap: 0.9rem;
   align-items: center; padding: 0.55rem 0; border-bottom: 1px solid var(--border-muted); font-size: 0.9rem;
 }
 /* Referencia sin partir a media palabra ("RPG300BCH" + "C" en dos líneas) — con la
@@ -472,6 +474,12 @@ table.preview th.liters, table.preview td.liters { max-width: 76px; }
 .desc-validation-row input { margin: 0; padding: 0.45rem 0.55rem; font-size: 0.9rem; }
 .desc-validation-row input[data-field="liters"] { min-width: 0; width: 100%; }
 .desc-validation-row button { margin: 0; padding: 0.45rem 0.85rem; font-size: 0.9rem; white-space: nowrap; }
+.desc-validation-row button[data-action="discard-desc"] { background: #fde8e8; border-color: #f3b4b4; color: #8a1f1f; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .desc-validation-row button[data-action="discard-desc"] { background: #3a2020; border-color: #6b2f2f; color: #f3b4b4; }
+}
+:root[data-theme="dark"] .desc-validation-row button[data-action="discard-desc"] { background: #3a2020; border-color: #6b2f2f; color: #f3b4b4; }
+:root[data-theme="light"] .desc-validation-row button[data-action="discard-desc"] { background: #fde8e8; border-color: #f3b4b4; color: #8a1f1f; }
 .desc-validation-row.done { opacity: 0.5; }
 
 /* Manual de ayuda: modal más ancho, con pestañas por pantalla (ver ADR 0031). */

@@ -2,6 +2,19 @@
 
 Formato inspirado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [v0.9.38] — 2026-08-17
+
+### Añadido
+- Panel de validación de descripciones (Tarifas): botón "Eliminar" junto a
+  "Guardar" — borra del maestro toda huella de una referencia que no
+  existe como producto real (no vuelve a importarse, aunque la traiga la
+  tarifa del proveedor). El modal se ensancha para que no se amontonen
+  los campos con la columna nueva.
+- Referencia `ADP16508` (AD Parts) añadida a las confirmadas como
+  inexistentes.
+
+Ver [ADR 0048](docs/decisiones/0048-boton-eliminar-referencia-invalida.md).
+
 ## [v0.9.37] — 2026-08-17
 
 ### Añadido

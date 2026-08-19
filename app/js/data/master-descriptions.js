@@ -24,7 +24,7 @@ const MasterDescriptions = (() => {
   // INVALID_REFS — migration.js lo compara con `applied_master_version` guardado en el
   // navegador para saber si hace falta reaplicar el maestro (y borrar inválidas) a las
   // filas ya importadas (ver ADR 0046/0047).
-  const VERSION = 4;
+  const VERSION = 5;
 
   /** Referencias que el proveedor incluye en su tarifa pero que Yako confirma, tras
    *  revisar el catálogo real, que NO existen como producto — se descartan al importar
@@ -32,7 +32,7 @@ const MasterDescriptions = (() => {
    *  (ver ADR 0047). Confirmado 2026-08-17: AD Parts trae "CC [litros]l. [porcentaje]% [color]" en
    *  varios formatos/colores que no corresponden a ningún producto real. */
   const INVALID_REFS = {
-    ad_parts_aceite: ['ADP11505', 'ADP16403', 'ADP16502', 'ADP16503']
+    ad_parts_aceite: ['ADP11505', 'ADP16403', 'ADP16502', 'ADP16503', 'ADP16508']
   };
 
   function isInvalidRef(brandId, ref) {

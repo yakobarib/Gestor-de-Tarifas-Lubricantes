@@ -337,10 +337,10 @@ const ScreenTarifas = (() => {
    *  se esté viendo, para que Yako no se olvide de pedir que se incorporen. */
   function renderDescOverridesNotice() {
     const el = $('descOverridesNotice');
-    const n = DescriptionOverrides.countAll();
+    const n = DescriptionOverrides.countAll() + LocalInvalidRefs.countAll();
     if (n === 0) { el.classList.add('hidden'); return; }
     el.classList.remove('hidden');
-    el.textContent = ` ⚠ ${n} corrección${n > 1 ? 'es' : ''} de descripción guardada${n > 1 ? 's' : ''} solo en este navegador — pide que se incorporen al maestro.`;
+    el.textContent = ` ⚠ ${n} corrección${n > 1 ? 'es' : ''}/descarte${n > 1 ? 's' : ''} guardado${n > 1 ? 's' : ''} solo en este navegador — pide que se incorporen al maestro.`;
   }
 
   function descValidationRowHtml(r) {
@@ -351,6 +351,7 @@ const ScreenTarifas = (() => {
         <input type="text" data-field="desc" value="${escapeHtml(r.description || '')}" placeholder="Descripción correcta">
         <input type="number" step="0.01" data-field="liters" value="${r.liters ?? ''}" placeholder="Litros">
         <button type="button" class="secondary-btn" data-action="save-desc">Guardar</button>
+        <button type="button" class="secondary-btn" data-action="discard-desc" title="Esta referencia no existe como producto real">Eliminar</button>
       </div>
     `;
   }
@@ -427,6 +428,33 @@ const ScreenTarifas = (() => {
     renderDescValidationTabs();
     renderDescValidationList();
     if (descValidationTab === 'pending' && pendingDescRows().length === 0) $('modalDescValidation').classList.add('hidden');
+  }
+
+  /** Borra del maestro toda huella de una referencia que Yako confirma que no existe
+   *  como producto real (ver ADR 0048) — se quita de `MasterDB` (la fila importada
+   *  desaparece del todo, no solo de la lista de pendientes/validadas) y se descarta en
+   *  `LocalInvalidRefs` para que, si la tarifa del proveedor la vuelve a traer, no se
+   *  vuelva a guardar. Guardada en este navegador hasta que se incorpore a la lista de
+   *  fábrica (`MasterDescriptions.INVALID_REFS`) — mismo aviso que las correcciones. */
+  async function discardDescValidation(rowEl) {
+    const ref = rowEl.dataset.ref;
+    if (!confirm(`¿Eliminar "${ref}" del maestro? Se borrará esta referencia de la tarifa y no volverá a importarse.`)) return;
+
+    const row = rows.find(r => r.ref === ref);
+    const gama = row ? row.gama : (currentGama === '__all__' ? null : currentGama);
+    if (gama != null) await MasterDB.deleteRow(currentBrandId, gama, ref);
+    LocalInvalidRefs.add(currentBrandId, ref);
+    DescriptionOverrides.remove(currentBrandId, ref);
+
+    rows = rows.filter(r => r.ref !== ref);
+
+    renderFormatFilter();
+    renderTable();
+    renderKpis();
+    renderDescValidationBanner();
+    renderDescOverridesNotice();
+    renderDescValidationTabs();
+    renderDescValidationList();
   }
 
   window.__openObsoleteModal = function() {
@@ -547,10 +575,16 @@ const ScreenTarifas = (() => {
     });
 
     $('descValidationList').addEventListener('click', async (e) => {
-      const btn = e.target.closest('[data-action="save-desc"]');
-      if (!btn) return;
-      btn.disabled = true;
-      await saveDescValidation(btn.closest('.desc-validation-row'));
+      const saveBtn = e.target.closest('[data-action="save-desc"]');
+      if (saveBtn) {
+        saveBtn.disabled = true;
+        await saveDescValidation(saveBtn.closest('.desc-validation-row'));
+        return;
+      }
+      const discardBtn = e.target.closest('[data-action="discard-desc"]');
+      if (discardBtn) {
+        await discardDescValidation(discardBtn.closest('.desc-validation-row'));
+      }
     });
     $('descValidationTabs').addEventListener('click', (e) => {
       const btn = e.target.closest('button[data-tab]');

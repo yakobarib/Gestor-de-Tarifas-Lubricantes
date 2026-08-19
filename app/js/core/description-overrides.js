@@ -34,6 +34,16 @@ const DescriptionOverrides = (() => {
     Storage.set(keyFor(brandId), all);
   }
 
+  /** Quita una corrección guardada — usado al descartar una referencia como inválida
+   *  (ver ADR 0048): si ya tenía una corrección, ya no aplica a nada. */
+  function remove(brandId, ref) {
+    const all = getAll(brandId);
+    if (ref in all) {
+      delete all[ref];
+      Storage.set(keyFor(brandId), all);
+    }
+  }
+
   /** Cuántas correcciones hay guardadas SOLO en este navegador, sumando todas
    *  las marcas — para el aviso de "pide que se incorporen al maestro". */
   function countAll() {
@@ -45,5 +55,5 @@ const DescriptionOverrides = (() => {
     return n;
   }
 
-  return { get, getAll, set, countAll };
+  return { get, getAll, set, remove, countAll };
 })();
