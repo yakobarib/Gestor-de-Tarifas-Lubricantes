@@ -92,7 +92,15 @@ const Auth = (() => {
     async function attempt(fn) {
       submitBtn.disabled = true;
       errorEl.textContent = '';
-      const result = await fn(emailEl.value.trim(), passEl.value);
+      let result;
+      try {
+        result = await fn(emailEl.value.trim(), passEl.value);
+      } catch (err) {
+        // El SDK no siempre devuelve {ok:false}: algunos fallos (red, credenciales que
+        // no encajan en un caso "normal") lanzan una excepción en vez de resolver con un
+        // error — sin este catch, el formulario se quedaba callado sin avisar nada.
+        result = { ok: false, message: (err && err.message) || 'Error inesperado.' };
+      }
       submitBtn.disabled = false;
       if (!result.ok) { errorEl.textContent = result.message; return; }
       overlay.classList.add('hidden');
