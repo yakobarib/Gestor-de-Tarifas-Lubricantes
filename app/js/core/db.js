@@ -11,24 +11,31 @@
    viven en localStorage vía Storage, no aquí — ver screens/screen-import.js.
 
    `putRows` también sustituye descripción/litros por la versión verificada de
-   MasterDescriptions/DescriptionOverrides cuando existe, marcando `descVerified`
-   — ver ADR 0043.
+   MasterCache (maestro compartido en Neon, ver ADR 0054) cuando existe, marcando
+   `descVerified`.
 */
 const MasterDB = (() => {
   const DB_NAME = 'tarifador_master_v1';
   const STORE = 'rows';
   let dbPromise = null;
 
+  const SNAPSHOT_STORE = 'master_cache_snapshot';
+
   function open() {
     if (dbPromise) return dbPromise;
     dbPromise = new Promise((resolve, reject) => {
       if (!window.indexedDB) { reject(new Error('IndexedDB no disponible en este navegador.')); return; }
-      const req = indexedDB.open(DB_NAME, 1);
+      // v2 añade `master_cache_snapshot` (ver MasterCache, ADR 0054) — mismo IndexedDB
+      // que ya usaba el maestro de tarifas, para no abrir una segunda conexión aparte.
+      const req = indexedDB.open(DB_NAME, 2);
       req.onupgradeneeded = () => {
         const db = req.result;
         if (!db.objectStoreNames.contains(STORE)) {
           const store = db.createObjectStore(STORE, { keyPath: 'id' });
           store.createIndex('byBrand', 'brandId', { unique: false });
+        }
+        if (!db.objectStoreNames.contains(SNAPSHOT_STORE)) {
+          db.createObjectStore(SNAPSHOT_STORE, { keyPath: 'key' });
         }
       };
       req.onsuccess = () => resolve(req.result);
@@ -57,7 +64,7 @@ const MasterDB = (() => {
     // el mismo producto.
     const verifiedByRef = new Map();
     for (const r of rows) {
-      verifiedByRef.set(r.ref, DescriptionOverrides.get(brandId, r.ref) || MasterDescriptions.lookup(brandId, r.ref));
+      verifiedByRef.set(r.ref, MasterCache.get(brandId, r.ref));
     }
     for (const r of rows) {
       if (!verifiedByRef.get(r.ref) && r._aliasOf && verifiedByRef.has(r._aliasOf)) {
@@ -66,25 +73,23 @@ const MasterDB = (() => {
     }
 
     for (const r of rows) {
-      // Referencias que el proveedor manda en su tarifa pero que Yako confirma que no
-      // existen como producto real (ver ADR 0047) — se descartan aquí, no llegan siquiera
-      // a guardarse (si ya estaban de una importación anterior, `Migration.run()` las
-      // borra por su cuenta la próxima vez que se abra la app). `LocalInvalidRefs` es la
-      // misma idea pero descartada a mano desde el panel de Tarifas, en este navegador,
-      // todavía sin incorporar a la lista de fábrica (ver ADR 0048).
-      if (MasterDescriptions.isInvalidRef(brandId, r.ref) || LocalInvalidRefs.has(brandId, r.ref)) continue;
+      // Referencias que el proveedor manda en su tarifa pero que Yako (o quien valide)
+      // confirma que no existen como producto real — marcadas `is_invalid` en el maestro
+      // compartido (ver ADR 0048/0054), se descartan aquí y no llegan siquiera a
+      // guardarse (si ya estaban de una importación anterior, `Migration.run()` las borra
+      // por su cuenta la próxima vez que se abra la app).
+      if (MasterCache.isInvalid(brandId, r.ref)) continue;
       const id = rowId(brandId, gama, r.ref);
       const existing = await new Promise((resolve, reject) => {
         const req = store.get(id);
         req.onsuccess = () => resolve(req.result || null);
         req.onerror = () => reject(req.error);
       });
-      // Descripción/litros verificados por Yako (ver ADR 0043) mandan sobre lo que traiga
-      // la tarifa del proveedor este mes — primero la corrección hecha a mano en este
-      // navegador (DescriptionOverrides, la más reciente), si no la de fábrica incrustada
-      // (MasterDescriptions), si no la heredada de `_aliasOf` (ver ADR 0049). Sin ninguna
-      // de las tres, se queda la detección automática de siempre — sin cambios de
-      // comportamiento para las refs que aún no están validadas.
+      // Descripción/litros verificados (maestro compartido en Neon, vía MasterCache —
+      // ver ADR 0054) mandan sobre lo que traiga la tarifa del proveedor este mes, si no
+      // la heredada de `_aliasOf` (ver ADR 0049). Sin ninguna de las dos, se queda la
+      // detección automática de siempre — sin cambios de comportamiento para las refs que
+      // aún no están validadas.
       const verified = verifiedByRef.get(r.ref);
       const merged = Object.assign(
         { id, brandId, gama, ref: r.ref },
@@ -177,5 +182,7 @@ const MasterDB = (() => {
     });
   }
 
-  return { putRows, getByBrand, getByRef, getAll, deleteRow, rowId };
+  // `openDb`/`SNAPSHOT_STORE` expuestos para que `MasterCache` reutilice esta misma
+  // conexión/promesa en vez de abrir una segunda a la misma IndexedDB (ver ADR 0054).
+  return { putRows, getByBrand, getByRef, getAll, deleteRow, rowId, openDb: open, SNAPSHOT_STORE };
 })();

@@ -50,19 +50,18 @@ const Migration = (() => {
     return changed;
   }
 
-  /** Aplica el maestro de descripciones/litros verificados (ver ADR 0043) a las filas
-   *  YA importadas antes de que existiera esta funcionalidad — sin esto, cualquier
-   *  referencia que de verdad esté en el maestro se vería igual "pendiente de validar"
-   *  hasta la próxima vez que se reimporte esa tarifa. Reusa `MasterDB.putRows` (mismo
-   *  camino que un import real) agrupando por marca/gama en vez de fila a fila. También
-   *  borra las filas ya importadas que ahora están en `MasterDescriptions.INVALID_REFS`
-   *  (ver ADR 0047) — `putRows` ya las descarta en futuras importaciones, pero eso no
-   *  quita las que ya estaban guardadas de antes; aquí sí. */
+  /** Aplica el maestro compartido (MasterCache, ya calentado por `app.js` antes de llamar
+   *  a `Migration.run()` — ver ADR 0054) a las filas YA importadas antes de que existiera
+   *  esta funcionalidad — sin esto, cualquier referencia que de verdad esté en el maestro
+   *  se vería igual "pendiente de validar" hasta la próxima vez que se reimporte esa
+   *  tarifa. Reusa `MasterDB.putRows` (mismo camino que un import real) agrupando por
+   *  marca/gama en vez de fila a fila. También borra las filas ya importadas que ahora
+   *  están marcadas inválidas en el maestro compartido. */
   async function applyMasterDescriptions() {
     const allRows = await MasterDB.getAll();
     const groups = {};
     for (const r of allRows) {
-      if (MasterDescriptions.isInvalidRef(r.brandId, r.ref)) {
+      if (MasterCache.isInvalid(r.brandId, r.ref)) {
         await MasterDB.deleteRow(r.brandId, r.gama, r.ref);
         continue;
       }
@@ -98,14 +97,14 @@ const Migration = (() => {
       }
       Storage.set('migrated_v2_clear_bonus_seed', true);
     }
-    // Por versión, no por flag de una sola vez (ver ADR 0046): cada lote nuevo de
-    // referencias validadas que se incorpore a MasterDescriptions sube `VERSION` — así
-    // se reaplica el maestro a las filas ya importadas sin esperar a que se reimporte
-    // esa tarifa, cada vez que llega un lote nuevo, no solo la primera.
-    const appliedVersion = Storage.get('applied_master_version') || 0;
-    if (appliedVersion < MasterDescriptions.VERSION) {
+    // Una sola vez: desde que el maestro vive en Neon (ver ADR 0054), ya no hace falta
+    // reaplicarlo por versión — MasterCache se recalienta entero cada vez que arranca la
+    // app (ver app.js), así que las filas nuevas que se importen ya salen resueltas de
+    // por sí. Este flag solo sirve para poner al día, una vez, las filas que ya estaban
+    // importadas ANTES de este cambio.
+    if (!Storage.get('migrated_v3_neon_master')) {
       await applyMasterDescriptions();
-      Storage.set('applied_master_version', MasterDescriptions.VERSION);
+      Storage.set('migrated_v3_neon_master', true);
     }
   }
 

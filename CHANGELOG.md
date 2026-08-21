@@ -2,6 +2,28 @@
 
 Formato inspirado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [v1.0.0] — 2026-08-21
+
+### Cambiado
+- Cambio mayor: la app entera queda detrás de un **login real** (Neon Auth),
+  sustituyendo el botón "Iniciar sesión (próximamente)" de la cabecera.
+  Requiere HTTP(S) — abrir el fichero directamente por `file://` ya no
+  funciona para el login (protección de seguridad del proveedor de
+  autenticación, no algo que se pueda evitar).
+- El maestro de descripciones/litros verificados deja de vivir en el código
+  (`master-descriptions.js`) y en el navegador
+  (`description-overrides.js`/`local-invalid-refs.js`, ver ADR 0052) — pasa
+  a una tabla compartida en **Neon** (`verified_descriptions`), consultada
+  en vivo desde cualquier dispositivo. Validar o descartar una referencia
+  desde el panel de Tarifas se incorpora al instante para todos los
+  usuarios, sin exportar nada ni esperar a que un desarrollador lo
+  incorpore al código.
+- Acceso restringido por lista blanca de emails (gestionada por Yako) —
+  cualquiera puede crear una cuenta, pero solo los emails aprobados pueden
+  leer/escribir el maestro compartido.
+
+Ver [ADR 0054](docs/decisiones/0054-maestro-compartido-en-neon.md).
+
 ## [v0.9.43] — 2026-08-19
 
 ### Cambiado

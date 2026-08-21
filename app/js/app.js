@@ -24,12 +24,31 @@ function setupHeaderActions() {
   if (btnSettings) btnSettings.addEventListener('click', () => showToast('Ajustes — próximamente'));
 
   const btnLogin = document.getElementById('btnLogin');
-  if (btnLogin) btnLogin.addEventListener('click', () => showToast('Inicio de sesión — próximamente'));
+  if (btnLogin) {
+    btnLogin.title = Auth.currentUserEmail() || 'Cuenta';
+    btnLogin.addEventListener('click', () => {
+      if (confirm(`Sesión: ${Auth.currentUserEmail()}\n\n¿Cerrar sesión?`)) Auth.logout();
+    });
+  }
 }
 
+/** Único choke point de arranque (ver ADR 0054): sin sesión, ninguna pantalla se
+ *  inicializa — se muestra el login y solo se sigue cuando entra. */
 document.addEventListener('DOMContentLoaded', async () => {
   Theme.init();
-  await Migration.run(); // ahora asíncrona: aplica el maestro de descripciones a filas ya importadas (ver ADR 0043)
+  const loggedIn = await Auth.init();
+  if (!loggedIn) { Auth.showLoginOverlay(finishBoot); return; }
+  await finishBoot();
+});
+
+async function finishBoot() {
+  const cacheStatus = await MasterCache.refresh();
+  if (cacheStatus.offline) {
+    showToast(cacheStatus.syncedAt
+      ? `Sin conexión con el maestro compartido — usando copia local del ${cacheStatus.syncedAt.slice(0, 10)}`
+      : 'Sin conexión con el maestro compartido y sin copia local todavía.');
+  }
+  await Migration.run();
   ScreenImport.init();
   ScreenTarifas.init();
   ScreenRules.init();
@@ -38,4 +57,4 @@ document.addEventListener('DOMContentLoaded', async () => {
   ScreenHelp.init();
   setupHeaderActions();
   Router.init();
-});
+}

@@ -332,39 +332,6 @@ const ScreenTarifas = (() => {
     el.onclick = () => openDescValidationModal('pending');
   }
 
-  /** Aviso persistente (no parpadea) de cuántas correcciones hechas en este navegador
-   *  siguen sin incorporarse al maestro de fábrica — independiente de la marca/gama que
-   *  se esté viendo, para que Yako no se olvide de pedir que se incorporen. */
-  function renderDescOverridesNotice() {
-    const el = $('descOverridesNotice');
-    const n = DescriptionOverrides.countAll() + LocalInvalidRefs.countAll();
-    if (n === 0) { el.classList.add('hidden'); return; }
-    el.classList.remove('hidden');
-    el.innerHTML = ` ⚠ ${n} correcci${n > 1 ? 'ones' : 'ón'}/descarte${n > 1 ? 's' : ''} guardado${n > 1 ? 's' : ''} solo en este navegador — <a data-action="export-overrides">exportar para incorporar al maestro →</a>`;
-  }
-
-  /** Vuelca todas las correcciones/descartes de todas las marcas (no solo la que se esté
-   *  viendo) en un único JSON — pensado para copiar/pegar o descargar y pasárselo al
-   *  administrador de la app, que lo incorpora al maestro de fábrica y lo despliega. */
-  function buildOverridesExportJson() {
-    const overrides = DescriptionOverrides.exportAll();
-    const invalidRefs = LocalInvalidRefs.exportAll();
-    return JSON.stringify({
-      generatedAt: new Date().toISOString(),
-      overrides,
-      invalidRefs
-    }, null, 2);
-  }
-
-  function openExportOverridesModal() {
-    const json = buildOverridesExportJson();
-    const textarea = $('exportOverridesText');
-    textarea.value = json;
-    $('modalExportOverrides').classList.remove('hidden');
-    textarea.focus();
-    textarea.select();
-  }
-
   function descValidationRowHtml(r) {
     return `
       <div class="desc-validation-row" data-ref="${escapeHtml(r.ref)}">
@@ -411,6 +378,11 @@ const ScreenTarifas = (() => {
     $('modalDescValidation').classList.remove('hidden');
   }
 
+  /** Guarda directamente en el maestro compartido (Neon, ver ADR 0054) — a diferencia de
+   *  la lectura al importar, esto nunca degrada en silencio: si falla (sin conexión,
+   *  sesión caducada), se avisa con un error visible y NO se aplica el cambio en local,
+   *  para no fingir que quedó guardado cuando en realidad no llegó a la fuente
+   *  compartida. */
   async function saveDescValidation(rowEl) {
     const ref = rowEl.dataset.ref;
     const descInput = rowEl.querySelector('input[data-field="desc"]');
@@ -429,7 +401,13 @@ const ScreenTarifas = (() => {
     const suffix = canonicalLitersSuffix(litersOk);
     if (suffix) description = `${description} ${suffix}`.trim();
 
-    DescriptionOverrides.set(currentBrandId, ref, description, litersOk);
+    try {
+      await NeonMaster.upsert(currentBrandId, ref, description, litersOk, false);
+    } catch (err) {
+      alert(`No se pudo guardar en el maestro compartido: ${err.message}`);
+      return;
+    }
+    MasterCache.setLocal(currentBrandId, ref, description, litersOk, false);
 
     const row = rows.find(r => r.ref === ref);
     if (row) {
@@ -438,9 +416,6 @@ const ScreenTarifas = (() => {
       row.formatKey = Parser.formatKey(row.liters);
       row.litersDetected = row.liters != null;
       row.descVerified = true;
-      // Sin esto, el override solo vivía en memoria (se perdía al recargar) hasta la
-      // próxima importación real — se persiste ya en el maestro (IndexedDB), mismo
-      // camino que usa la migración de una vez (ver ADR 0043/0044).
       await MasterDB.putRows(currentBrandId, row.gama, [{ ref }], null);
     }
 
@@ -448,27 +423,29 @@ const ScreenTarifas = (() => {
     renderTable();
     renderKpis();
     renderDescValidationBanner();
-    renderDescOverridesNotice();
     renderDescValidationTabs();
     renderDescValidationList();
     if (descValidationTab === 'pending' && pendingDescRows().length === 0) $('modalDescValidation').classList.add('hidden');
   }
 
-  /** Borra del maestro toda huella de una referencia que Yako confirma que no existe
-   *  como producto real (ver ADR 0048) — se quita de `MasterDB` (la fila importada
-   *  desaparece del todo, no solo de la lista de pendientes/validadas) y se descarta en
-   *  `LocalInvalidRefs` para que, si la tarifa del proveedor la vuelve a traer, no se
-   *  vuelva a guardar. Guardada en este navegador hasta que se incorpore a la lista de
-   *  fábrica (`MasterDescriptions.INVALID_REFS`) — mismo aviso que las correcciones. */
+  /** Marca una referencia como inválida en el maestro compartido (ver ADR 0048/0054) —
+   *  nunca se borra la fila de Neon, solo se marca `is_invalid`, para no perder rastro.
+   *  Mismo criterio de "falla alto, no en silencio" que `saveDescValidation`. */
   async function discardDescValidation(rowEl) {
     const ref = rowEl.dataset.ref;
     if (!confirm(`¿Eliminar "${ref}" del maestro? Se borrará esta referencia de la tarifa y no volverá a importarse.`)) return;
 
+    try {
+      await NeonMaster.upsert(currentBrandId, ref, null, null, true);
+    } catch (err) {
+      alert(`No se pudo guardar en el maestro compartido: ${err.message}`);
+      return;
+    }
+    MasterCache.setLocal(currentBrandId, ref, null, null, true);
+
     const row = rows.find(r => r.ref === ref);
     const gama = row ? row.gama : (currentGama === '__all__' ? null : currentGama);
     if (gama != null) await MasterDB.deleteRow(currentBrandId, gama, ref);
-    LocalInvalidRefs.add(currentBrandId, ref);
-    DescriptionOverrides.remove(currentBrandId, ref);
 
     rows = rows.filter(r => r.ref !== ref);
 
@@ -476,7 +453,6 @@ const ScreenTarifas = (() => {
     renderTable();
     renderKpis();
     renderDescValidationBanner();
-    renderDescOverridesNotice();
     renderDescValidationTabs();
     renderDescValidationList();
   }
@@ -503,7 +479,6 @@ const ScreenTarifas = (() => {
       $('tarifasEmptyText').textContent = 'Elige una marca arriba para ver su tarifa.';
       $('tarifasEmpty').classList.remove('hidden');
       $('tarifasContent').classList.add('hidden');
-      renderDescOverridesNotice(); // independiente de la marca — se muestra igual
       return;
     }
     $('tarifasTitle').textContent = brand.label;
@@ -533,7 +508,6 @@ const ScreenTarifas = (() => {
     renderTable();
     renderKpis();
     renderDescValidationBanner();
-    renderDescOverridesNotice();
     $('loadStatusTarifas').classList.add('hidden');
   }
 
@@ -592,7 +566,7 @@ const ScreenTarifas = (() => {
       rows = refreshed.rows;
       diff = refreshed.diff;
       renderHistoryBanner(); renderKpis(); renderTable();
-      renderDescValidationBanner(); renderDescOverridesNotice();
+      renderDescValidationBanner();
       $('loadStatusTarifas').classList.remove('hidden');
       $('loadStatusTarifas').innerHTML = `<small style="color: var(--pico-ins-color);">✓ Tarifa vigente de ${escapeHtml(label)} actualizada.</small>`;
     });
@@ -621,27 +595,6 @@ const ScreenTarifas = (() => {
       renderDescValidationList();
     });
     $('descValidationSearch').addEventListener('input', renderDescValidationList);
-
-    $('descOverridesNotice').addEventListener('click', (e) => {
-      if (e.target.closest('[data-action="export-overrides"]')) openExportOverridesModal();
-    });
-    $('btnCopyExportOverrides').addEventListener('click', async () => {
-      const textarea = $('exportOverridesText');
-      textarea.select();
-      let ok = false;
-      try { await navigator.clipboard.writeText(textarea.value); ok = true; }
-      catch { ok = document.execCommand('copy'); }
-      $('exportOverridesStatus').textContent = ok ? '✓ Copiado.' : 'No se pudo copiar automáticamente — selecciona el texto y copia con Ctrl+C.';
-    });
-    $('btnDownloadExportOverrides').addEventListener('click', () => {
-      const blob = new Blob([$('exportOverridesText').value], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `correcciones-maestro-${new Date().toISOString().slice(0, 10)}.json`;
-      a.click();
-      URL.revokeObjectURL(url);
-    });
 
     Store.on('tariff:loaded', () => { if (Router.current() === 'tarifas') jumpToLoaded(); });
     Store.on('screen:changed', (screen) => { if (screen === 'tarifas') jumpToLoaded(); });
