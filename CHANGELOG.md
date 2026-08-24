@@ -2,6 +2,16 @@
 
 Formato inspirado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [v1.0.4] — 2026-08-24
+
+### Arreglado
+- Racing Oil salía con el 100% de sus referencias "pendientes de
+  validar" — la tarifa real trae el código con espacios sueltos en
+  medio (ej. "1 0002 0001C2"), que ahora se quitan al importar
+  (nunca son parte real del código).
+
+Ver [ADR 0057](docs/decisiones/0057-racing-oil-espacios-en-ref.md).
+
 ## [v1.0.3] — 2026-08-24
 
 ### Arreglado

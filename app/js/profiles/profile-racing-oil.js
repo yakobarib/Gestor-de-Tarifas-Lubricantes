@@ -118,7 +118,11 @@
       const description = suffix ? `${name} ${suffix}` : name;
 
       out.push({
-        ref: String(ref).trim(),
+        // Excel a veces devuelve estos códigos con espacios sueltos en medio (huecos
+        // de formato/agrupación de la celda, no un espacio real del código — Yako
+        // confirma que estas referencias nunca llevan espacios) — se quitan todos,
+        // no solo los de los extremos.
+        ref: String(ref).replace(/\s+/g, '').trim(),
         description,
         liters,
         formatKey: Parser.formatKey(liters),
@@ -148,7 +152,7 @@
       const ref = r[idxRef];
       const price = r[idxPrecio];
       if (ref == null || typeof price !== 'number' || !isFinite(price) || price <= 0) continue;
-      map.set(String(ref).trim(), price);
+      map.set(String(ref).replace(/\s+/g, '').trim(), price);
     }
     return map;
   }
