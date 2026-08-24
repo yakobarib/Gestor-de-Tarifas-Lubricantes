@@ -97,15 +97,12 @@ const Migration = (() => {
       }
       Storage.set('migrated_v2_clear_bonus_seed', true);
     }
-    // Una sola vez: desde que el maestro vive en Neon (ver ADR 0054), ya no hace falta
-    // reaplicarlo por versión — MasterCache se recalienta entero cada vez que arranca la
-    // app (ver app.js), así que las filas nuevas que se importen ya salen resueltas de
-    // por sí. Este flag solo sirve para poner al día, una vez, las filas que ya estaban
-    // importadas ANTES de este cambio.
-    if (!Storage.get('migrated_v3_neon_master')) {
-      await applyMasterDescriptions();
-      Storage.set('migrated_v3_neon_master', true);
-    }
+    // SIEMPRE, no una sola vez (bug corregido — ver ADR 0054): MasterCache se recalienta
+    // entero desde Neon en cada arranque, pero eso por sí solo NO actualiza las filas que
+    // ya estaban importadas en este navegador antes de que se corrigiera/añadiera algo al
+    // maestro compartido — sin reaplicar aquí, esas filas se quedaban con su descripción
+    // vieja para siempre, aunque el maestro en Neon ya tuviera la buena.
+    await applyMasterDescriptions();
   }
 
   return { run, synthesizePvpLevel };
