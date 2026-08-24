@@ -52,6 +52,21 @@ colisiones de ADR 0055 (`20005`/`22005`/`26005`, ahora sin prefijo). En Neon: 0 
 377 = 373 del Excel + 4 marcadas inválidas; Castrol 370). `node --check` sobre los 5
 ficheros JS modificados.
 
+## Addendum (2026-08-24) — limpieza automática de filas huérfanas
+
+Al reimportar AD Parts/Castrol tras este cambio, las filas ya guardadas en `MasterDB`
+(IndexedDB, en el navegador de cada usuario) con el prefijo antiguo (`CAT.../ADP...`) no
+se fusionan con las nuevas (sin prefijo) — `putRows` funde por `id = brandId::gama::ref`,
+y al cambiar el `ref` deja de ser la misma clave. Resultado: referencias duplicadas
+(doble de filas) en "Todas las gamas" hasta limpiarlas.
+
+Se intentó pedirle a Yako que borrara esas filas a mano desde la consola del navegador,
+pero tuvo problemas para pegar/ejecutar el script ahí. En vez de depender de eso, se
+añade una migración de una vez más en `migration.js` (`removeStalePrefixedRows`,
+flag `migrated_v4_remove_stale_prefixed_refs`) que borra, en el próximo arranque de la
+app de cada usuario, cualquier fila de `castrol`/`ad_parts_aceite` cuyo `ref` empiece por
+`CAT`/`ADP` — sin que haga falta ninguna acción manual.
+
 ## Referencias
 
 - ADR 0054 (maestro compartido en Neon — donde se detectó el fallo de Castrol).

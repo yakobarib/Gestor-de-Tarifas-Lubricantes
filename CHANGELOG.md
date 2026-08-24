@@ -2,6 +2,14 @@
 
 Formato inspirado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [v1.0.3] — 2026-08-24
+
+### Arreglado
+- Al reimportar AD Parts/Castrol tras quitarles el prefijo del ref
+  (v1.0.2), las filas ya guardadas con el prefijo antiguo se quedaban
+  duplicadas junto a las nuevas — la app las limpia sola en el
+  próximo arranque, sin ninguna acción manual.
+
 ## [v1.0.2] — 2026-08-24
 
 ### Cambiado

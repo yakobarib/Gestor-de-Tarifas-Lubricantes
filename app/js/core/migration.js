@@ -76,6 +76,21 @@ const Migration = (() => {
     }
   }
 
+  /** Limpieza de una vez (ver ADR 0056): AD Parts y Castrol dejaron de anteponer
+   *  'ADP'/'CAT' al ref al importar — las filas ya guardadas en este navegador con el
+   *  prefijo antiguo se quedan huérfanas (no se fusionan con las nuevas, que llegan sin
+   *  prefijo, porque el ref ya no coincide) y se ven duplicadas en "Todas las gamas". Se
+   *  borran aquí en vez de pedirle a Yako que lo haga a mano desde la consola del
+   *  navegador (le dio problemas). */
+  async function removeStalePrefixedRows() {
+    const allRows = await MasterDB.getAll();
+    for (const r of allRows) {
+      if ((r.brandId === 'castrol' || r.brandId === 'ad_parts_aceite') && /^(CAT|ADP)/.test(r.ref)) {
+        await MasterDB.deleteRow(r.brandId, r.gama, r.ref);
+      }
+    }
+  }
+
   async function run() {
     if (!Storage.get('migrated_v1')) {
       const keys = Storage.list();
@@ -96,6 +111,10 @@ const Migration = (() => {
         if (cfg && cfg.priceLevels && clearUntouchedBonusSeed(cfg)) Storage.set(key, cfg);
       }
       Storage.set('migrated_v2_clear_bonus_seed', true);
+    }
+    if (!Storage.get('migrated_v4_remove_stale_prefixed_refs')) {
+      await removeStalePrefixedRows();
+      Storage.set('migrated_v4_remove_stale_prefixed_refs', true);
     }
     // SIEMPRE, no una sola vez (bug corregido — ver ADR 0054): MasterCache se recalienta
     // entero desde Neon en cada arranque, pero eso por sí solo NO actualiza las filas que
