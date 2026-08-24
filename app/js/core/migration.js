@@ -91,6 +91,19 @@ const Migration = (() => {
     }
   }
 
+  /** Limpieza de una vez (ver ADR 0057): Racing Oil dejó de dejar espacios sueltos
+   *  dentro del ref al importar — mismo problema que `removeStalePrefixedRows`, las
+   *  filas ya guardadas con espacios se quedan huérfanas junto a las nuevas (sin
+   *  espacios) tras reimportar, duplicando "Todas las gamas". */
+  async function removeStaleSpacedRacingOilRows() {
+    const allRows = await MasterDB.getAll();
+    for (const r of allRows) {
+      if (r.brandId === 'racing_oil' && /\s/.test(r.ref)) {
+        await MasterDB.deleteRow(r.brandId, r.gama, r.ref);
+      }
+    }
+  }
+
   async function run() {
     if (!Storage.get('migrated_v1')) {
       const keys = Storage.list();
@@ -115,6 +128,10 @@ const Migration = (() => {
     if (!Storage.get('migrated_v4_remove_stale_prefixed_refs')) {
       await removeStalePrefixedRows();
       Storage.set('migrated_v4_remove_stale_prefixed_refs', true);
+    }
+    if (!Storage.get('migrated_v5_remove_stale_spaced_racing_oil_refs')) {
+      await removeStaleSpacedRacingOilRows();
+      Storage.set('migrated_v5_remove_stale_spaced_racing_oil_refs', true);
     }
     // SIEMPRE, no una sola vez (bug corregido — ver ADR 0054): MasterCache se recalienta
     // entero desde Neon en cada arranque, pero eso por sí solo NO actualiza las filas que

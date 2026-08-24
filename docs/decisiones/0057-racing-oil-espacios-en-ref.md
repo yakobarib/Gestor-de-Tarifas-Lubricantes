@@ -23,9 +23,19 @@ cómo Excel/la librería de lectura devuelve esa celda, no parte real del códig
 
 ## Verificación
 
-`node --check` sobre `profile-racing-oil.js`. Pendiente de confirmar con Yako tras
-reimportar: el número de referencias pendientes debería bajar de 689 a algo mucho más
-pequeño (las genuinamente nuevas, si las hay).
+`node --check` sobre `profile-racing-oil.js`. Confirmado con datos reales de la tarifa
+de origen (`Base de Conocimiento/Tarifas Actualizadas/Racing Oil/`): el ref crudo trae
+espacios de verdad en la celda (ej. `"1 0373 0001"`, no un artefacto de formato) — el
+arreglo lo deja en `"10373001"`, que sí coincide con el maestro.
+
+## Addendum (2026-08-24) — limpieza automática de filas huérfanas
+
+Al reimportar, las 689 filas ya guardadas con espacios no se fusionaban con las 689
+nuevas (sin espacios) — mismo patrón que ADR 0056 (`putRows` funde por `id`, que cambia
+al cambiar el `ref`), duplicando el total a 1378. Se añade otra migración de una vez en
+`migration.js` (`removeStaleSpacedRacingOilRows`, flag
+`migrated_v5_remove_stale_spaced_racing_oil_refs`) que borra, en el próximo arranque de
+cada usuario, cualquier fila de `racing_oil` cuyo `ref` contenga un espacio.
 
 ## Referencias
 

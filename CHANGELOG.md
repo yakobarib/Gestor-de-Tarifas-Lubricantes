@@ -2,6 +2,16 @@
 
 Formato inspirado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [v1.0.6] — 2026-08-24
+
+### Arreglado
+- Tras el arreglo de Racing Oil (v1.0.4), reimportar dejaba las
+  referencias viejas (con espacios) duplicadas junto a las nuevas
+  (sin espacios) — la app las limpia sola en el próximo arranque,
+  igual que ya se hizo para AD Parts/Castrol.
+
+Ver [ADR 0057](docs/decisiones/0057-racing-oil-espacios-en-ref.md).
+
 ## [v1.0.5] — 2026-08-24
 
 ### Cambiado
