@@ -14,6 +14,14 @@
   const sheetRows = ExcelReader.sheetRows;
   const findRefHeader = ExcelReader.findRefHeader;
 
+  // AD Parts reutiliza estos 3 códigos en dos listas de precios distintas: aquí
+  // aparecen como "C.A.U.+" (anticongelante), pero el código en sí ya identifica
+  // un aceite real en la tarifa de aceites (ver ADR 0046 y confirmado cruzando
+  // las tarifas reales de aceite/químico de 2026-04/05): ADP20005 = DEX-ATF,
+  // ADP22005 = SDI 5W40, ADP26005 = HHM 32. Sin este filtro, la gama "quimico"
+  // metía una fila fantasma con el coste equivocado bajo el mismo ref cada mes.
+  const KNOWN_REF_COLLISIONS = ['ADP20005', 'ADP22005', 'ADP26005'];
+
   function readADPartsQuimicoSheet(workbook, sheetName) {
     const raw = sheetRows(workbook, sheetName);
     if (!raw) return [];
@@ -35,10 +43,12 @@
       const cost = r[h.colCost];
       if (typeof cost !== 'number' || !isFinite(cost)) continue;
       const ref = String(refRaw).replace(/\./g, '').trim();
+      const fullRef = 'ADP' + ref;
+      if (KNOWN_REF_COLLISIONS.includes(fullRef)) continue;
       const description = Parser.cleanDescription(label);
       const liters = Parser.extractLiters(description);
       rows.push({
-        ref: 'ADP' + ref,
+        ref: fullRef,
         description,
         liters,
         formatKey: Parser.formatKey(liters),

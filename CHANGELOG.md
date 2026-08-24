@@ -2,6 +2,24 @@
 
 Formato inspirado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [v1.0.1] — 2026-08-24
+
+### Arreglado
+- El maestro compartido en Neon solo se reaplicaba a las tarifas ya
+  importadas la primera vez que se iniciaba sesión, no en cada
+  arranque — cualquier corrección hecha después en Neon no llegaba a
+  lo que ya estaba importado hasta reimportar esa tarifa. Ahora se
+  reaplica siempre.
+- AD Parts: 3 referencias (`ADP20005`, `ADP22005`, `ADP26005`)
+  aparecían duplicadas en Tarifas con dos costes distintos — AD Parts
+  reutiliza esos códigos entre su tarifa de aceites y la de
+  "Producto Químico". Se descartan ahora al importar la tarifa de
+  químicos, en vez de colarse como una fila fantasma con el coste
+  equivocado.
+- Textos del pie de la barra lateral traducidos al español.
+
+Ver [ADR 0055](docs/decisiones/0055-colision-refs-ad-parts-quimico.md).
+
 ## [v1.0.0] — 2026-08-21
 
 ### Cambiado
