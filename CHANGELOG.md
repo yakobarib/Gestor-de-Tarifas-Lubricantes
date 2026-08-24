@@ -2,6 +2,16 @@
 
 Formato inspirado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [v1.0.5] — 2026-08-24
+
+### Cambiado
+- Al importar una tarifa, la pantalla de Tarifas se abre ahora siempre
+  en "Todas las gamas" — antes se abría en la primera gama de la
+  lista de esa marca, distinto según la marca (mismo criterio que ya
+  se aplicó al cambiar de marca a mano, ADR 0050).
+
+Ver [ADR 0058](docs/decisiones/0058-todas-tambien-al-saltar-de-importacion.md).
+
 ## [v1.0.4] — 2026-08-24
 
 ### Arreglado

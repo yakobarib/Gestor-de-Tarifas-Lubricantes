@@ -511,15 +511,17 @@ const ScreenTarifas = (() => {
     $('loadStatusTarifas').classList.add('hidden');
   }
 
-  /** Si se acaba de cargar una tarifa en Importación, salta directamente a esa marca/gama
+  /** Si se acaba de cargar una tarifa en Importación, salta directamente a esa marca
    *  — solo la primera vez que se visita Tarifas tras esa carga (se consume y se limpia),
-   *  para no forzar el salto de vuelta si el usuario ya eligió ver otra marca/gama. */
+   *  para no forzar el salto de vuelta si el usuario ya eligió ver otra marca/gama.
+   *  "Todas" por defecto, igual que al cambiar de marca a mano (ver ADR 0050/0058) — una
+   *  sola regla, sin excepciones para el caso de venir de Importación. */
   function jumpToLoaded() {
     const loaded = LoadedTariff.get();
     if (!loaded) return;
     LoadedTariff.clear();
     currentBrandId = loaded.supplierId;
-    currentGama = loaded.gamas[0];
+    currentGama = loaded.gamas && loaded.gamas.length ? '__all__' : 'default';
     $('tarifasBrandSelect').value = currentBrandId;
     loadTariffData();
   }
