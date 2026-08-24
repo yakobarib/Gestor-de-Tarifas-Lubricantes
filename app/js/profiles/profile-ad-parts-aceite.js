@@ -5,8 +5,10 @@
          (REFERENCIA + PRECIO COMPRA FACTURA) + hoja Tarifa maestro (42 cols).
      (b) "de trabajo": hojas Coste / ADStandard / CosteSC con costes actual
          y anterior por envase.
-   En ambos casos la referencia de salida lleva prefijo ADP y los litros se
-   derivan de forma fiable con Parser.litersFromRefSuffix (ver ADR 0007).
+   La referencia de salida es el código tal cual lo manda AD Parts, sin
+   prefijo (ver ADR 0056 — ninguna marca lleva prefijo interno; la
+   diferenciación entre marcas la hace ya la propia exportación); los litros
+   se derivan de forma fiable con Parser.litersFromRefSuffix (ver ADR 0007).
    ========================================================================== */
 (() => {
   const sheetRows = ExcelReader.sheetRows;
@@ -57,7 +59,7 @@
         const liters = Parser.litersFromRefSuffix(ref) ?? Parser.extractLiters(tInfo.description);
         const fam = AD_PARTS_FAM_BY_FAMILIA[tInfo.familia] || '06';
         out.push({
-          ref: 'ADP' + ref,
+          ref: ref,
           description: tInfo.description || '',
           liters,
           formatKey: Parser.formatKey(liters),
@@ -100,7 +102,7 @@
           const envaseTxt = h.colEnvase >= 0 ? r[h.colEnvase] : null;
           const liters = Parser.litersFromRefSuffix(ref) ?? Parser.extractLiters(String(envaseTxt || ''));
           rows.push({
-            ref: 'ADP' + ref, description: lastProduct || '', liters,
+            ref: ref, description: lastProduct || '', liters,
             formatKey: Parser.formatKey(liters), costPerPack: cost, fam: '06',
             gama: 'normal', litersDetected: liters != null
           });
@@ -128,7 +130,7 @@
             ? envaseVal
             : (Parser.litersFromRefSuffix(ref) ?? Parser.extractLiters(desc));
           rows.push({
-            ref: 'ADP' + ref, description: desc, liters,
+            ref: ref, description: desc, liters,
             formatKey: Parser.formatKey(liters), costPerPack: cost, fam: '06',
             gama: 'standard', litersDetected: liters != null
           });
@@ -156,7 +158,7 @@
           const envaseTxt = h.colEnvase >= 0 ? r[h.colEnvase] : null;
           const liters = Parser.litersFromRefSuffix(ref) ?? Parser.extractLiters(String(envaseTxt || ''));
           rows.push({
-            ref: 'ADP' + ref, description: lastProduct || '', liters,
+            ref: ref, description: lastProduct || '', liters,
             formatKey: Parser.formatKey(liters), costPerPack: cost, fam: '06',
             gama: 'sportcar', litersDetected: liters != null
           });

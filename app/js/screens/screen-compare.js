@@ -65,10 +65,8 @@ const ScreenCompare = (() => {
     return (exact || candidates[0]).brandKey;
   }
 
-  /** Busca una ref en TODO el maestro (todas las marcas, todas las gamas) — primero tal
-   *  cual (sirve para marcas sin prefijo, o si ya se escribió con prefijo), luego probando
-   *  el prefijo de cada marca que tenga uno (AD Parts, Castrol) por si se escribió la ref
-   *  "pelada" (ej. "32005" en vez de "ADP32005"). */
+  /** Busca una ref en TODO el maestro (todas las marcas, todas las gamas) — ninguna marca
+   *  lleva prefijo interno (ver ADR 0056), así que basta con comparar tal cual. */
   async function resolveRefAcrossBrands(typed) {
     const clean = typed.trim();
     if (!clean) return null;
@@ -77,13 +75,6 @@ const ScreenCompare = (() => {
     for (const b of brands) {
       const rows = await MasterDB.getByBrand(b.id, null);
       const hit = rows.find(r => r.ref.toUpperCase() === upper);
-      if (hit) return { brand: b, row: hit };
-    }
-    for (const b of brands) {
-      if (!b.refPrefix) continue;
-      const candidate = (b.refPrefix + clean).toUpperCase();
-      const rows = await MasterDB.getByBrand(b.id, null);
-      const hit = rows.find(r => r.ref.toUpperCase() === candidate);
       if (hit) return { brand: b, row: hit };
     }
     return null;
@@ -175,8 +166,7 @@ const ScreenCompare = (() => {
       el.innerHTML = `<p class="muted">Esta marca todavía no está mapeada en los ficheros de equivalencias (ver EQUIV_BRAND_ALIASES).</p>`;
       return;
     }
-    const bareRef = brand.refPrefix && ref.startsWith(brand.refPrefix) ? ref.slice(brand.refPrefix.length) : ref;
-    const group = EquivalenceIndex.findEquivalents(brandKey, bareRef);
+    const group = EquivalenceIndex.findEquivalents(brandKey, ref);
     if (!group) {
       el.innerHTML = `<p class="muted">Sin equivalencia encontrada para <strong>${escapeHtml(ref)}</strong> en la base de conocimiento.</p>`;
       return;
@@ -195,7 +185,7 @@ const ScreenCompare = (() => {
       }
       const [mBrandId, mGama] = memberIdKey.split(':');
       const mBrand = findBrand(mBrandId);
-      const prefixedRef = (mBrand ? mBrand.refPrefix : '') + m.ref;
+      const prefixedRef = m.ref;
       const masterRow = await findMemberRow(mBrandId, mGama, prefixedRef);
       if (!masterRow) {
         rowsHtml.push(memberRowHtml(mBrand ? mBrand.label : mBrandId, prefixedRef, '<span class="no-tarifa">sin tarifa importada</span>'));

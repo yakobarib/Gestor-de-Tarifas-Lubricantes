@@ -119,7 +119,7 @@
       const fam = idxFamilia >= 0 ? r[idxFamilia] : null;
 
       const row = {
-        ref: 'CAT' + String(ref).trim(),
+        ref: String(ref).trim(),
         description,
         liters,
         formatKey: Parser.formatKey(liters),
@@ -137,7 +137,7 @@
       // bajo su código para no romper stock/Turfview a fin de mes (ver Yako).
       // "NUEVO" es un valor de relleno ("producto nuevo, no sustituye nada"),
       // no una referencia real — 26 filas lo usan así y colisionarían todas
-      // bajo la misma ref "CATNUEVO" si no se excluyera.
+      // bajo la misma ref "NUEVO" si no se excluyera.
       const oldRefRaw = idxSustituye >= 0 ? r[idxSustituye] : null;
       const oldRef = oldRefRaw != null ? String(oldRefRaw).trim() : '';
       if (oldRef !== '' && oldRef.toUpperCase() !== 'NUEVO') {
@@ -147,7 +147,7 @@
         // esté verificado. `_aliasOf` le dice que herede la verificación de su gemelo en
         // vez de pedir una validación aparte para lo que es el mismo producto (ver ADR
         // 0049). No se guarda en el maestro — solo lo lee `putRows` al procesar el lote.
-        rows.push(Object.assign({}, row, { ref: 'CAT' + oldRef, _aliasOf: row.ref }));
+        rows.push(Object.assign({}, row, { ref: oldRef, _aliasOf: row.ref }));
       }
     }
     const gamas = [...new Set(rows.map(r => r.gama))];

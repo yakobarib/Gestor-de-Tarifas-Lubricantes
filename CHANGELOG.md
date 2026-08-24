@@ -2,6 +2,19 @@
 
 Formato inspirado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [v1.0.2] — 2026-08-24
+
+### Cambiado
+- Ninguna marca lleva ya prefijo en la referencia interna (antes AD Parts
+  usaba `ADP` y Castrol `CAT`) — una sola regla para las 6 marcas, sin
+  excepciones. Esto es lo que causaba que Castrol saliera con el 100%
+  de sus referencias "pendientes de validar": el maestro no tenía el
+  prefijo que el código sí añadía al importar. Hace falta reimportar
+  las tarifas de AD Parts y Castrol una vez para limpiar lo que ya
+  estaba guardado con el prefijo antiguo.
+
+Ver [ADR 0056](docs/decisiones/0056-sin-prefijo-en-ref-interno.md).
+
 ## [v1.0.1] — 2026-08-24
 
 ### Arreglado
