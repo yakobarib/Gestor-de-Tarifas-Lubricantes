@@ -5,10 +5,10 @@
    BASE DE CONOCIMIENTO/ y permite, dada una ref importada de una marca,
    encontrar su grupo de equivalencia y comparar coste(s) y PVP(s) calculados
    de cada marca miembro que ya tenga tarifa en el maestro. Dos formas de
-   buscar: una casilla libre (acepta la ref con o sin el prefijo de marca,
-   ej. "ADP32005" o "32005") que la busca en TODO el maestro, o el cascada
-   Marca/Gama/Referencia de siempre. Reacciona en vivo a cambios de márgenes
-   en la pantalla REGLAS vía Store. Ver ADR 0024.
+   buscar: una casilla libre (busca la ref tal cual, sin prefijo de marca —
+   ver ADR 0056) en TODO el maestro, o el cascada Marca/Gama/Referencia de
+   siempre. Reacciona en vivo a cambios de márgenes en la pantalla REGLAS vía
+   Store. Ver ADR 0024.
 */
 const ScreenCompare = (() => {
   const $ = (id) => document.getElementById(id);

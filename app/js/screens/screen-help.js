@@ -133,8 +133,8 @@ const ScreenHelp = (() => {
       búsqueda avisa y no puede continuar.</p>
       <h4>Cómo buscar</h4>
       <ul>
-        <li><strong>Referencia directa</strong>: escribe la referencia con o sin el
-        prefijo de marca (ej. "ADP32005" o "32005") y pulsa Buscar.</li>
+        <li><strong>Referencia directa</strong>: escribe la referencia tal cual (sin
+        prefijo de marca, ej. "32005") y pulsa Buscar.</li>
         <li><strong>Cascada de selects</strong>: si no sabes la referencia exacta, elige
         Marca → Gama → Referencia (el desplegable de Referencia muestra también los
         litros de cada una).</li>

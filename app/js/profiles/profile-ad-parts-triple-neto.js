@@ -15,7 +15,8 @@
    descripción del producto viene en carry-forward (solo en la primera fila
    de cada familia). La ref usa el mismo esquema "familia.formato" que ya
    decodifica `readADPartsAceiteWorking` (ej. "33.1000" → familia 33,
-   formato 1000L) — mismo `ref sin puntos + prefijo ADP` de siempre.
+   formato 1000L) — mismo `ref sin puntos` de siempre, sin prefijo (ver ADR
+   0056: ninguna marca lleva prefijo en el ref interno).
    ========================================================================== */
 const AdPartsTripleNeto = (() => {
   const MONTHS = {
@@ -90,7 +91,7 @@ const AdPartsTripleNeto = (() => {
       const refDigits = String(refRaw).replace(/\./g, '').trim();
       const liters = Parser.litersFromRefSuffix(refDigits);
       rows.push({
-        ref: 'ADP' + refDigits,
+        ref: refDigits,
         description: lastDesc || '',
         liters,
         formatKey: Parser.formatKey(liters),
