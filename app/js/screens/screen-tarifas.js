@@ -598,6 +598,13 @@ const ScreenTarifas = (() => {
     });
     $('descValidationSearch').addEventListener('input', renderDescValidationList);
 
+    $('btnExportPending').addEventListener('click', async () => {
+      const pending = pendingDescRows();
+      if (!pending.length) { alert('No hay referencias pendientes de validar en esta marca/gama.'); return; }
+      const brand = findBrand(currentBrandId);
+      await ExcelWriter.exportPendingValidation(pending, brand ? brand.label : currentBrandId);
+    });
+
     Store.on('tariff:loaded', () => { if (Router.current() === 'tarifas') jumpToLoaded(); });
     Store.on('screen:changed', (screen) => { if (screen === 'tarifas') jumpToLoaded(); });
     // Si se carga un mapa de rebranding para la marca que se está viendo, recalcula el

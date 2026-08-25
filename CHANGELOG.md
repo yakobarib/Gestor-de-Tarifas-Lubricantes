@@ -2,6 +2,17 @@
 
 Formato inspirado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [v1.0.7] — 2026-08-25
+
+### Añadido
+- Panel de validación de descripciones (Tarifas): botón "Exportar
+  pendientes a Excel" — genera un fichero con el mismo formato que
+  las plantillas "Maestro {Marca}.xlsx", para corregir lotes grandes
+  de referencias pendientes con calma en Excel en vez de una a una
+  en el panel.
+
+Ver [ADR 0059](docs/decisiones/0059-exportar-pendientes-a-excel.md).
+
 ## [v1.0.6] — 2026-08-24
 
 ### Arreglado

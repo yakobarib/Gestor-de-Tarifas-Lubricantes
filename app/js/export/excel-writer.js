@@ -199,5 +199,26 @@ const ExcelWriter = (() => {
     return downloadWorkbook(wb, filename);
   }
 
-  return { exportSkritV2, exportSkritLean, exportPriceList, buildFilename, dateSlug, fileBrandLabel };
+  /** Exporta las referencias pendientes de validar de una marca/gama al mismo formato
+   *  que las plantillas "Maestro {Marca}.xlsx" (REFERENCIA/DESCRIPCION/LITROS/NOTAS) —
+   *  para que Yako pueda corregirlas en Excel con el flujo ya establecido (ver ADR 0059)
+   *  en vez de tener que validarlas una a una en el panel. Se rellena con la descripción
+   *  cruda del proveedor y los litros detectados como punto de partida, no como
+   *  respuesta ya verificada. */
+  async function exportPendingValidation(rows, brandLabel) {
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet(brandLabel.slice(0, 31));
+    setColumns(ws, [
+      { header: 'REFERENCIA', width: 18 },
+      { header: 'DESCRIPCION', width: 55 },
+      { header: 'LITROS', width: 10 },
+      { header: 'NOTAS', width: 40 }
+    ]);
+    for (const r of rows) {
+      ws.addRow([r.ref, Parser.upperOut(r.description || ''), r.liters ?? null, null]);
+    }
+    return downloadWorkbook(wb, `Pendientes de validar ${brandLabel} ${dateSlug()}.xlsx`);
+  }
+
+  return { exportSkritV2, exportSkritLean, exportPriceList, exportPendingValidation, buildFilename, dateSlug, fileBrandLabel };
 })();
