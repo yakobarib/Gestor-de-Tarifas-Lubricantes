@@ -3,26 +3,31 @@
    ============================================================================
    Una sola hoja (más una hoja "DATOS" que Yako se crea a mano de apoyo, se
    ignora). Cabecera en la fila 1. Descuentos en cascada, a diferencia del
-   resto de proveedores auditados hasta ahora:
+   resto de proveedores auditados hasta ahora — los nombres exactos de columna
+   cambian de una tarifa a otra (p.ej. "Precio Unitario" → "PRECIO UNITARIO
+   NUEVO SEPT"), por eso se buscan por contenido, no por texto exacto:
 
      Tarifa referencia → (Pronto Pago + Dto Logístico = Dto total) →
-     Precio Unitario (esto YA es "tarifa", por litro) → (Rapel fin de año) →
-     Precio neto litro → (aportaciones en céntimos/L: Turfview, AD 360,
-     Objetivo CV, Marketing) → Precio neto litro con aportaciones ("neto-neto"
-     por litro).
+     "Precio Unitario..." (esto YA es "tarifa", por litro) → costFactura →
+     (Rapel fin de año) → "Precio neto litro" (por litro) → costNetoNeto →
+     (aportaciones en céntimos/L: Turfview, AD 360, Objetivo CV, Marketing) →
+     "Precio neto litro con aportaciones" (por litro) → costTripleNeto.
 
-   Solo hacen falta 2 costes de toda la cascada (confirmado por Yako):
-   - "Precio Unitario" (tarifa, por litro) × litros envase → costFactura.
-   - "Precio Neto Neto envase con todas aportaciones" (ya por envase, columna
-     que Yako añade a mano) → costTripleNeto directamente, sin multiplicar.
+   Los tres niveles de coste se calculan igual: precio-por-litro de la
+   columna correspondiente × litros del envase (confirmado por Yako — antes
+   se leía un "Precio Neto Neto envase con todas aportaciones" ya multiplicado
+   que él añadía a mano; esa columna no viene en las tarifas oficiales, así
+   que se calcula aquí en vez de depender de que la añada él).
 
-   Litros: la tarifa no trae una columna de envase real — Yako se la añadió a
-   mano para poder verificar cálculos, pero en un fichero futuro no estará.
-   Se derivan de la descripción (patrón "NxM<unidad>", igual que Repsol) y se
-   verificó que cuadra al 100% contra la columna manual de Yako en esta
-   tarifa (371/371 filas). kg/g se convierten con la tabla de equivalencias
-   de Castrol (18kg=20L, 180kg=208L —los bidones de esta marca son de 208L,
-   no 205L—, 0,4kg=400ML, 25kg=25L —envase de grasa, confirmado por Yako—).
+   Litros: la tarifa no trae una columna de envase real (la columna "volumen
+   unidad de venta" es por unidad de compra — coincide con el envase en
+   bidones/cubas, pero no en cajas). Por eso se prioriza el litraje ya
+   verificado del maestro compartido (MasterCache, por ref) cuando existe;
+   solo se deriva de la descripción (patrón "NxM<unidad>", igual que Repsol)
+   para referencias nuevas aún sin verificar. kg/g se convierten con la tabla
+   de equivalencias de Castrol (18kg=20L, 180kg=208L —los bidones de esta
+   marca son de 208L, no 205L—, 0,4kg=400ML, 25kg=25L —envase de grasa,
+   confirmado por Yako—).
 
    Descripción: se limpia quitando el paréntesis final tipo "(C)" y la
    unidad de compra (todo lo que va después de la primera coma), y se le
@@ -93,7 +98,8 @@
     const idxGama = headers.findIndex(h => h === 'GAMA');
     const idxFamilia = headers.findIndex(h => h.includes('FAMILIA'));
     const idxPrecioUnitario = headers.findIndex(h => h.includes('PRECIO UNITARIO'));
-    const idxNetoNetoEnvase = headers.findIndex(h => h.includes('ENVASE') && (h.match(/NETO/g) || []).length >= 2);
+    const idxPrecioNetoLitro = headers.findIndex(h => h.includes('PRECIO NETO LITRO') && !h.includes('APORTACION'));
+    const idxPrecioNetoAportaciones = headers.findIndex(h => h.includes('PRECIO NETO LITRO') && h.includes('APORTACION'));
     const idxSustituye = headers.findIndex(h => h.includes('SUSTITUYE'));
     if (idxRef < 0 || idxName < 0 || idxPrecioUnitario < 0) {
       throw new Error(`Faltan columnas obligatorias en la tarifa Castrol. Cabecera vista: ${headers.filter(Boolean).join(' | ')}`);
@@ -109,17 +115,23 @@
       if (ref == null || nameRaw == null) continue;
       if (typeof precioLitro !== 'number' || !isFinite(precioLitro) || precioLitro <= 0) continue;
 
-      const liters = parseLitersFromDescription(nameRaw);
+      const refStr = String(ref).trim();
+      // Litraje verificado del maestro compartido manda sobre la descripción cuando
+      // existe — la columna de "unidad de venta" de la tarifa no es fiable para cajas
+      // (ver cabecera del fichero). Sin verificar todavía, se deriva de la descripción.
+      const verified = MasterCache.get('castrol', refStr);
+      const liters = (verified && verified.liters != null) ? verified.liters : parseLitersFromDescription(nameRaw);
       const description = cleanCastrolDescription(nameRaw, liters);
       const costPerPack = liters != null ? precioLitro * liters : null;
       if (costPerPack == null || costPerPack <= 0) continue;
 
-      const netoNetoEnvase = idxNetoNetoEnvase >= 0 ? r[idxNetoNetoEnvase] : null;
+      const precioNetoLitro = idxPrecioNetoLitro >= 0 ? r[idxPrecioNetoLitro] : null;
+      const precioNetoAportaciones = idxPrecioNetoAportaciones >= 0 ? r[idxPrecioNetoAportaciones] : null;
       const gama = idxGama >= 0 && r[idxGama] != null ? slugify(r[idxGama]) : 'default';
       const fam = idxFamilia >= 0 ? r[idxFamilia] : null;
 
       const row = {
-        ref: String(ref).trim(),
+        ref: refStr,
         description,
         liters,
         formatKey: Parser.formatKey(liters),
@@ -128,8 +140,11 @@
         fam,
         litersDetected: liters != null
       };
-      if (typeof netoNetoEnvase === 'number' && isFinite(netoNetoEnvase) && netoNetoEnvase > 0) {
-        row.costTripleNeto = netoNetoEnvase;
+      if (liters != null && typeof precioNetoLitro === 'number' && isFinite(precioNetoLitro) && precioNetoLitro > 0) {
+        row.costNetoNeto = precioNetoLitro * liters;
+      }
+      if (liters != null && typeof precioNetoAportaciones === 'number' && isFinite(precioNetoAportaciones) && precioNetoAportaciones > 0) {
+        row.costTripleNeto = precioNetoAportaciones * liters;
       }
       rows.push(row);
 

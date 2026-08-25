@@ -2,6 +2,22 @@
 
 Formato inspirado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [v1.0.8] — 2026-08-25
+
+### Cambiado
+- Importador de Castrol: los tres niveles de coste (factura, neto-neto,
+  triple-neto) se calculan ahora por litro × precio-por-litro de la
+  columna correspondiente, en vez de depender de una columna de
+  "envase ya multiplicado" que Yako añadía a mano y que las tarifas
+  oficiales no traen. Detección de columnas por contenido, resistente
+  a que cambien nombre/orden de una tarifa a otra.
+- Importador de Castrol: los litros del envase priorizan el valor ya
+  verificado del maestro compartido (por referencia) en vez de
+  derivarse siempre de la descripción — la columna de "unidad de
+  venta" de la tarifa no es fiable para formato caja.
+
+Ver [ADR 0060](docs/decisiones/0060-castrol-tres-niveles-por-litro.md).
+
 ## [v1.0.7] — 2026-08-25
 
 ### Añadido
