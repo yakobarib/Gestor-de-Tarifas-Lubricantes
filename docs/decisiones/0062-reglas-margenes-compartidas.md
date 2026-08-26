@@ -71,11 +71,13 @@ siempre, no le importa de dónde salió), `js/core/storage.js`.
   memoria `neon_direct_db_access`): RLS activa, política correcta, sin DELETE de más para
   `authenticated`, trigger de `updated_at` en su sitio.
 - **Error real al probar en vivo**: el primer cambio de margen falló con `Could not find
-  the table 'public.pricing_rules' in the schema cache` — el Data API (PostgREST) cachea
-  el esquema y no ve una tabla recién creada hasta que se le avisa. Arreglado con
-  `NOTIFY pgrst, 'reload schema';` contra la conexión directa (añadido también al final de
-  `schema_pricing_rules.sql`/`schema_imported_tariff_rows.sql` para la próxima vez —
-  `imported_tariff_rows` no dio este error porque pasó más tiempo entre crearla y probarla).
+  the table 'public.pricing_rules' in the schema cache` — el Data API cachea el esquema y
+  no ve una tabla recién creada hasta que se le avisa (`imported_tariff_rows` no dio este
+  error porque pasó más tiempo entre crearla y probarla). Primer intento de arreglo
+  (`NOTIFY pgrst, 'reload schema';` contra la conexión directa) NO funcionó — el Data API
+  de Neon no es PostgREST puro escuchando ese canal. El arreglo real es la CLI:
+  `npx neon@latest data-api refresh-schema --project-id silent-field-02039340` (confirmado
+  en vivo). Anotado en la memoria `neon_direct_db_access` para la próxima tabla nueva.
 - De paso: mientras se probaba esto, Yako descubrió que no sabía cómo volver un PVP manual
   a automático (borrar el campo y Tab/Intro) — no era un bug, pero no estaba en la ayuda;
   añadido a la pestaña "Exportación" del manual.
