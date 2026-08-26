@@ -59,7 +59,7 @@
     <div class="sidebar-footer">
       <p>Diseñado por <strong>Yakoba Moreno</strong></p>
       <p>Desarrollado en <strong>Claude Code</strong></p>
-      <span class="sidebar-version">v1.0.10</span>
+      <span class="sidebar-version">v1.0.11</span>
     </div>
   </aside>
 
@@ -126,7 +126,7 @@
        que se actualiza o se abre la app en otro ordenador (ver ADR 0025). -->
   <section id="equivDropZone" style="margin-top:0.8rem;">
     <p><strong>Arrastra aquí los Excel de cruces de referencias entre marcas</strong> o pulsa para elegirlos</p>
-    <p class="hint">Los 5 Excel de "Equivalencias" (Aceites por Marcas, Grasas, Hidráulicos, Motor Vehículo Industrial, Transmisión Manual y Ejes) que dicen qué referencia de una marca es el mismo producto que en otra marca — los usa la pestaña Comparación para cruzar precios entre marcas. Se guardan en este navegador; vuelve a cargarlos aquí si se actualizan o si abres la app en otro ordenador.</p>
+    <p class="hint">Los 5 Excel de "Equivalencias" (Aceites por Marcas, Grasas, Hidráulicos, Motor Vehículo Industrial, Transmisión Manual y Ejes) que dicen qué referencia de una marca es el mismo producto que en otra marca — los usa la pestaña Comparación para cruzar precios entre marcas. Se comparten con todo el equipo al cargarlos aquí; vuelve a cargarlos solo si se actualizan.</p>
     <input type="file" id="equivFileInput" accept=".xlsx,.xls" multiple class="hidden">
   </section>
   <div id="equivStatus" style="margin-top:0.4rem;"></div>
@@ -414,6 +414,7 @@
 <script src="js/core/neon-tariffs.js"></script>
 <script src="js/core/neon-rules.js"></script>
 <script src="js/core/rules-store.js"></script>
+<script src="js/core/neon-equivalences.js"></script>
 <script src="js/core/db.js"></script>
 <script src="js/core/master-cache.js"></script>
 <script src="js/core/migration.js"></script>

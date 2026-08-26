@@ -166,6 +166,25 @@ const Migration = (() => {
     Storage.set('migrated_v7_push_local_rules_to_neon', true);
   }
 
+  /** Migración de una sola vez (ver ADR 0063, Fase 3): sube a `equivalences` (Neon) el
+   *  índice de equivalencias que este ordenador ya tuviera cargado, si lo tenía — mismo
+   *  motivo y mismo orden que las otras dos (antes de `EquivalenceIndex.refresh()`, para
+   *  no pisarlo con un Neon aún vacío la primera vez). Si nadie ha subido nunca el fichero
+   *  en este navegador, no hay nada que subir — no es un error. */
+  async function pushLocalEquivalencesToNeonOnce() {
+    if (Storage.get('migrated_v8_push_local_equivalences_to_neon')) return;
+    const idx = EquivalenceIndex.load();
+    if (idx) {
+      try {
+        await NeonEquivalences.upsert(idx);
+      } catch (err) {
+        console.error('pushLocalEquivalencesToNeonOnce error', err);
+        return; // no marca el flag — se reintenta en el próximo boot.
+      }
+    }
+    Storage.set('migrated_v8_push_local_equivalences_to_neon', true);
+  }
+
   async function run() {
     if (!Storage.get('migrated_v1')) {
       const keys = Storage.list();
@@ -203,5 +222,5 @@ const Migration = (() => {
     await applyMasterDescriptions();
   }
 
-  return { run, synthesizePvpLevel, pushLocalTariffsToNeonOnce, pushLocalRulesToNeonOnce };
+  return { run, synthesizePvpLevel, pushLocalTariffsToNeonOnce, pushLocalRulesToNeonOnce, pushLocalEquivalencesToNeonOnce };
 })();

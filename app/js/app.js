@@ -54,6 +54,7 @@ async function finishBoot() {
   // ADR 0060+, extensión del maestro compartido).
   await Migration.pushLocalTariffsToNeonOnce();
   await Migration.pushLocalRulesToNeonOnce();
+  await Migration.pushLocalEquivalencesToNeonOnce();
   try {
     await MasterDB.hydrateFromNeon(await NeonTariffs.fetchAll());
   } catch (err) {
@@ -63,6 +64,10 @@ async function finishBoot() {
   const rulesStatus = await RulesStore.refresh();
   if (rulesStatus.offline) {
     showToast('Sin conexión con las reglas de márgenes compartidas — usando lo que ya había en este ordenador.');
+  }
+  const equivStatus = await EquivalenceIndex.refresh();
+  if (equivStatus.offline) {
+    showToast('Sin conexión con las equivalencias compartidas — usando lo que ya había en este ordenador.');
   }
   await Migration.run();
   ScreenImport.init();

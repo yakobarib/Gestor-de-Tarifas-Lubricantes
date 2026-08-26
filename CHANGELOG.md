@@ -2,6 +2,21 @@
 
 Formato inspirado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [v1.0.11] — 2026-08-26
+
+### Añadido
+- Equivalencias entre marcas compartidas en Neon (Fase 3 de 3, cierra el
+  plan "Extender lo compartido en Neon"): quien suba los 5 Excel de
+  equivalencias en Importación, lo ve todo el equipo desde su propio
+  ordenador en la pantalla Comparación — antes había que subirlos en cada
+  dispositivo.
+- Migración de una sola vez que sube al equipo las equivalencias que Yako ya
+  tenía cargadas antes de este cambio.
+
+Ver [ADR 0063](docs/decisiones/0063-equivalencias-compartidas.md). Con esto,
+tarifas importadas, reglas de márgenes y equivalencias son ya compartidas entre
+todos los autorizados, igual que el maestro de descripciones (ADR 0054).
+
 ## [v1.0.10] — 2026-08-26
 
 ### Añadido

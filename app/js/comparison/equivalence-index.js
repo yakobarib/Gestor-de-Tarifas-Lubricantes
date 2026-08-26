@@ -6,6 +6,11 @@
    (no cambia cada sesión) y modesto en tamaño (el fichero más grande tiene
    ~1000 filas), muy por debajo del límite práctico de localStorage — evita
    abrir un segundo almacén IndexedDB solo para esto.
+
+   Desde ADR 0063 (Fase 3, "extender lo compartido en Neon"), `build()` también
+   empuja el índice recién construido a `equivalences` (Neon, una sola fila) —
+   igual patrón que RulesStore: local al instante, Neon en segundo plano, avisa
+   sin bloquear si falla. `refresh()` hidrata `Storage` desde Neon al arrancar.
 */
 const EquivalenceIndex = (() => {
   const KEY = 'equivalence_index_v1';
@@ -28,7 +33,29 @@ const EquivalenceIndex = (() => {
     }
     cached = { groups, refToGroup, builtAt: new Date().toISOString().slice(0, 10) };
     Storage.set(KEY, cached);
+    if (typeof NeonEquivalences !== 'undefined') {
+      NeonEquivalences.upsert(cached).catch(err => {
+        if (typeof showToast === 'function') {
+          showToast('Guardado en este ordenador, pero no se pudo sincronizar con el equipo (sin conexión?).');
+        }
+        console.error('NeonEquivalences.upsert error', err);
+      });
+    }
     return cached;
+  }
+
+  /** Al arrancar: si el equipo ya tiene equivalencias subidas en Neon, las trae y
+   *  sustituye lo que hubiera en este navegador — degrada con gracia si Neon no
+   *  responde (se queda con la última copia local, como el resto de cachés). */
+  async function refresh() {
+    try {
+      const data = await NeonEquivalences.fetch();
+      if (data) { cached = data; Storage.set(KEY, cached); }
+      return { offline: false };
+    } catch (err) {
+      console.error('EquivalenceIndex.refresh error', err);
+      return { offline: true };
+    }
   }
 
   function load() {
@@ -55,5 +82,5 @@ const EquivalenceIndex = (() => {
     Storage.delete(KEY);
   }
 
-  return { build, load, isLoaded, findEquivalents, clear };
+  return { build, load, isLoaded, findEquivalents, clear, refresh };
 })();
