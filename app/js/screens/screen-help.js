@@ -161,7 +161,9 @@ const ScreenHelp = (() => {
       <ul>
         <li><strong>PVP (Venta)</strong>: la tabla completa y editable — margen, PVP
         calculado, PVP manual (para forzar un precio distinto en una ref concreta),
-        ganancia y margen real. Úsala para revisar/ajustar antes de exportar.</li>
+        ganancia y margen real. Úsala para revisar/ajustar antes de exportar. Para volver
+        un PVP manual a automático, borra el número del campo y pulsa Tab o Intro (déjalo
+        vacío) — se recalcula solo con el margen configurado en Reglas.</li>
         <li><strong>PVP (Skrit)</strong>: el Excel mínimo tal cual se sube a Skrit —
         Marca, Referencia, Descripción, Litros, Coste de compra y PVP, sin columnas de
         trabajo.</li>

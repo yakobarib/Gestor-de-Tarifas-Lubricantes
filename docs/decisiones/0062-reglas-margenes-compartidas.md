@@ -70,9 +70,18 @@ siempre, no le importa de dónde salió), `js/core/storage.js`.
 - Tabla creada y verificada directamente contra Neon (acceso autorizado por Yako, ver
   memoria `neon_direct_db_access`): RLS activa, política correcta, sin DELETE de más para
   `authenticated`, trigger de `updated_at` en su sitio.
-- Pendiente de probar en la app real: cambiar un margen en Reglas y confirmar en Neon que
-  el blob llega actualizado; recargar (o desde otra cuenta) y confirmar que se ve el cambio
-  sin haberlo tocado en ese dispositivo.
+- **Error real al probar en vivo**: el primer cambio de margen falló con `Could not find
+  the table 'public.pricing_rules' in the schema cache` — el Data API (PostgREST) cachea
+  el esquema y no ve una tabla recién creada hasta que se le avisa. Arreglado con
+  `NOTIFY pgrst, 'reload schema';` contra la conexión directa (añadido también al final de
+  `schema_pricing_rules.sql`/`schema_imported_tariff_rows.sql` para la próxima vez —
+  `imported_tariff_rows` no dio este error porque pasó más tiempo entre crearla y probarla).
+- De paso: mientras se probaba esto, Yako descubrió que no sabía cómo volver un PVP manual
+  a automático (borrar el campo y Tab/Intro) — no era un bug, pero no estaba en la ayuda;
+  añadido a la pestaña "Exportación" del manual.
+- Pendiente de reconfirmar en la app real tras el `NOTIFY`: cambiar un margen en Reglas y
+  confirmar en Neon que el blob llega actualizado; recargar (o desde otra cuenta) y
+  confirmar que se ve el cambio sin haberlo tocado en ese dispositivo.
 
 ## Referencias
 
