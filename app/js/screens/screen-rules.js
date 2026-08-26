@@ -48,17 +48,12 @@ const ScreenRules = (() => {
     return String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   }
 
-  function configKeyFor(brandId, gama) {
-    return gama === 'default' ? `config_${brandId}` : `config_${brandId}_${gama}`;
-  }
-
   /** "Todas las gamas" no tiene su propia config — se lee/edita la de la primera gama
    *  real como representante (lo normal es que Yako quiera la misma política para
    *  todas, ver `saveConfig`). */
   function loadConfig(brandId, gama) {
     const realGama = gama === '__all__' ? ((findBrand(brandId) || {}).gamas || ['default'])[0] : gama;
-    const key = configKeyFor(brandId, realGama);
-    let cfg = Storage.get(key);
+    let cfg = RulesStore.load(brandId, realGama);
     if (!cfg) {
       cfg = { defaultMargin: 30, byFormat: {}, rounding: '2dec', marginMode: 'sale', manualPvp: {} };
     }
@@ -121,7 +116,7 @@ const ScreenRules = (() => {
   function saveConfig(brandId, gama, cfg) {
     const gamas = gama === '__all__' ? ((findBrand(brandId) || {}).gamas || ['default']) : [gama];
     for (const g of gamas) {
-      Storage.set(configKeyFor(brandId, g), cfg);
+      RulesStore.save(brandId, g, cfg);
       Store.emit('rules:changed', { brandId, gama: g });
     }
   }

@@ -2,6 +2,19 @@
 
 Formato inspirado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [v1.0.10] — 2026-08-26
+
+### Añadido
+- Reglas de márgenes compartidas en Neon (Fase 2 de 3, ver plan de "Extender
+  lo compartido en Neon"): cualquier persona autorizada que ajuste un margen,
+  active un modo especial de formato, o corrija un PVP a mano, lo ve todo el
+  equipo desde su propio ordenador — antes cada uno tenía que configurar sus
+  propios márgenes por separado.
+- Migración de una sola vez que sube al equipo las reglas que Yako ya tenía
+  configuradas antes de este cambio.
+
+Ver [ADR 0062](docs/decisiones/0062-reglas-margenes-compartidas.md).
+
 ## [v1.0.9] — 2026-08-25
 
 ### Añadido

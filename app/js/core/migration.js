@@ -138,6 +138,34 @@ const Migration = (() => {
     Storage.set('migrated_v6_push_local_tariffs_to_neon', true);
   }
 
+  /** Migración de una sola vez (ver ADR 0062, Fase 2 de "extender lo compartido en
+   *  Neon"): sube a `pricing_rules` (Neon) las reglas de márgenes que este ordenador ya
+   *  tuviera configuradas ANTES de que existiera esa tabla — mismo motivo y mismo orden
+   *  que `pushLocalTariffsToNeonOnce` (se llama antes de `RulesStore.refresh()`, para no
+   *  pisar estas filas locales con un Neon aún vacío la primera vez). Las claves
+   *  `config_${brandId}[_${gama}]` no llevan separador fiable entre marca y gama (los IDs
+   *  de marca ya traen guión bajo, ej. `ad_parts_aceite`) — se resuelven contra `BRANDS`
+   *  en vez de trocear el string a ciegas. */
+  async function pushLocalRulesToNeonOnce() {
+    if (Storage.get('migrated_v7_push_local_rules_to_neon')) return;
+    const keys = Storage.list().filter(k => k.startsWith('config_'));
+    for (const key of keys) {
+      const cfg = Storage.get(key);
+      if (!cfg) continue;
+      const brand = BRANDS.find(b => key === `config_${b.id}` || key.startsWith(`config_${b.id}_`));
+      if (!brand) continue;
+      const gama = key === `config_${brand.id}` ? 'default' : key.slice(`config_${brand.id}_`.length);
+      try {
+        await NeonRules.upsert(brand.id, gama, cfg);
+      } catch (err) {
+        // No bloquea el arranque ni marca el flag — se reintenta en el próximo boot.
+        console.error('pushLocalRulesToNeonOnce error', key, err);
+        return;
+      }
+    }
+    Storage.set('migrated_v7_push_local_rules_to_neon', true);
+  }
+
   async function run() {
     if (!Storage.get('migrated_v1')) {
       const keys = Storage.list();
@@ -175,5 +203,5 @@ const Migration = (() => {
     await applyMasterDescriptions();
   }
 
-  return { run, synthesizePvpLevel, pushLocalTariffsToNeonOnce };
+  return { run, synthesizePvpLevel, pushLocalTariffsToNeonOnce, pushLocalRulesToNeonOnce };
 })();

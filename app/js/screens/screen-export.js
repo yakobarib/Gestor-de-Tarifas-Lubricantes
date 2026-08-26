@@ -102,9 +102,6 @@ const ScreenExport = (() => {
       : 'Sin errores detectados en la tarifa.';
   }
 
-  function configKeyFor(brandId, gama) {
-    return gama === 'default' ? `config_${brandId}` : `config_${brandId}_${gama}`;
-  }
   function historyIdentifierFor(brand, gama) {
     return gama === 'default' ? brand.label : `${brand.label} ${gama}`;
   }
@@ -121,19 +118,18 @@ const ScreenExport = (() => {
   /** Nivel SIN remapear (mismo shape que persiste Reglas) — usar para leer/escribir el
    *  override manual; envolver con `forMaster()` antes de pasarlo a Pricing.compute. */
   function loadRawLevel(brandId, gama, levelId) {
-    const key = configKeyFor(brandId, gama);
-    let cfg = Storage.get(key);
+    let cfg = RulesStore.load(brandId, gama);
     let isNew = false;
     if (!cfg) { cfg = { defaultMargin: 30, byFormat: {}, rounding: '2dec', marginMode: 'sale', manualPvp: {} }; isNew = true; }
     if (!cfg.priceLevels || !cfg.priceLevels.length) { cfg.priceLevels = [Migration.synthesizePvpLevel(cfg)]; isNew = true; }
     let level = cfg.priceLevels.find(l => l.id === levelId);
     if (!level && levelId === 'pvp') { level = Migration.synthesizePvpLevel(cfg); cfg.priceLevels.unshift(level); isNew = true; }
-    if (isNew) Storage.set(key, cfg);
-    return level ? { cfg, level, key } : null;
+    if (isNew) RulesStore.save(brandId, gama, cfg);
+    return level ? { cfg, level } : null;
   }
 
   function loadLevels(brandId, gama) {
-    const cfg = Storage.get(configKeyFor(brandId, gama));
+    const cfg = RulesStore.load(brandId, gama);
     const raw = (cfg && cfg.priceLevels && cfg.priceLevels.length)
       ? cfg.priceLevels
       : [Migration.synthesizePvpLevel(cfg || { defaultMargin: 30, byFormat: {}, rounding: '2dec', marginMode: 'sale', manualPvp: {} })];
@@ -167,11 +163,11 @@ const ScreenExport = (() => {
   function saveManualOverride(brandId, gama, levelId, ref, value) {
     const found = loadRawLevel(brandId, gama, levelId);
     if (!found) return;
-    const { cfg, level, key } = found;
+    const { cfg, level } = found;
     if (!level.manualOverride) level.manualOverride = {};
     if (value == null) delete level.manualOverride[ref];
     else level.manualOverride[ref] = value;
-    Storage.set(key, cfg);
+    RulesStore.save(brandId, gama, cfg);
     Store.emit('rules:changed', { brandId, gama });
   }
 

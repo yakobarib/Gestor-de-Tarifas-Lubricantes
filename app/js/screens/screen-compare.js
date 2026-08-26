@@ -25,10 +25,6 @@ const ScreenCompare = (() => {
     return v.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
   }
 
-  function configKeyFor(brandId, gama) {
-    return gama === 'default' ? `config_${brandId}` : `config_${brandId}_${gama}`;
-  }
-
   /** Las filas del maestro usan costFactura/costNetoNeto, no costPerPack (ver ADR 0008) —
    *  se remapea baseCostField a partir de baseCost antes de pasarlo a Pricing.compute. */
   function forMaster(level) {
@@ -42,7 +38,7 @@ const ScreenCompare = (() => {
    *  solo se mostraba "pvp"; ahora se comparan todos los que esa marca/gama tenga
    *  configurados, con su propia etiqueta. */
   function loadLevelsFor(brandId, gama) {
-    const cfg = Storage.get(configKeyFor(brandId, gama));
+    const cfg = RulesStore.load(brandId, gama);
     const raw = (cfg && cfg.priceLevels && cfg.priceLevels.length)
       ? cfg.priceLevels
       : [Migration.synthesizePvpLevel(cfg || { defaultMargin: 30, byFormat: {}, rounding: '2dec', marginMode: 'sale', manualPvp: {} })];

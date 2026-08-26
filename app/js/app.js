@@ -53,11 +53,16 @@ async function finishBoot() {
   // su applyMasterDescriptions() ya las recalcule con el maestro recién calentado (ver
   // ADR 0060+, extensión del maestro compartido).
   await Migration.pushLocalTariffsToNeonOnce();
+  await Migration.pushLocalRulesToNeonOnce();
   try {
     await MasterDB.hydrateFromNeon(await NeonTariffs.fetchAll());
   } catch (err) {
     showToast('Sin conexión con las tarifas compartidas del equipo — usando lo que ya había en este ordenador.');
     console.error('NeonTariffs.fetchAll error', err);
+  }
+  const rulesStatus = await RulesStore.refresh();
+  if (rulesStatus.offline) {
+    showToast('Sin conexión con las reglas de márgenes compartidas — usando lo que ya había en este ordenador.');
   }
   await Migration.run();
   ScreenImport.init();
