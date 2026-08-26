@@ -91,14 +91,21 @@ el próximo arranque); tampoco hay borrado de refs que desaparecieron de la últ
   (crea la tabla, aún no existe). Sin la tabla, `NeonTariffs.fetchAll()`/`upsert*` fallan y
   el import sigue funcionando solo en local (degradado, como está diseñado) — pero no hay
   nada que sincronizar todavía.
-- **No verificado en vivo por mí** (sin acceso directo a Neon en esta sesión — CLI
-  instalada pero sin cuenta enlazada, ver nota de tooling en el plan): que
-  `client.from(TABLE).upsert(arrayDeObjetos)` del SDK acepte de verdad un array para
-  upsert en lote (`upsertBatch`/`upsertMany`), y que el merge parcial por columna se
-  comporte como se espera en un upsert en lote (no solo en uno de una fila, que es lo único
-  que `NeonMaster.upsert` ya usaba). Primer punto real a probar en cuanto la tabla exista:
-  importar una tarifa real y confirmar en Neon que se guardó bien, ANTES de dar por buena
-  esta fase.
+- **Verificado en vivo** (2026-08-26, tras enlazar Yako la CLI de Neon con `npx neon@latest
+  auth` y autorizar acceso directo a la base de datos para estos pasos): reimportada la
+  tarifa de Repsol completa — 864 filas en las 6 gamas llegaron a `imported_tariff_rows`
+  con los tres niveles de coste donde el fichero los trae, confirmando que
+  `client.from(TABLE).upsert(arrayDeObjetos)` sí acepta un array para upsert en lote
+  (`upsertBatch`/`upsertMany`).
+- Detalle encontrado y corregido al crear la tabla: el privilegio por defecto del esquema
+  `public` concede DELETE a `authenticated` en toda tabla nueva (ya lo tenía
+  `verified_descriptions` también, sin que nadie lo pidiera) — revocado explícitamente en
+  ambas tablas (y en `allowed_emails`) para que quede como estaba pensado: nunca se borra,
+  solo se marca inválido/pendiente.
+- Pendiente de probar el caso de upsert parcial de verdad (una importación que solo trae UN
+  coste, ej. el fichero de triple-neto de AD Parts) para confirmar que no borra
+  `cost_factura` ya existente — Repsol trae los tres costes juntos en la misma fila, así
+  que esa reimportación no ejercitó ese camino en concreto.
 - Importar una tarifa real; confirmar en Neon que aparecen las filas. Desde una segunda
   cuenta o perfil de navegador, recargar sin importar nada — deben verse esas mismas filas.
 - Importar el fichero de triple-neto de AD Parts: confirmar que NO borra `cost_factura` de
