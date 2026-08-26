@@ -104,6 +104,40 @@ const Migration = (() => {
     }
   }
 
+  /** Migración de una sola vez (ver ADR 0060+, extensión del maestro compartido a
+   *  tarifas importadas): sube a `imported_tariff_rows` (Neon) lo que este ordenador ya
+   *  tuviera importado ANTES de que existiera esa tabla — sin esto, Albert/Ernesto/Nuria
+   *  arrancarían con las tarifas vacías igualmente la primera vez, aunque Yako ya las
+   *  tuviera todas importadas en el suyo. Se llama desde app.js ANTES de
+   *  `MasterDB.hydrateFromNeon()`, para no pisar estas filas locales con un Neon aún
+   *  vacío la primera vez que esto se despliega. */
+  async function pushLocalTariffsToNeonOnce() {
+    if (Storage.get('migrated_v6_push_local_tariffs_to_neon')) return;
+    const allRows = await MasterDB.getAll();
+    const items = allRows.map(r => {
+      const fields = {
+        descriptionRaw: r.descriptionRaw,
+        descriptionExport: r.descriptionExport,
+        liters: r.liters,
+        formatKey: r.formatKey,
+        litersDetected: r.litersDetected,
+        fam: r.fam
+      };
+      if (r.costFactura != null) { fields.costFactura = r.costFactura; fields.costFacturaImportedAt = r.costFacturaImportedAt; }
+      if (r.costNetoNeto != null) { fields.costNetoNeto = r.costNetoNeto; fields.costNetoNetoImportedAt = r.costNetoNetoImportedAt; }
+      if (r.costTripleNeto != null) { fields.costTripleNeto = r.costTripleNeto; fields.costTripleNetoImportedAt = r.costTripleNetoImportedAt; }
+      return { brandId: r.brandId, gama: r.gama, ref: r.ref, fields };
+    });
+    try {
+      await NeonTariffs.upsertMany(items);
+    } catch (err) {
+      // No bloquea el arranque — se reintenta en el próximo boot (el flag no se marca).
+      console.error('pushLocalTariffsToNeonOnce error', err);
+      return;
+    }
+    Storage.set('migrated_v6_push_local_tariffs_to_neon', true);
+  }
+
   async function run() {
     if (!Storage.get('migrated_v1')) {
       const keys = Storage.list();
@@ -141,5 +175,5 @@ const Migration = (() => {
     await applyMasterDescriptions();
   }
 
-  return { run, synthesizePvpLevel };
+  return { run, synthesizePvpLevel, pushLocalTariffsToNeonOnce };
 })();

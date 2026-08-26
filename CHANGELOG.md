@@ -2,6 +2,22 @@
 
 Formato inspirado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [v1.0.9] — 2026-08-25
+
+### Añadido
+- Tarifas importadas compartidas en Neon (Fase 1 de 3, ver plan de "Extender lo
+  compartido en Neon"): cualquier persona autorizada que importe una tarifa la
+  ve todo el equipo, desde su propio ordenador, sin reimportar nada — antes
+  solo el maestro de descripciones/litros era compartido, las tarifas en sí
+  vivían solo en el navegador de quien las importaba.
+- Migración de una sola vez que sube al equipo las tarifas que Yako ya tenía
+  importadas antes de este cambio.
+
+Ver [ADR 0061](docs/decisiones/0061-tarifas-importadas-compartidas.md). Pendiente:
+pegar `Archivo Maestro/_sql_carga_neon/schema_imported_tariff_rows.sql` en el SQL
+Editor de Neon para crear la tabla — sin eso, las tarifas siguen funcionando
+solo en local, como hasta ahora.
+
 ## [v1.0.8] — 2026-08-25
 
 ### Cambiado

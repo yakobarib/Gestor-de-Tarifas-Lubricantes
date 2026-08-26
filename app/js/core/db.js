@@ -13,6 +13,13 @@
    `putRows` también sustituye descripción/litros por la versión verificada de
    MasterCache (maestro compartido en Neon, ver ADR 0054) cuando existe, marcando
    `descVerified`.
+
+   Desde ADR 0060+ (tarifas importadas compartidas), `putRows` además empuja a
+   `imported_tariff_rows` (Neon) los campos que cada fila trae de verdad — igual criterio
+   que ya usa para decidir qué coste local tocar — y `hydrateFromNeon` vuelca en IndexedDB,
+   al arrancar la app, lo que otros compañeros ya hayan importado desde su propio
+   ordenador. El push a Neon no bloquea el import (que ya quedó guardado en local): si
+   falla, solo avisa.
 */
 const MasterDB = (() => {
   const DB_NAME = 'tarifador_master_v1';
@@ -54,6 +61,7 @@ const MasterDB = (() => {
     const now = new Date().toISOString().slice(0, 10);
     const tx = db.transaction(STORE, 'readwrite');
     const store = tx.objectStore(STORE);
+    const pendingNeonPush = [];
 
     // Verificación de todo el lote de una vez, ANTES de guardar nada — hace falta para
     // resolver `_aliasOf` (ver ADR 0049): algunos perfiles (Castrol, "Sustituye a")
@@ -131,8 +139,84 @@ const MasterDB = (() => {
       if (r.costNetoNeto != null) { merged.costNetoNeto = r.costNetoNeto; merged.costNetoNetoImportedAt = now; }
       if (r.costTripleNeto != null) { merged.costTripleNeto = r.costTripleNeto; merged.costTripleNetoImportedAt = now; }
       store.put(merged);
+
+      // Campos que ESTA fila trae de verdad — parcial a propósito, ver
+      // NeonTariffs.upsert/upsertBatch: lo que no está aquí no se toca en Neon. IMPORTANTE:
+      // solo se incluye un campo si `r` lo trae de verdad (`!= null`), NUNCA a partir de
+      // `merged`/`existing` — `Migration.applyMasterDescriptions()` reimporta con filas
+      // esqueleto (`{ref}` nada más) para reaplicar el maestro a lo ya importado, y de
+      // sacar estos campos de `merged` (que sí hereda de `existing`) se acabaría empujando
+      // `null` a Neon para liters/formatKey/fam de CADA fila en CADA arranque.
+      const neonFields = {};
+      if (r.description != null) neonFields.descriptionRaw = r.description;
+      if (r.descriptionExport != null) neonFields.descriptionExport = r.descriptionExport;
+      if (r.liters != null) neonFields.liters = r.liters;
+      if (r.formatKey != null) neonFields.formatKey = r.formatKey;
+      if (r.litersDetected != null) neonFields.litersDetected = !!r.litersDetected;
+      if (r.fam != null) neonFields.fam = r.fam;
+      if (hasCost) {
+        if (tariffType === 'triple_neto') { neonFields.costTripleNeto = r.costPerPack; neonFields.costTripleNetoImportedAt = now; }
+        else if (tariffType === 'netoNeto') { neonFields.costNetoNeto = r.costPerPack; neonFields.costNetoNetoImportedAt = now; }
+        else { neonFields.costFactura = r.costPerPack; neonFields.costFacturaImportedAt = now; }
+      }
+      if (r.costNetoNeto != null) { neonFields.costNetoNeto = r.costNetoNeto; neonFields.costNetoNetoImportedAt = now; }
+      if (r.costTripleNeto != null) { neonFields.costTripleNeto = r.costTripleNeto; neonFields.costTripleNetoImportedAt = now; }
+      if (Object.keys(neonFields).length) pendingNeonPush.push({ brandId, gama, ref: r.ref, fields: neonFields });
     }
 
+    await new Promise((resolve, reject) => {
+      tx.oncomplete = resolve;
+      tx.onerror = () => reject(tx.error);
+    });
+
+    // El push a Neon va DESPUÉS de que el import ya quedó guardado en local — si falla
+    // (sin red, RLS, lo que sea), el import sigue viéndose en pantalla igual, solo se
+    // avisa que no llegó al equipo (ver ADR 0060+, no es tan crítico como guardar una
+    // validación desde Tarifas, que si falla no aplica el cambio ni en local).
+    if (pendingNeonPush.length && typeof NeonTariffs !== 'undefined') {
+      try {
+        await NeonTariffs.upsertMany(pendingNeonPush);
+      } catch (err) {
+        if (typeof showToast === 'function') {
+          showToast('Importado en este ordenador, pero no se pudo sincronizar con el equipo (sin conexión?).');
+        }
+        console.error('NeonTariffs.upsertBatch error', err);
+      }
+    }
+  }
+
+  /** Vuelca en IndexedDB lo que ya haya en `imported_tariff_rows` (Neon) — se llama al
+   *  arrancar la app (ver app.js finishBoot), ANTES de Migration.run(), para que las
+   *  tarifas que otro compañero ya importó desde su propio ordenador aparezcan aquí sin
+   *  reimportar nada. `description`/`formatKey`/`descVerified` se dejan en un estado
+   *  provisional a partir del dato crudo — `Migration.run()`'s `applyMasterDescriptions()`
+   *  los recalcula justo después contra el MasterCache ya calentado, igual que hace con
+   *  cualquier fila (ver ADR 0054), así que no hace falta acertarlos aquí. */
+  async function hydrateFromNeon(neonRows) {
+    if (!neonRows.length) return;
+    const db = await open();
+    const tx = db.transaction(STORE, 'readwrite');
+    const store = tx.objectStore(STORE);
+    for (const nr of neonRows) {
+      const id = rowId(nr.brand_id, nr.gama, nr.ref);
+      store.put({
+        id, brandId: nr.brand_id, gama: nr.gama, ref: nr.ref,
+        description: nr.description_raw || '',
+        descriptionRaw: nr.description_raw || '',
+        descriptionExport: nr.description_export != null ? nr.description_export : null,
+        liters: nr.liters,
+        formatKey: nr.format_key || '?',
+        fam: nr.fam,
+        litersDetected: !!nr.liters_detected,
+        descVerified: false,
+        costFactura: nr.cost_factura,
+        costFacturaImportedAt: nr.cost_factura_imported_at,
+        costNetoNeto: nr.cost_neto_neto,
+        costNetoNetoImportedAt: nr.cost_neto_neto_imported_at,
+        costTripleNeto: nr.cost_triple_neto,
+        costTripleNetoImportedAt: nr.cost_triple_neto_imported_at
+      });
+    }
     await new Promise((resolve, reject) => {
       tx.oncomplete = resolve;
       tx.onerror = () => reject(tx.error);
@@ -184,5 +268,5 @@ const MasterDB = (() => {
 
   // `openDb`/`SNAPSHOT_STORE` expuestos para que `MasterCache` reutilice esta misma
   // conexión/promesa en vez de abrir una segunda a la misma IndexedDB (ver ADR 0054).
-  return { putRows, getByBrand, getByRef, getAll, deleteRow, rowId, openDb: open, SNAPSHOT_STORE };
+  return { putRows, hydrateFromNeon, getByBrand, getByRef, getAll, deleteRow, rowId, openDb: open, SNAPSHOT_STORE };
 })();

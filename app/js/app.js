@@ -48,6 +48,17 @@ async function finishBoot() {
       ? `Sin conexión con el maestro compartido — usando copia local del ${cacheStatus.syncedAt.slice(0, 10)}`
       : 'Sin conexión con el maestro compartido y sin copia local todavía.');
   }
+  // Sube las tarifas que este ordenador ya tuviera importadas (una sola vez) y trae las
+  // que otros compañeros hayan importado desde el suyo — antes de Migration.run() para que
+  // su applyMasterDescriptions() ya las recalcule con el maestro recién calentado (ver
+  // ADR 0060+, extensión del maestro compartido).
+  await Migration.pushLocalTariffsToNeonOnce();
+  try {
+    await MasterDB.hydrateFromNeon(await NeonTariffs.fetchAll());
+  } catch (err) {
+    showToast('Sin conexión con las tarifas compartidas del equipo — usando lo que ya había en este ordenador.');
+    console.error('NeonTariffs.fetchAll error', err);
+  }
   await Migration.run();
   ScreenImport.init();
   ScreenTarifas.init();
