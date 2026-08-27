@@ -2,6 +2,12 @@
 
 Formato inspirado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [v1.0.13] — 2026-08-27
+
+### Cambiado
+- Reglas: los botones de plantilla por defecto van en una fila (antes
+  apilados) bajo un encabezado "Plantillas", igual estilo que Marca/Gama.
+
 ## [v1.0.12] — 2026-08-27
 
 ### Añadido
