@@ -100,8 +100,9 @@ const ExcelWriter = (() => {
    * nivel configurado con márgenes distintos, así que se resuelve fila a fila según la
    * gama real de esa fila.
    */
-  async function exportSkritV2(rows, brandAbbr, levelConfig, tariffDate, typeLabel) {
+  async function exportSkritV2(rows, brandAbbr, levelConfig, tariffDate, typeLabel, bigContainerResolver) {
     const resolveLevel = typeof levelConfig === 'function' ? levelConfig : () => levelConfig;
+    const resolveBigContainer = typeof bigContainerResolver === 'function' ? bigContainerResolver : () => bigContainerResolver;
     const wb = new ExcelJS.Workbook();
     const ws = wb.addWorksheet('SKRIT');
     setColumns(ws, [
@@ -110,6 +111,7 @@ const ExcelWriter = (() => {
       { header: 'DESCRIPCION', width: 50 },
       { header: 'LITROS', width: 8 },
       { header: 'FAMILIA', width: 8 },
+      { header: 'BIDONES Y CUBAS', width: 14 },
       { header: 'COSTE FACTURA', width: 14, euro: true },
       { header: 'COSTE NETO-NETO', width: 16, euro: true },
       { header: 'COSTE TRIPLE NETO', width: 16, euro: true },
@@ -118,12 +120,14 @@ const ExcelWriter = (() => {
     for (const r of rows) {
       const c = Pricing.compute(r, resolveLevel(r) || {});
       if (c.pvp == null) continue; // sin coste base para este nivel (ej. netoNeto/tripleNeto aún no auditado)
+      const bigContainerMap = resolveBigContainer(r) || {};
       ws.addRow([
         brandAbbr,
         exportRef(r.ref, brandAbbr),
         exportDescription(r),
         r.liters || null,
         Parser.upperOut(r.fam || ''),
+        bigContainerMap[r.formatKey] ? 'SÍ' : '',
         r.costFactura != null ? r.costFactura : null,
         r.costNetoNeto != null ? r.costNetoNeto : null,
         r.costTripleNeto != null ? r.costTripleNeto : null,
@@ -166,8 +170,9 @@ const ExcelWriter = (() => {
    * Skrit — MARCA, REFERENCIA, DESCRIPCION (editada), LITROS (por envase), FAMILIA,
    * COSTE COMPRA (el que usa el nivel para calcular el PVP) y PVP.
    */
-  async function exportSkritLean(rows, brandAbbr, levelConfig, tariffDate, typeLabel) {
+  async function exportSkritLean(rows, brandAbbr, levelConfig, tariffDate, typeLabel, bigContainerResolver) {
     const resolveLevel = typeof levelConfig === 'function' ? levelConfig : () => levelConfig;
+    const resolveBigContainer = typeof bigContainerResolver === 'function' ? bigContainerResolver : () => bigContainerResolver;
     const wb = new ExcelJS.Workbook();
     const ws = wb.addWorksheet('SKRIT');
     setColumns(ws, [
@@ -176,6 +181,7 @@ const ExcelWriter = (() => {
       { header: 'DESCRIPCION', width: 50 },
       { header: 'LITROS', width: 8 },
       { header: 'FAMILIA', width: 8 },
+      { header: 'BIDONES Y CUBAS', width: 14 },
       { header: 'COSTE FACTURA', width: 14, euro: true },
       { header: 'PVP', width: 12, euro: true }
     ]);
@@ -184,12 +190,14 @@ const ExcelWriter = (() => {
       const c = Pricing.compute(r, level);
       if (c.pvp == null) continue; // sin coste base para este nivel
       const cost = Pricing.resolveCost(r, level);
+      const bigContainerMap = resolveBigContainer(r) || {};
       ws.addRow([
         brandAbbr,
         exportRef(r.ref, brandAbbr),
         exportDescription(r),
         r.liters || null,
         Parser.upperOut(r.fam || ''),
+        bigContainerMap[r.formatKey] ? 'SÍ' : '',
         typeof cost === 'number' ? cost : null,
         c.pvp
       ]);

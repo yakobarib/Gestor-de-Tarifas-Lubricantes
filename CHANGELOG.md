@@ -2,6 +2,26 @@
 
 Formato inspirado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [v1.0.12] — 2026-08-27
+
+### Añadido
+- Reglas: "Bidones y Cubas", una familia nueva (marcada a mano, formato a
+  formato) para los envases grandes que Skrit trata de forma especial —
+  columna nueva en los Excel/vistas de exportación, sin tocar la Familia del
+  proveedor.
+- Reglas: plantilla por defecto por marca — botones "Establecer como
+  plantilla por defecto" y "Volver a la plantilla por defecto".
+- PDF de "Exportar Políticas de Precios" (una sola marca) reescrito en
+  formato narrativo, por marca y gama concreta, con una línea por formato
+  (margen, "1+2"/"PVP Neto"/"Bidones y Cubas" si aplica).
+
+### Corregido
+- El margen mostrado en el PDF de políticas salía "—" para el caso más
+  habitual ("Coste factura" como base) — bug real en el cálculo de ejemplo
+  del PDF, no en los márgenes de verdad usados al exportar/vender.
+
+Ver [ADR 0064](docs/decisiones/0064-plantilla-bidones-cubas-pdf-narrativo.md).
+
 ## [v1.0.11] — 2026-08-26
 
 ### Añadido

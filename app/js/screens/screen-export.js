@@ -143,6 +143,19 @@ const ScreenExport = (() => {
     return map;
   }
 
+  /** "Bidones y Cubas" (ver ADR 0064) — hermano de `priceLevels` en el mismo `cfg`, no
+   *  un nivel: `{formatKey: true}` de esa marca/gama. */
+  function bigContainerFormatsFor(brandId, gama) {
+    const cfg = RulesStore.load(brandId, gama);
+    return (cfg && cfg.bigContainerFormats) || {};
+  }
+
+  function bigContainerFormatsByGama(brandId, gamas) {
+    const map = {};
+    for (const g of gamas) map[g] = bigContainerFormatsFor(brandId, g);
+    return map;
+  }
+
   /** El nivel "pvp" de esta marca/gama (siempre existe, ver ADR 0026 v2). */
   function pvpLevelFor(brandId, gama) {
     return loadLevels(brandId, gama).find(l => l.id === 'pvp') || null;
@@ -399,7 +412,7 @@ const ScreenExport = (() => {
     }
 
     if (kind === 'skrit') {
-      thead.innerHTML = `<tr><th>Marca</th><th>Referencia</th><th>Producto</th><th class="num liters">Litros</th><th>Familia</th><th class="num">Coste factura</th><th class="num">PVP</th></tr>`;
+      thead.innerHTML = `<tr><th>Marca</th><th>Referencia</th><th>Producto</th><th class="num liters">Litros</th><th>Familia</th><th>Bidones y Cubas</th><th class="num">Coste factura</th><th class="num">PVP</th></tr>`;
       const byGama = currentGama === '__all__' ? loadLevelsByGama(currentBrandId, brand.gamas) : null;
       const levelCache = {};
       const levelFor = (gama) => {
@@ -408,6 +421,11 @@ const ScreenExport = (() => {
         levelCache[gama] = lvl || null;
         return levelCache[gama];
       };
+      const bigContainerCache = {};
+      const bigContainerFor = (gama) => {
+        if (bigContainerCache[gama]) return bigContainerCache[gama];
+        return (bigContainerCache[gama] = bigContainerFormatsFor(currentBrandId, currentGama === '__all__' ? gama : currentGama));
+      };
       updateCountBox(visible.length, rows.length);
       const tally = newErrorTally();
       const frag = document.createDocumentFragment();
@@ -415,6 +433,7 @@ const ScreenExport = (() => {
         const level = levelFor(r.gama);
         const c = level ? Pricing.compute(r, level) : { pvp: null };
         const cost = level ? Pricing.resolveCost(r, level) : null;
+        const isBigContainer = !!bigContainerFor(r.gama)[r.formatKey];
         trackRowErrors(tally, r, c.pvp == null);
         const tr = document.createElement('tr');
         tr.innerHTML = `
@@ -423,6 +442,7 @@ const ScreenExport = (() => {
           <td title="${escapeHtml(r.description)}">${escapeHtml(truncate(exportDescription(r), 60))}</td>
           <td class="num liters">${r.liters ?? '—'}</td>
           <td>${escapeHtml(Parser.upperOut(r.fam) || '—')}</td>
+          <td>${isBigContainer ? 'Sí' : '—'}</td>
           <td class="num">${formatEur(cost)}</td>
           <td class="num"><strong>${formatEur(c.pvp)}</strong></td>
         `;
@@ -487,7 +507,7 @@ const ScreenExport = (() => {
     if (key === 'netos_bonus') {
       thead.innerHTML = `
         <tr>
-          <th>Marca</th><th>Referencia</th><th>Producto</th><th class="num liters">Litros</th><th>Familia</th>
+          <th>Marca</th><th>Referencia</th><th>Producto</th><th class="num liters">Litros</th><th>Familia</th><th>Bidones y Cubas</th>
           <th class="num">Coste factura</th><th class="num">Coste neto-neto</th><th class="num">Coste triple neto</th><th class="num">PVP</th>
         </tr>`;
       const byGama = currentGama === '__all__' ? loadLevelsByGama(currentBrandId, brand.gamas) : null;
@@ -499,6 +519,11 @@ const ScreenExport = (() => {
           : loadLevels(currentBrandId, currentGama).find(l => l.id === 'netos_bonus');
         levelCache[gama] = lvl || null;
         return levelCache[gama];
+      };
+      const bigContainerCache = {};
+      const bigContainerFor = (gama) => {
+        if (bigContainerCache[gama]) return bigContainerCache[gama];
+        return (bigContainerCache[gama] = bigContainerFormatsFor(currentBrandId, currentGama === '__all__' ? gama : currentGama));
       };
       // Netos Bonus es una hoja impresa: solo entran los formatos marcados como "Salida
       // impresa" en Reglas para la gama real de cada fila (ver ADR 0026 v2).
@@ -512,6 +537,7 @@ const ScreenExport = (() => {
       for (const r of visible.slice(0, 500)) {
         const level = levelFor(r.gama);
         const c = level ? Pricing.compute(r, level) : { pvp: null };
+        const isBigContainer = !!bigContainerFor(r.gama)[r.formatKey];
         trackRowErrors(tally, r, c.pvp == null);
         const tr = document.createElement('tr');
         tr.innerHTML = `
@@ -520,6 +546,7 @@ const ScreenExport = (() => {
           <td title="${escapeHtml(r.description)}">${escapeHtml(truncate(exportDescription(r), 60))}</td>
           <td class="num liters">${r.liters ?? '—'}</td>
           <td>${escapeHtml(Parser.upperOut(r.fam) || '—')}</td>
+          <td>${isBigContainer ? 'Sí' : '—'}</td>
           <td class="num">${formatEur(r.costFactura)}</td>
           <td class="num">${formatEur(r.costNetoNeto)}</td>
           <td class="num">${formatEur(r.costTripleNeto)}</td>
@@ -649,7 +676,9 @@ const ScreenExport = (() => {
       const levelForGama = (gama) => byGama ? (byGama[gama] || []).find(l => l.id === key) : loadLevels(currentBrandId, currentGama).find(l => l.id === key);
       const resolver = currentGama === '__all__' ? (row) => levelForGama(row.gama) : levelForGama(currentGama);
       if (kind === 'skrit') {
-        const fname = await ExcelWriter.exportSkritLean(filtered, brand.abbr, resolver, tariffDate, EXPORT_FILE_TYPE_LABELS[currentOption]);
+        const bigContainerByGama = currentGama === '__all__' ? bigContainerFormatsByGama(currentBrandId, brand.gamas) : null;
+        const bigContainerResolver = currentGama === '__all__' ? (row) => bigContainerByGama[row.gama] : bigContainerFormatsFor(currentBrandId, currentGama);
+        const fname = await ExcelWriter.exportSkritLean(filtered, brand.abbr, resolver, tariffDate, EXPORT_FILE_TYPE_LABELS[currentOption], bigContainerResolver);
         $('exportStatus').innerHTML = `<small style="color: var(--pico-ins-color);">✓ Exportado: <strong>${escapeHtml(fname)}</strong> (${filtered.length} filas).</small>`;
         return;
       }
@@ -696,13 +725,16 @@ const ScreenExport = (() => {
       // levelForGama (que usamos arriba directamente con un string de gama para filtrar
       // por printFormats).
       const resolver = (row) => levelForGama(row.gama);
-      const fname = await ExcelWriter.exportSkritV2(exportRows, brand.abbr, resolver, tariffDate, EXPORT_FILE_TYPE_LABELS[currentOption]);
+      const bigContainerByGama = bigContainerFormatsByGama(currentBrandId, brand.gamas);
+      const bigContainerResolver = (row) => bigContainerByGama[row.gama];
+      const fname = await ExcelWriter.exportSkritV2(exportRows, brand.abbr, resolver, tariffDate, EXPORT_FILE_TYPE_LABELS[currentOption], bigContainerResolver);
       $('exportStatus').innerHTML = `<small style="color: var(--pico-ins-color);">✓ Exportado: <strong>${escapeHtml(fname)}</strong> (${exportRows.length} filas, nivel "${escapeHtml(anyLevel ? anyLevel.label : key)}", todas las gamas).</small>`;
       return;
     }
     const level = levelForGama(currentGama);
     if (!level) { alert('Ese nivel ya no existe para esta marca/gama.'); return; }
-    const fname = await ExcelWriter.exportSkritV2(exportRows, brand.abbr, level, tariffDate, EXPORT_FILE_TYPE_LABELS[currentOption]);
+    const bigContainerResolver = bigContainerFormatsFor(currentBrandId, currentGama);
+    const fname = await ExcelWriter.exportSkritV2(exportRows, brand.abbr, level, tariffDate, EXPORT_FILE_TYPE_LABELS[currentOption], bigContainerResolver);
     $('exportStatus').innerHTML = `<small style="color: var(--pico-ins-color);">✓ Exportado: <strong>${escapeHtml(fname)}</strong> (${exportRows.length} filas, nivel "${escapeHtml(level.label)}").</small>`;
   }
 

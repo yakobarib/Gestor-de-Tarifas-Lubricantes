@@ -26,6 +26,16 @@ const ScreenRules = (() => {
   const PROMO_1X2_MAX_LITERS = 5;
   const PVP_NETO_MIN_LITERS = 150;
 
+  const GAMA_LABELS = { normal: 'Normal', standard: 'Standard', sportcar: 'Sport Car', quimico: 'Químicos', default: 'General', automocion: 'Automoción', industria: 'Industria', 'productos-de-mantenimiento': 'Productos de Mantenimiento', marinos: 'Marinos', grasas: 'Grasas', alimentarios: 'Alimentarios', 'v-ligero': 'V. Ligero', 'v-pesado': 'V. Pesado', agricola: 'Agrícola', transmision: 'Transmisión', hidraulicos: 'Hidráulicos', grasa: 'Grasa', moto: 'Moto', classic: 'Classic', marina: 'Marina', anticogelante: 'Anticongelante', aditivos: 'Aditivos', advance: 'Advance', 'air-tool': 'Air Tool', corena: 'Corena', diala: 'Diala', gadinia: 'Gadinia', gadus: 'Gadus', 'heat-transfer': 'Heat Transfer', helix: 'Helix', hydraulic: 'Hydraulic', morlina: 'Morlina', omala: 'Omala', ondina: 'Ondina', 'paper-mach': 'Paper Mach', refrigeration: 'Refrigeration', rimula: 'Rimula', sirius: 'Sirius', spirax: 'Spirax', tegula: 'Tegula', tellus: 'Tellus', tonna: 'Tonna', transmission: 'Transmission', turbo: 'Turbo', 'vacuum-pump': 'Vacuum Pump', other: 'Other', crb: 'CRB', edge: 'EDGE', gtx: 'GTX', 'gtx-5w': 'GTX 5W', magnatec: 'Magnatec', 'castrol-on': 'Castrol ON', transmax: 'Transmax', vecton: 'Vecton' };
+
+  /** Etiqueta legible de una gama para mostrar (títulos de PDF, etc.) — `'__all__'` y
+   *  marcas con una sola gama ("General") aparte, el resto sale de `GAMA_LABELS`. */
+  function gamaLabelFor(brand, gama) {
+    if (gama === '__all__') return 'Todas las gamas';
+    if (!brand || brand.gamas.length <= 1) return 'General';
+    return GAMA_LABELS[gama] || gama;
+  }
+
   /** Netos Bonus: coste en cascada (siempre el más bajo disponible, ver ADR 0016), nunca
    *  va a Skrit — son hojas impresas para comerciales, no dependen de Skrit — y en vez de
    *  `onlyFormats` (que antes decidía a la vez "tiene precio" y "se imprime") ahora
@@ -106,6 +116,10 @@ const ScreenRules = (() => {
 
     const order = ['pvp', 'netos_bonus'];
     cfg.priceLevels.sort((a, b) => order.indexOf(a.id) - order.indexOf(b.id));
+
+    // "Bidones y Cubas" (ver ADR 0064): hermano de priceLevels, no un nivel — es una
+    // clasificación por formato para exportar, no una regla de margen.
+    if (!cfg.bigContainerFormats) { cfg.bigContainerFormats = {}; changed = true; }
     return changed;
   }
 
@@ -137,21 +151,26 @@ const ScreenRules = (() => {
       + BRANDS.filter(b => !b.pending).map(b => `<option value="${b.id}">${escapeHtml(b.label)}</option>`).join('');
   }
 
-  /** Reúne la config vigente (representativa de "todas las gamas", igual que el resto
-   *  de Reglas trata "Todas las gamas") + los formatos reales de una marca, para el PDF
-   *  de políticas de precios — ver ADR 0041. Efecto colateral aceptado: si la marca
-   *  nunca se abrió en Reglas, sintetiza y guarda sus niveles por defecto, igual que
-   *  haría `renderLevels()` la primera vez que se visita esa marca. */
-  async function gatherBrandPolicy(brandId) {
+  /** `gama` en minúsculas real, o `'__all__'` (representante = primera gama real, como
+   *  siempre) — usada tanto por la exportación "todas las marcas" (siempre `'__all__'`,
+   *  no tiene sentido "la gama actual" recorriendo 6 marcas de golpe) como por la de una
+   *  sola marca (usa la gama seleccionada en pantalla, ver ADR 0064 — "seguir el workflow
+   *  visual"). Efecto colateral aceptado: si la marca nunca se abrió en Reglas, sintetiza
+   *  y guarda sus niveles por defecto, igual que haría `renderLevels()` la primera vez. */
+  async function gatherBrandPolicy(brandId, gama) {
     const brand = findBrand(brandId);
-    const cfg = loadConfig(brandId, '__all__');
-    const formats = await availableFormats(brandId, '__all__');
-    if (migrateLevels(cfg, formats)) saveConfig(brandId, '__all__', cfg);
+    const cfg = loadConfig(brandId, gama);
+    const formats = await availableFormats(brandId, gama);
+    if (migrateLevels(cfg, formats)) saveConfig(brandId, gama, cfg);
+    const template = RulesStore.loadTemplate(brandId);
     return {
       brand,
+      gamaLabel: gamaLabelFor(brand, gama),
       formats,
       pvp: cfg.priceLevels.find(l => l.id === 'pvp'),
-      bonus: cfg.priceLevels.find(l => l.id === 'netos_bonus')
+      bonus: cfg.priceLevels.find(l => l.id === 'netos_bonus'),
+      bigContainerFormats: cfg.bigContainerFormats || {},
+      templateDiffers: template ? JSON.stringify(template) !== JSON.stringify(cfg) : null
     };
   }
 
@@ -162,12 +181,12 @@ const ScreenRules = (() => {
     try {
       if (scope === '__all__') {
         const brandPolicies = [];
-        for (const b of BRANDS.filter(x => !x.pending)) brandPolicies.push(await gatherBrandPolicy(b.id));
+        for (const b of BRANDS.filter(x => !x.pending)) brandPolicies.push(await gatherBrandPolicy(b.id, '__all__'));
         PdfWriter.exportAllPoliciesPdf(brandPolicies);
       } else {
-        const policy = await gatherBrandPolicy(scope);
+        const policy = await gatherBrandPolicy(scope, currentBrandId === scope ? currentGama : '__all__');
         if (!policy.formats.length) { alert('Esta marca no tiene ninguna tarifa importada todavía — no hay formatos que resumir.'); return; }
-        PdfWriter.exportPolicyPdf(policy.brand, policy.formats, policy.pvp, policy.bonus);
+        PdfWriter.exportPolicyPdf(policy.brand, policy.gamaLabel, policy.formats, policy.pvp, policy.bonus, policy.bigContainerFormats, policy.templateDiffers);
       }
     } finally {
       btn.disabled = false;
@@ -183,11 +202,10 @@ const ScreenRules = (() => {
       currentGama = 'default';
     } else {
       sel.disabled = false;
-      const labels = { normal: 'Normal', standard: 'Standard', sportcar: 'Sport Car', quimico: 'Químicos', default: 'General', automocion: 'Automoción', industria: 'Industria', 'productos-de-mantenimiento': 'Productos de Mantenimiento', marinos: 'Marinos', grasas: 'Grasas', alimentarios: 'Alimentarios', 'v-ligero': 'V. Ligero', 'v-pesado': 'V. Pesado', agricola: 'Agrícola', transmision: 'Transmisión', hidraulicos: 'Hidráulicos', grasa: 'Grasa', moto: 'Moto', classic: 'Classic', marina: 'Marina', anticogelante: 'Anticongelante', aditivos: 'Aditivos', advance: 'Advance', 'air-tool': 'Air Tool', corena: 'Corena', diala: 'Diala', gadinia: 'Gadinia', gadus: 'Gadus', 'heat-transfer': 'Heat Transfer', helix: 'Helix', hydraulic: 'Hydraulic', morlina: 'Morlina', omala: 'Omala', ondina: 'Ondina', 'paper-mach': 'Paper Mach', refrigeration: 'Refrigeration', rimula: 'Rimula', sirius: 'Sirius', spirax: 'Spirax', tegula: 'Tegula', tellus: 'Tellus', tonna: 'Tonna', transmission: 'Transmission', turbo: 'Turbo', 'vacuum-pump': 'Vacuum Pump', other: 'Other', crb: 'CRB', edge: 'EDGE', gtx: 'GTX', 'gtx-5w': 'GTX 5W', magnatec: 'Magnatec', 'castrol-on': 'Castrol ON', transmax: 'Transmax', vecton: 'Vecton' };
       // "Todas las gamas" primera y por defecto — lo más habitual es gestionar el
       // margen de toda la marca de una vez, no gama a gama.
       sel.innerHTML = '<option value="__all__">Todas las gamas</option>'
-        + brand.gamas.map(g => `<option value="${g}">${escapeHtml(labels[g] || g)}</option>`).join('');
+        + brand.gamas.map(g => `<option value="${g}">${escapeHtml(GAMA_LABELS[g] || g)}</option>`).join('');
       currentGama = '__all__';
       sel.value = currentGama;
     }
@@ -229,8 +247,45 @@ const ScreenRules = (() => {
     const avail = await availableCostFields(currentBrandId, currentGama);
     const formats = await availableFormats(currentBrandId, currentGama);
     if (migrateLevels(cfg, formats)) saveConfig(currentBrandId, currentGama, cfg);
+    renderBigContainerSection(cfg, formats);
     const el = $('levelsContainer');
     el.innerHTML = cfg.priceLevels.map((lvl, i) => levelCardHtml(lvl, i, avail, formats)).join('');
+  }
+
+  function bigContainerToggleCell(cfg, formatKey) {
+    const active = !!(cfg.bigContainerFormats && cfg.bigContainerFormats[formatKey]);
+    return `<td><button type="button" class="format-toggle-btn ${active ? 'active' : ''}" data-action="toggle-big-container" data-format="${escapeHtml(formatKey)}" aria-pressed="${active}">${active ? 'Sí' : 'No'}</button></td>`;
+  }
+
+  /** "Bidones y Cubas" (ver ADR 0064): familia inventada por el equipo para formatos
+   *  grandes que Skrit trata de forma especial — NO viene en ninguna tarifa, se marca a
+   *  mano, formato a formato (el corte de litros no es fiable entre marcas: Repsol guarda
+   *  su bidón de 180kg como formatKey "180", no "208", así que un umbral fijo se lo
+   *  saltaría). Fuera de las tarjetas de nivel a propósito — no es una regla de margen. */
+  function renderBigContainerSection(cfg, formats) {
+    const el = $('bigContainerSection');
+    if (!el) return;
+    if (!formats.length) { el.innerHTML = ''; return; }
+    el.innerHTML = `
+      <div class="format-table-wrap">
+        <label>Bidones y Cubas — formatos grandes que Skrit trata aparte (no viene en la tarifa, se marca a mano; se exporta en una columna nueva, sin tocar la Familia del proveedor)</label>
+        <div class="format-table-scroll">
+          <table class="format-table">
+            <thead><tr><th></th>${formats.map(f => `<th>${escapeHtml(f.label)}<small>${f.count} refs</small></th>`).join('')}</tr></thead>
+            <tbody><tr><th>Bidones y Cubas</th>${formats.map(f => bigContainerToggleCell(cfg, f.key)).join('')}</tr></tbody>
+          </table>
+        </div>
+      </div>
+    `;
+  }
+
+  function toggleBigContainer(formatKey) {
+    const cfg = loadConfig(currentBrandId, currentGama);
+    if (!cfg.bigContainerFormats) cfg.bigContainerFormats = {};
+    if (cfg.bigContainerFormats[formatKey]) delete cfg.bigContainerFormats[formatKey];
+    else cfg.bigContainerFormats[formatKey] = true;
+    saveConfig(currentBrandId, currentGama, cfg);
+    renderLevels();
   }
 
   function formatToggleCell(lvl, formatKey, mode) {
@@ -443,6 +498,45 @@ const ScreenRules = (() => {
       }
     });
     $('btnExportPolicies').addEventListener('click', doExportPolicies);
+    const bigContainerEl = $('bigContainerSection');
+    if (bigContainerEl) {
+      bigContainerEl.addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-action="toggle-big-container"]');
+        if (btn) toggleBigContainer(btn.dataset.format);
+      });
+    }
+    const btnSave = $('btnSaveTemplate');
+    if (btnSave) btnSave.addEventListener('click', saveAsTemplate);
+    const btnReset = $('btnResetTemplate');
+    if (btnReset) btnReset.addEventListener('click', resetToTemplate);
+  }
+
+  /** "Plantilla por defecto" de una marca (ver ADR 0064) — una fotografía completa del
+   *  `cfg` vigente (niveles + Bidones y Cubas) de la gama/scope actual, guardada aparte
+   *  para poder volver a ella si alguien la lía. Cada marca tiene UNA plantilla, no una
+   *  por gama — al guardar con una gama suelta seleccionada, esa gama concreta pasa a ser
+   *  el "modelo" de la marca entera. */
+  function saveAsTemplate() {
+    const brand = findBrand(currentBrandId);
+    if (!brand) return;
+    const scopeLabel = currentGama === '__all__' ? 'todas las gamas' : gamaLabelFor(brand, currentGama);
+    if (!confirm(`¿Guardar la configuración actual de ${brand.label} (${scopeLabel}) como su plantilla por defecto? Sustituye la plantilla anterior de esta marca, si tenía una.`)) return;
+    const cfg = loadConfig(currentBrandId, currentGama);
+    RulesStore.saveTemplate(currentBrandId, cfg);
+    alert(`Plantilla por defecto de ${brand.label} guardada.`);
+  }
+
+  /** Aplica la plantilla guardada de la marca al scope actual (gama sola o "Todas las
+   *  gamas", mismo mecanismo de `saveConfig`/fan-out de siempre) — sobrescribe lo editado. */
+  function resetToTemplate() {
+    const brand = findBrand(currentBrandId);
+    if (!brand) return;
+    const template = RulesStore.loadTemplate(currentBrandId);
+    if (!template) { alert(`${brand.label} todavía no tiene una plantilla por defecto guardada.`); return; }
+    const scopeLabel = currentGama === '__all__' ? 'todas las gamas' : gamaLabelFor(brand, currentGama);
+    if (!confirm(`¿Volver a la plantilla por defecto de ${brand.label} para ${scopeLabel}? Se pierde lo que hayas cambiado a mano en ese scope.`)) return;
+    saveConfig(currentBrandId, currentGama, template);
+    renderLevels();
   }
 
   function init() {

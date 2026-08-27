@@ -13,8 +13,15 @@
    plano; si falla, solo avisa — a diferencia de guardar una validación de
    descripción (ADR 0054), un margen que tarde en llegar a los demás no es un
    problema tan grave como para bloquear la edición. Ver ADR 0062.
+
+   `loadTemplate`/`saveTemplate` (ADR 0064) reusan exactamente el mismo mecanismo con un
+   valor de `gama` reservado (`'__default_template__'`, nunca una gama real) — la
+   "plantilla por defecto" de una marca es solo una fila más de `pricing_rules`, sin
+   cambios de esquema.
 */
 const RulesStore = (() => {
+  const TEMPLATE_GAMA = '__default_template__';
+
   function configKeyFor(brandId, gama) {
     return gama === 'default' ? `config_${brandId}` : `config_${brandId}_${gama}`;
   }
@@ -50,5 +57,13 @@ const RulesStore = (() => {
     }
   }
 
-  return { configKeyFor, load, save, refresh };
+  function loadTemplate(brandId) {
+    return load(brandId, TEMPLATE_GAMA);
+  }
+
+  function saveTemplate(brandId, cfg) {
+    save(brandId, TEMPLATE_GAMA, cfg);
+  }
+
+  return { configKeyFor, load, save, refresh, loadTemplate, saveTemplate };
 })();

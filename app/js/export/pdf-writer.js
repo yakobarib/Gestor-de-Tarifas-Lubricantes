@@ -101,86 +101,116 @@ const PdfWriter = (() => {
   const ROUNDING_LABELS = { none: 'Sin redondeo', '2dec': '2 decimales', psy99: 'Acabado en ,99', psy95: 'Acabado en ,95', step05: 'Múltiplo de 0,05 €', int: 'Entero' };
 
   /** Margen efectivo de un formato para un nivel — reusa `Pricing.compute` con una fila
-   *  ficticia (coste 100 en los tres campos, para que cualquier `baseCostField`/
+   *  ficticia (coste 100 en los cuatro campos, para que cualquier `baseCostField`/
    *  `costCascade` encuentre coste y no se pierda por el hueco de "sin coste") en vez de
    *  duplicar aquí la prioridad formatModes > byFormat > defaultMargin. El propio precio
    *  resultante no importa — un documento de políticas explica la REGLA (%), no un PVP
-   *  en €, que depende del coste real de cada producto. */
+   *  en €, que depende del coste real de cada producto. Incluye `costPerPack` (bug real
+   *  encontrado al construir ADR 0064): un nivel PVP recién sintetizado o con "Coste
+   *  factura" elegido a mano tiene `baseCostField: 'costPerPack'`, no `'costFactura'`
+   *  (ver `Migration.synthesizePvpLevel`/`screen-rules.js updateLevelField`) — sin este
+   *  campo, `resolveCost` no encontraba coste y el margen salía "—" para el caso más
+   *  común de todos. */
   function effectiveMarginInfo(lvl, formatKey) {
     const liters = formatKey === '?' ? null : parseFloat(formatKey);
-    const fakeRow = { ref: '__policy_preview__', formatKey, liters, costFactura: 100, costNetoNeto: 100, costTripleNeto: 100 };
+    const fakeRow = { ref: '__policy_preview__', formatKey, liters, costPerPack: 100, costFactura: 100, costNetoNeto: 100, costTripleNeto: 100 };
     const c = Pricing.compute(fakeRow, lvl);
     const mode = lvl.formatModes && lvl.formatModes[formatKey];
     return { pct: c.marginPct, note: mode === '1x2' ? '1+2' : mode === 'pvp_neto' ? 'PVP Neto' : '' };
   }
 
-  /** Documento de referencia (no una tarifa): resume, formato a formato, qué regla
-   *  aplica hoy para PVP y Netos Bonus de una marca — sin precios en €, que dependen del
-   *  coste real de cada producto, solo la fórmula (ver ADR 0041). A4 apaisado, para que
-   *  quepan las dos tablas lado a lado en una sola hoja incluso con muchos formatos. */
-  function exportPolicyPdf(brand, formats, pvp, bonus) {
+  /** Línea narrativa de un formato en PVP: margen + qué modo especial está ACTIVO para
+   *  ese formato en concreto (no solo "disponible" — un formato elegible para "1+2" que
+   *  no lo tenga marcado no lo menciona), más si está marcado "Bidones y Cubas" (familia
+   *  inventada por el equipo, ver ADR 0064 — independiente del modo de margen). */
+  function pvpFormatLine(pvp, bigContainerFormats, f) {
+    const info = effectiveMarginInfo(pvp, f.key);
+    const parts = [`Margen ${(MODE_LABELS[pvp.mode] || MODE_LABELS.sale).toLowerCase()} ${info.pct != null ? info.pct.toFixed(1) + '%' : '—'}`];
+    if (info.note) parts.push(`"${info.note}" permitido`);
+    if (bigContainerFormats && bigContainerFormats[f.key]) parts.push('Bidones y Cubas');
+    return `${f.label}: ${parts.join(', ')}.`;
+  }
+
+  function bonusFormatLine(bonus, f) {
+    const info = effectiveMarginInfo(bonus, f.key);
+    const premium = bonus.premiumByFormat && bonus.premiumByFormat[f.key];
+    const printed = !!(bonus.printFormats && bonus.printFormats[f.key]);
+    const parts = [
+      `Margen sobre venta ${info.pct != null ? info.pct.toFixed(1) + '%' : '—'}`,
+      premium != null ? `Obsequio ${formatEurPdf(premium)}` : 'Sin obsequio',
+      `Salida impresa: ${printed ? 'Sí' : 'No'}`
+    ];
+    return `${f.label}: ${parts.join(', ')}.`;
+  }
+
+  /** Documento de referencia (no una tarifa): explica en prosa, formato a formato, qué
+   *  regla aplica HOY para PVP y Netos Bonus de una marca+gama concreta — sin precios en
+   *  €, que dependen del coste real de cada producto, solo la fórmula (ver ADR 0041,
+   *  reescrito narrativo en ADR 0064 a petición del jefe de Yako, "para poder imprimir y
+   *  recordar"). A4 vertical, con paginación automática si hay muchos formatos.
+   *  `templateDiffers` es `true`/`false`/`null` (null = esta marca no tiene plantilla
+   *  guardada todavía, no se menciona nada). */
+  function exportPolicyPdf(brand, gamaLabel, formats, pvp, bonus, bigContainerFormats, templateDiffers) {
     const { jsPDF } = window.jspdf;
-    const doc = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'landscape' });
-    const accent = hexToRgb(HEADER_COLOR_BY_BRAND[brand.id] || brand.color);
+    const doc = new jsPDF({ unit: 'mm', format: 'a4' });
     const todayStr = new Date().toISOString().slice(0, 10);
     const pageWidth = doc.internal.pageSize.getWidth();
-    const half = pageWidth / 2;
+    const pageHeight = doc.internal.pageSize.getHeight();
+    const marginLeft = 14;
+    const marginRight = 14;
+    const maxWidth = pageWidth - marginLeft - marginRight;
+    let y = 18;
 
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(16);
-    doc.setTextColor(30, 30, 30);
-    doc.text(`Políticas de Precios — ${brand.label}`, 14, 16);
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(9);
-    doc.setTextColor(110, 110, 110);
-    doc.text(`Generado el ${todayStr} · Recambios Ibiza`, 14, 21);
+    function ensureSpace(lineHeight) {
+      if (y + lineHeight > pageHeight - 14) { doc.addPage(); y = 18; }
+    }
+    function writeLines(text, opts) {
+      const o = opts || {};
+      doc.setFont('helvetica', o.bold ? 'bold' : 'normal');
+      doc.setFontSize(o.size || 10);
+      doc.setTextColor.apply(doc, o.color || [40, 40, 40]);
+      const lines = doc.splitTextToSize(text, maxWidth - (o.indent || 0));
+      for (const line of lines) {
+        ensureSpace(o.lineHeight || 5.5);
+        doc.text(line, marginLeft + (o.indent || 0), y);
+        y += o.lineHeight || 5.5;
+      }
+    }
 
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(60, 60, 60);
-    doc.text('PVP (va a Skrit)', 14, 29);
-    doc.text('Netos Bonus (uso interno)', half + 6, 29);
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(8.5);
-    doc.text(`${BASE_COST_LABELS[pvp.baseCost] || BASE_COST_LABELS.factura} · Margen ${MODE_LABELS[pvp.mode] || MODE_LABELS.sale} · Por defecto ${pvp.defaultMargin}% · Redondeo: ${ROUNDING_LABELS[pvp.rounding] || pvp.rounding}`, 14, 34);
-    doc.text(`Coste el más bajo disponible (triple-neto → neto-neto → factura) · Por defecto ${bonus.defaultMargin}% sobre venta · Redondeo: ${ROUNDING_LABELS[bonus.rounding] || bonus.rounding}`, half + 6, 34, { maxWidth: half - 20 });
+    writeLines(`Políticas de precios de la marca ${brand.label} para la gama ${gamaLabel} a día de ${todayStr}`, { bold: true, size: 14, color: [30, 30, 30], lineHeight: 7 });
+    y += 2;
+    writeLines(`${BASE_COST_LABELS[pvp.baseCost] || BASE_COST_LABELS.factura} · Modo de margen: ${MODE_LABELS[pvp.mode] || MODE_LABELS.sale} · Redondeo: ${ROUNDING_LABELS[pvp.rounding] || pvp.rounding}`, { size: 9.5, color: [90, 90, 90] });
+    y += 4;
 
-    const pvpBody = formats.map(f => {
-      const info = effectiveMarginInfo(pvp, f.key);
-      return [f.label, info.pct != null ? info.pct.toFixed(1) + '%' : '—', info.note || '—'];
-    });
-    const bonusBody = formats.map(f => {
-      const info = effectiveMarginInfo(bonus, f.key);
-      const premium = bonus.premiumByFormat && bonus.premiumByFormat[f.key];
-      const printed = !!(bonus.printFormats && bonus.printFormats[f.key]);
-      return [f.label, info.pct != null ? info.pct.toFixed(1) + '%' : '—', premium != null ? formatEurPdf(premium) : '—', printed ? 'Sí' : 'No'];
-    });
-    const tableStyles = { fontSize: 8, cellPadding: 1.6 };
-    const headStyles = { fillColor: accent, textColor: 255, fontStyle: 'bold' };
-    const altStyles = { fillColor: [246, 247, 249] };
+    writeLines('PVP (va a Skrit)', { bold: true, size: 11.5, color: [30, 30, 30], lineHeight: 6 });
+    if (!formats.length) {
+      writeLines('Esta marca/gama no tiene ninguna tarifa importada todavía — no hay formatos que resumir.', { size: 9.5, color: [130, 130, 130] });
+    } else {
+      for (const f of formats) writeLines(`—  ${pvpFormatLine(pvp, bigContainerFormats, f)}`, { size: 9.5, indent: 2 });
+    }
+    y += 4;
 
-    doc.autoTable({
-      startY: 38,
-      head: [['Formato', 'Margen aplicado', 'Modo especial']],
-      body: pvpBody,
-      styles: tableStyles, headStyles, alternateRowStyles: altStyles,
-      tableWidth: half - 20,
-      margin: { left: 14 }
-    });
-    doc.autoTable({
-      startY: 38,
-      head: [['Formato', 'Margen aplicado', 'Obsequio', 'Salida impresa']],
-      body: bonusBody,
-      styles: tableStyles, headStyles, alternateRowStyles: altStyles,
-      tableWidth: half - 20,
-      margin: { left: half + 6 }
-    });
+    writeLines(`Netos Bonus (uso interno) · Coste el más bajo disponible (triple-neto → neto-neto → factura) · Redondeo: ${ROUNDING_LABELS[bonus.rounding] || bonus.rounding}`, { bold: true, size: 11.5, color: [30, 30, 30], lineHeight: 6 });
+    if (!formats.length) {
+      writeLines('Sin formatos que resumir.', { size: 9.5, color: [130, 130, 130] });
+    } else {
+      for (const f of formats) writeLines(`—  ${bonusFormatLine(bonus, f)}`, { size: 9.5, indent: 2 });
+    }
 
-    doc.setFontSize(8);
-    doc.setTextColor(150);
-    doc.text('Página 1 de 1', pageWidth - 30, doc.internal.pageSize.getHeight() - 8);
+    if (templateDiffers) {
+      y += 4;
+      writeLines(`Nota: esta configuración difiere de la plantilla por defecto de ${brand.label}.`, { size: 9.5, color: [180, 90, 20] });
+    }
 
-    const filename = `Política de Precios ${ExcelWriter.fileBrandLabel(brand.abbr)} ${ExcelWriter.dateSlug()}.pdf`;
+    const totalPages = doc.internal.getNumberOfPages();
+    for (let i = 1; i <= totalPages; i++) {
+      doc.setPage(i);
+      doc.setFontSize(8);
+      doc.setTextColor(150);
+      doc.text(`Página ${i} de ${totalPages}`, pageWidth - 30, pageHeight - 8);
+    }
+
+    const filename = `Política de Precios ${ExcelWriter.fileBrandLabel(brand.abbr)} ${gamaLabel} ${ExcelWriter.dateSlug()}.pdf`;
     doc.save(filename);
     return filename;
   }
