@@ -143,11 +143,19 @@ const ScreenExport = (() => {
     return map;
   }
 
-  /** "Bidones y Cubas" (ver ADR 0064) — hermano de `priceLevels` en el mismo `cfg`, no
-   *  un nivel: `{formatKey: true}` de esa marca/gama. */
+  /** "Bidones y Cubas" para exportar (ver ADR 0064, adenda): no es una clasificación
+   *  aparte — es literalmente el interruptor "PVP Neto en Bidones y Cubas" del nivel PVP
+   *  (Yako confirmó que ambos conceptos son el mismo, tras probar una casilla separada).
+   *  `{formatKey: true}` para cada formato con ese modo activo en esa marca/gama. */
   function bigContainerFormatsFor(brandId, gama) {
-    const cfg = RulesStore.load(brandId, gama);
-    return (cfg && cfg.bigContainerFormats) || {};
+    const pvp = loadLevels(brandId, gama).find(l => l.id === 'pvp');
+    const map = {};
+    if (pvp && pvp.formatModes) {
+      for (const [k, v] of Object.entries(pvp.formatModes)) {
+        if (v === 'pvp_neto') map[k] = true;
+      }
+    }
+    return map;
   }
 
   function bigContainerFormatsByGama(brandId, gamas) {

@@ -121,6 +121,44 @@ El formato narrativo (guiones, prosa) de la sección C no era lo que el jefe de 
   `PdfWriter.exportPolicyPdf`/`exportAllPoliciesPdf` pasan a recibir el objeto `policy`
   completo en vez de una lista larga de argumentos posicionales.
 
+## Adenda 2 (2026-08-27, mismo día) — Se retira la casilla separada de Bidones y Cubas
+
+Al ver el PDF en tabla, Yako se dio cuenta de que su propia casilla nueva (sección A de
+este ADR) y el interruptor "PVP Neto" que ya existía eran, en la práctica, el mismo
+concepto — "bidones y cubas son solo los formatos de 200L en adelante", que es
+exactamente lo que ya activaba "PVP Neto". Decisión: **se retira la sección A entera**
+(la tabla de checkboxes independiente en Reglas, `#bigContainerSection`,
+`cfg.bigContainerFormats`) — un concepto menos que mantener sincronizado a mano.
+
+- `screen-rules.js`: quitada la fila/tabla de "Bidones y Cubas" y su lógica
+  (`renderBigContainerSection`, `bigContainerToggleCell`, `toggleBigContainer`); la fila
+  "PVP Neto" (dentro de la tarjeta del nivel PVP) se renombra a **"PVP Neto en Bidones y
+  Cubas"** para dejar claro que es el mismo concepto. `migrateLevels` deja de escribir
+  `cfg.bigContainerFormats`.
+- `screen-export.js`: `bigContainerFormatsFor(brandId, gama)` (usada por los Excel/
+  previsualizaciones Skrit — la columna "BIDONES Y CUBAS" que Skrit necesita ver, sin
+  tocar la Familia del proveedor) ahora deriva el mapa `{formatKey: true}` de
+  `pvp.formatModes` (`=== 'pvp_neto'`) en vez de leer `cfg.bigContainerFormats` — mismo
+  contrato de salida, cero cambios en las 4 llamadas que ya la consumían.
+- `pdf-writer.js`: la columna del PDF de políticas se renombra "Bidones y Cubas" →
+  **"Tipo de PVP"**, valores "PVP Neto"/"PVP" (antes "Neto"/"PVP") — misma fuente
+  (`formatModes`). Quitada la línea de diff sobre `bigContainerFormats` (ya cubierta por
+  el diff de "modo especial" de `formatModes`).
+
+Otros ajustes al PDF pedidos a la vez:
+- Cabecera en 3 líneas separadas (antes una sola línea larga que se atropellaba con la
+  tabla de abajo): `POLÍTICAS DE PRECIO — {MARCA}` / `GAMA: {GAMA}` / `FECHA: {fecha}`.
+- Títulos de sección simplificados a "PVP (para Skrit)" y "Netos Bonus (para
+  Comerciales)", sin el subtítulo explicativo que antes se salía de la página.
+- Columna "1+2": solo "Sí"/"No" (antes "Sí (permitido)"/"No (no permitido)").
+
+**Pendiente de aclarar con Yako**: pidió que la columna "Margen" "refleje lo marcado en
+las casillas del apartado Reglas" pero el mensaje se cortó a media frase ("es decir," sin
+continuación) — no se ha tocado esa columna todavía, a la espera de que aclare qué falla
+en concreto (hoy muestra `Pricing.compute`'s `marginPct`: el valor de `byFormat` para ese
+formato si existe, si no `defaultMargin`, o la fórmula fija si "1+2"/"PVP Neto" están
+activos — en teoría ya "lo marcado en Reglas").
+
 ## Referencias
 
 - ADR 0041 (PDF de políticas original).

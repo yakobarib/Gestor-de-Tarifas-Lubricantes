@@ -119,11 +119,11 @@ const PdfWriter = (() => {
   }
 
   /** Fila de la tabla PVP para un formato, columnas exactas pedidas por el jefe de Yako
-   *  (ver ADR 0064 v2): Formato / Coste / Tipo de margen / Margen / Beneficio / 1+2 /
-   *  Bidones y Cubas — esta última NO es la clasificación de exportación
-   *  (`cfg.bigContainerFormats`, ADR 0064 v1, columna aparte en los Excel) sino si el
-   *  modo especial "PVP Neto" está activo para ese formato ("Neto") o no ("PVP") —
-   *  petición explícita de Yako, aunque el nombre coincida con el otro concepto. */
+   *  (ver ADR 0064 v3): Formato / Coste / Tipo de margen / Margen / Beneficio / 1+2 /
+   *  Tipo de PVP. "Tipo de PVP" es el interruptor "PVP Neto en Bidones y Cubas" del nivel
+   *  PVP (Yako confirmó: es el mismo concepto que la "familia" Bidones y Cubas de los
+   *  Excel, no una clasificación aparte — la casilla separada que se probó primero se
+   *  quitó). */
   function pvpTableRow(pvp, f) {
     const info = effectiveMarginInfo(pvp, f.key);
     return [
@@ -132,8 +132,8 @@ const PdfWriter = (() => {
       MODE_LABELS[pvp.mode] || MODE_LABELS.sale,
       info.pct != null ? info.pct.toFixed(1) + '%' : '—',
       info.realPct != null ? info.realPct.toFixed(1) + '%' : '—',
-      info.mode === '1x2' ? 'Sí (permitido)' : 'No (no permitido)',
-      info.mode === 'pvp_neto' ? 'Neto' : 'PVP'
+      info.mode === '1x2' ? 'Sí' : 'No',
+      info.mode === 'pvp_neto' ? 'PVP Neto' : 'PVP'
     ];
   }
 
@@ -157,8 +157,8 @@ const PdfWriter = (() => {
   }
 
   /** Líneas de "en qué se diferencia de la plantilla" para un mapa por formato
-   *  (byFormat/formatModes/premiumByFormat/printFormats/bigContainerFormats) — compara
-   *  clave a clave contra la plantilla, formateando cada valor con `fmt`. */
+   *  (byFormat/formatModes/premiumByFormat/printFormats) — compara clave a clave contra
+   *  la plantilla, formateando cada valor con `fmt`. */
   function diffMapLines(label, mapFrom, mapTo, fmt) {
     const lines = [];
     const keys = new Set([...Object.keys(mapFrom || {}), ...Object.keys(mapTo || {})]);
@@ -195,8 +195,6 @@ const PdfWriter = (() => {
     lines.push(...diffMapLines('Netos Bonus — obsequio', tBonus.premiumByFormat, cBonus.premiumByFormat, v => v != null ? formatEurPdf(v) : 'sin obsequio'));
     lines.push(...diffMapLines('Netos Bonus — salida impresa', tBonus.printFormats, cBonus.printFormats, v => v ? 'Sí' : 'No'));
 
-    lines.push(...diffMapLines('Bidones y Cubas', template.bigContainerFormats, cfg.bigContainerFormats, v => v ? 'marcado' : 'sin marcar'));
-
     return lines;
   }
 
@@ -212,8 +210,11 @@ const PdfWriter = (() => {
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(15);
     doc.setTextColor(30, 30, 30);
-    doc.text(`Políticas de precios de la marca ${brand.label} para la gama ${gamaLabel} a día de ${todayStr}`, 14, 16, { maxWidth: pageWidth - 28 });
-    let y = 24;
+    doc.text(`POLÍTICAS DE PRECIO — ${brand.label.toUpperCase()}`, 14, 14);
+    doc.setFontSize(11);
+    doc.text(`GAMA: ${gamaLabel.toUpperCase()}`, 14, 21);
+    doc.text(`FECHA: ${todayStr}`, 14, 27);
+    let y = 35;
 
     const tableStyles = { fontSize: 8.5, cellPadding: 1.8 };
     const headStyles = { fillColor: accent, textColor: 255, fontStyle: 'bold' };
@@ -229,10 +230,10 @@ const PdfWriter = (() => {
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(10.5);
       doc.setTextColor(60, 60, 60);
-      doc.text('PVP (va a Skrit)', 14, y);
+      doc.text('PVP (para Skrit)', 14, y);
       doc.autoTable({
         startY: y + 3,
-        head: [['Formato', 'Coste', 'Tipo de margen', 'Margen', 'Beneficio', '1+2', 'Bidones y Cubas']],
+        head: [['Formato', 'Coste', 'Tipo de margen', 'Margen', 'Beneficio', '1+2', 'Tipo de PVP']],
         body: formats.map(f => pvpTableRow(pvp, f)),
         styles: tableStyles, headStyles, alternateRowStyles: altStyles,
         margin: { left: 14, right: 14 }
@@ -242,7 +243,7 @@ const PdfWriter = (() => {
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(10.5);
       doc.setTextColor(60, 60, 60);
-      doc.text('Netos Bonus (uso interno — coste el más bajo disponible: triple-neto → neto-neto → factura)', 14, y, { maxWidth: pageWidth - 28 });
+      doc.text('Netos Bonus (para Comerciales)', 14, y);
       doc.autoTable({
         startY: y + 3,
         head: [['Formato', 'Margen', 'Beneficio', 'Obsequio', 'Salida impresa']],

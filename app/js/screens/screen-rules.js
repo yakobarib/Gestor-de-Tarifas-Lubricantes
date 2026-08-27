@@ -116,10 +116,6 @@ const ScreenRules = (() => {
 
     const order = ['pvp', 'netos_bonus'];
     cfg.priceLevels.sort((a, b) => order.indexOf(a.id) - order.indexOf(b.id));
-
-    // "Bidones y Cubas" (ver ADR 0064): hermano de priceLevels, no un nivel — es una
-    // clasificación por formato para exportar, no una regla de margen.
-    if (!cfg.bigContainerFormats) { cfg.bigContainerFormats = {}; changed = true; }
     return changed;
   }
 
@@ -169,7 +165,6 @@ const ScreenRules = (() => {
       formats,
       pvp: cfg.priceLevels.find(l => l.id === 'pvp'),
       bonus: cfg.priceLevels.find(l => l.id === 'netos_bonus'),
-      bigContainerFormats: cfg.bigContainerFormats || {},
       cfg,
       template
     };
@@ -248,45 +243,8 @@ const ScreenRules = (() => {
     const avail = await availableCostFields(currentBrandId, currentGama);
     const formats = await availableFormats(currentBrandId, currentGama);
     if (migrateLevels(cfg, formats)) saveConfig(currentBrandId, currentGama, cfg);
-    renderBigContainerSection(cfg, formats);
     const el = $('levelsContainer');
     el.innerHTML = cfg.priceLevels.map((lvl, i) => levelCardHtml(lvl, i, avail, formats)).join('');
-  }
-
-  function bigContainerToggleCell(cfg, formatKey) {
-    const active = !!(cfg.bigContainerFormats && cfg.bigContainerFormats[formatKey]);
-    return `<td><button type="button" class="format-toggle-btn ${active ? 'active' : ''}" data-action="toggle-big-container" data-format="${escapeHtml(formatKey)}" aria-pressed="${active}">${active ? 'Sí' : 'No'}</button></td>`;
-  }
-
-  /** "Bidones y Cubas" (ver ADR 0064): familia inventada por el equipo para formatos
-   *  grandes que Skrit trata de forma especial — NO viene en ninguna tarifa, se marca a
-   *  mano, formato a formato (el corte de litros no es fiable entre marcas: Repsol guarda
-   *  su bidón de 180kg como formatKey "180", no "208", así que un umbral fijo se lo
-   *  saltaría). Fuera de las tarjetas de nivel a propósito — no es una regla de margen. */
-  function renderBigContainerSection(cfg, formats) {
-    const el = $('bigContainerSection');
-    if (!el) return;
-    if (!formats.length) { el.innerHTML = ''; return; }
-    el.innerHTML = `
-      <div class="format-table-wrap">
-        <label>Bidones y Cubas — formatos grandes que Skrit trata aparte (no viene en la tarifa, se marca a mano; se exporta en una columna nueva, sin tocar la Familia del proveedor)</label>
-        <div class="format-table-scroll">
-          <table class="format-table">
-            <thead><tr><th></th>${formats.map(f => `<th>${escapeHtml(f.label)}<small>${f.count} refs</small></th>`).join('')}</tr></thead>
-            <tbody><tr><th>Bidones y Cubas</th>${formats.map(f => bigContainerToggleCell(cfg, f.key)).join('')}</tr></tbody>
-          </table>
-        </div>
-      </div>
-    `;
-  }
-
-  function toggleBigContainer(formatKey) {
-    const cfg = loadConfig(currentBrandId, currentGama);
-    if (!cfg.bigContainerFormats) cfg.bigContainerFormats = {};
-    if (cfg.bigContainerFormats[formatKey]) delete cfg.bigContainerFormats[formatKey];
-    else cfg.bigContainerFormats[formatKey] = true;
-    saveConfig(currentBrandId, currentGama, cfg);
-    renderLevels();
   }
 
   function formatToggleCell(lvl, formatKey, mode) {
@@ -312,7 +270,7 @@ const ScreenRules = (() => {
     if (lvl.id === 'pvp') {
       extraRows = `
         <tr><th>1+2</th>${formats.map(f => (f.key !== '?' && parseFloat(f.key) <= PROMO_1X2_MAX_LITERS) ? formatToggleCell(lvl, f.key, '1x2') : '<td class="disabled">—</td>').join('')}</tr>
-        <tr><th>PVP Neto</th>${formats.map(f => (f.key !== '?' && parseFloat(f.key) >= PVP_NETO_MIN_LITERS) ? formatToggleCell(lvl, f.key, 'pvp_neto') : '<td class="disabled">—</td>').join('')}</tr>
+        <tr><th>PVP Neto en Bidones y Cubas</th>${formats.map(f => (f.key !== '?' && parseFloat(f.key) >= PVP_NETO_MIN_LITERS) ? formatToggleCell(lvl, f.key, 'pvp_neto') : '<td class="disabled">—</td>').join('')}</tr>
       `;
     } else if (lvl.id === 'netos_bonus') {
       const premiumRow = `<tr><th>Obsequio (€)</th>${formats.map(f => {
@@ -499,13 +457,6 @@ const ScreenRules = (() => {
       }
     });
     $('btnExportPolicies').addEventListener('click', doExportPolicies);
-    const bigContainerEl = $('bigContainerSection');
-    if (bigContainerEl) {
-      bigContainerEl.addEventListener('click', (e) => {
-        const btn = e.target.closest('[data-action="toggle-big-container"]');
-        if (btn) toggleBigContainer(btn.dataset.format);
-      });
-    }
     const btnSave = $('btnSaveTemplate');
     if (btnSave) btnSave.addEventListener('click', saveAsTemplate);
     const btnReset = $('btnResetTemplate');
@@ -513,8 +464,8 @@ const ScreenRules = (() => {
   }
 
   /** "Plantilla por defecto" de una marca (ver ADR 0064) — una fotografía completa del
-   *  `cfg` vigente (niveles + Bidones y Cubas) de la gama/scope actual, guardada aparte
-   *  para poder volver a ella si alguien la lía. Cada marca tiene UNA plantilla, no una
+   *  `cfg` vigente (niveles) de la gama/scope actual, guardada aparte para poder volver a
+   *  ella si alguien la lía. Cada marca tiene UNA plantilla, no una
    *  por gama — al guardar con una gama suelta seleccionada, esa gama concreta pasa a ser
    *  el "modelo" de la marca entera. */
   function saveAsTemplate() {

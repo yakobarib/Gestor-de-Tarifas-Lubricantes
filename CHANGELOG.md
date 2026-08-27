@@ -2,6 +2,27 @@
 
 Formato inspirado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [v1.0.15] — 2026-08-27
+
+### Quitado
+- Reglas: la casilla independiente "Bidones y Cubas" — era el mismo
+  concepto que "PVP Neto" (formatos de 200L en adelante), así que se retira
+  para no mantener dos sitios sincronizados. La fila "PVP Neto" pasa a
+  llamarse "PVP Neto en Bidones y Cubas" para dejarlo claro.
+
+### Cambiado
+- PDF de políticas: cabecera en 3 líneas (Marca / Gama / Fecha, antes una
+  sola línea que se atropellaba), títulos de sección simplificados ("PVP
+  (para Skrit)", "Netos Bonus (para Comerciales)"), columna "1+2" solo
+  Sí/No, y la columna antes "Bidones y Cubas" ahora se llama "Tipo de PVP"
+  (PVP Neto / PVP) — sigue siendo el mismo interruptor de siempre, con
+  nombre distinto en cada documento.
+- Los Excel/vistas de exportación Skrit ("BIDONES Y CUBAS") ahora derivan
+  ese dato del interruptor "PVP Neto en Bidones y Cubas", no de la casilla
+  retirada — mismo resultado para quien ya la había marcado.
+
+Ver [ADR 0064 (adenda 2)](docs/decisiones/0064-plantilla-bidones-cubas-pdf-narrativo.md).
+
 ## [v1.0.14] — 2026-08-27
 
 ### Cambiado
