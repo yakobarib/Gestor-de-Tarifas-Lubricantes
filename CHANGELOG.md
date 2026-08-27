@@ -2,6 +2,21 @@
 
 Formato inspirado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [v1.0.14] — 2026-08-27
+
+### Cambiado
+- PDF de políticas de precios rehecho de nuevo, esta vez en tabla (no
+  prosa): Formato / Coste / Tipo de margen / Margen / Beneficio / 1+2 /
+  Bidones y Cubas (Neto o PVP, según el interruptor "PVP Neto") para PVP, y
+  una tabla equivalente para Netos Bonus. "Exportar todas las marcas" deja
+  de ser un resumen — ahora genera una hoja por marca, con el mismo detalle
+  que una sola marca.
+- El apartado de "diferencia con la plantilla por defecto" ya no es un
+  aviso de sí/no — explica campo a campo qué cambió respecto a la
+  plantilla.
+
+Ver [ADR 0064 (adenda)](docs/decisiones/0064-plantilla-bidones-cubas-pdf-narrativo.md).
+
 ## [v1.0.13] — 2026-08-27
 
 ### Cambiado

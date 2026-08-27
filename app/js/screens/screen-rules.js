@@ -170,7 +170,8 @@ const ScreenRules = (() => {
       pvp: cfg.priceLevels.find(l => l.id === 'pvp'),
       bonus: cfg.priceLevels.find(l => l.id === 'netos_bonus'),
       bigContainerFormats: cfg.bigContainerFormats || {},
-      templateDiffers: template ? JSON.stringify(template) !== JSON.stringify(cfg) : null
+      cfg,
+      template
     };
   }
 
@@ -186,7 +187,7 @@ const ScreenRules = (() => {
       } else {
         const policy = await gatherBrandPolicy(scope, currentBrandId === scope ? currentGama : '__all__');
         if (!policy.formats.length) { alert('Esta marca no tiene ninguna tarifa importada todavía — no hay formatos que resumir.'); return; }
-        PdfWriter.exportPolicyPdf(policy.brand, policy.gamaLabel, policy.formats, policy.pvp, policy.bonus, policy.bigContainerFormats, policy.templateDiffers);
+        PdfWriter.exportPolicyPdf(policy);
       }
     } finally {
       btn.disabled = false;

@@ -100,109 +100,197 @@ const PdfWriter = (() => {
   const MODE_LABELS = { sale: 'Sobre venta', cost: 'Sobre compra' };
   const ROUNDING_LABELS = { none: 'Sin redondeo', '2dec': '2 decimales', psy99: 'Acabado en ,99', psy95: 'Acabado en ,95', step05: 'Múltiplo de 0,05 €', int: 'Entero' };
 
-  /** Margen efectivo de un formato para un nivel — reusa `Pricing.compute` con una fila
-   *  ficticia (coste 100 en los cuatro campos, para que cualquier `baseCostField`/
-   *  `costCascade` encuentre coste y no se pierda por el hueco de "sin coste") en vez de
-   *  duplicar aquí la prioridad formatModes > byFormat > defaultMargin. El propio precio
-   *  resultante no importa — un documento de políticas explica la REGLA (%), no un PVP
-   *  en €, que depende del coste real de cada producto. Incluye `costPerPack` (bug real
-   *  encontrado al construir ADR 0064): un nivel PVP recién sintetizado o con "Coste
-   *  factura" elegido a mano tiene `baseCostField: 'costPerPack'`, no `'costFactura'`
-   *  (ver `Migration.synthesizePvpLevel`/`screen-rules.js updateLevelField`) — sin este
-   *  campo, `resolveCost` no encontraba coste y el margen salía "—" para el caso más
-   *  común de todos. */
+  /** Margen efectivo (y "beneficio" real tras redondeo) de un formato para un nivel —
+   *  reusa `Pricing.compute` con una fila ficticia (coste 100 en los cuatro campos, para
+   *  que cualquier `baseCostField`/`costCascade` encuentre coste y no se pierda por el
+   *  hueco de "sin coste") en vez de duplicar aquí la prioridad
+   *  formatModes > byFormat > defaultMargin. El propio precio resultante no importa — un
+   *  documento de políticas explica la REGLA (%), no un PVP en €, que depende del coste
+   *  real de cada producto. Incluye `costPerPack` (bug real encontrado al construir ADR
+   *  0064): un nivel PVP recién sintetizado o con "Coste factura" elegido a mano tiene
+   *  `baseCostField: 'costPerPack'`, no `'costFactura'` (ver
+   *  `Migration.synthesizePvpLevel`/`screen-rules.js updateLevelField`) — sin este campo,
+   *  `resolveCost` no encontraba coste y el margen salía "—" para el caso más común. */
   function effectiveMarginInfo(lvl, formatKey) {
     const liters = formatKey === '?' ? null : parseFloat(formatKey);
     const fakeRow = { ref: '__policy_preview__', formatKey, liters, costPerPack: 100, costFactura: 100, costNetoNeto: 100, costTripleNeto: 100 };
     const c = Pricing.compute(fakeRow, lvl);
-    const mode = lvl.formatModes && lvl.formatModes[formatKey];
-    return { pct: c.marginPct, note: mode === '1x2' ? '1+2' : mode === 'pvp_neto' ? 'PVP Neto' : '' };
+    return { pct: c.marginPct, realPct: c.realMarginPct, mode: (lvl.formatModes && lvl.formatModes[formatKey]) || '' };
   }
 
-  /** Línea narrativa de un formato en PVP: margen + qué modo especial está ACTIVO para
-   *  ese formato en concreto (no solo "disponible" — un formato elegible para "1+2" que
-   *  no lo tenga marcado no lo menciona), más si está marcado "Bidones y Cubas" (familia
-   *  inventada por el equipo, ver ADR 0064 — independiente del modo de margen). */
-  function pvpFormatLine(pvp, bigContainerFormats, f) {
+  /** Fila de la tabla PVP para un formato, columnas exactas pedidas por el jefe de Yako
+   *  (ver ADR 0064 v2): Formato / Coste / Tipo de margen / Margen / Beneficio / 1+2 /
+   *  Bidones y Cubas — esta última NO es la clasificación de exportación
+   *  (`cfg.bigContainerFormats`, ADR 0064 v1, columna aparte en los Excel) sino si el
+   *  modo especial "PVP Neto" está activo para ese formato ("Neto") o no ("PVP") —
+   *  petición explícita de Yako, aunque el nombre coincida con el otro concepto. */
+  function pvpTableRow(pvp, f) {
     const info = effectiveMarginInfo(pvp, f.key);
-    const parts = [`Margen ${(MODE_LABELS[pvp.mode] || MODE_LABELS.sale).toLowerCase()} ${info.pct != null ? info.pct.toFixed(1) + '%' : '—'}`];
-    if (info.note) parts.push(`"${info.note}" permitido`);
-    if (bigContainerFormats && bigContainerFormats[f.key]) parts.push('Bidones y Cubas');
-    return `${f.label}: ${parts.join(', ')}.`;
+    return [
+      f.label,
+      BASE_COST_LABELS[pvp.baseCost] || BASE_COST_LABELS.factura,
+      MODE_LABELS[pvp.mode] || MODE_LABELS.sale,
+      info.pct != null ? info.pct.toFixed(1) + '%' : '—',
+      info.realPct != null ? info.realPct.toFixed(1) + '%' : '—',
+      info.mode === '1x2' ? 'Sí (permitido)' : 'No (no permitido)',
+      info.mode === 'pvp_neto' ? 'Neto' : 'PVP'
+    ];
   }
 
-  function bonusFormatLine(bonus, f) {
+  function bonusTableRow(bonus, f) {
     const info = effectiveMarginInfo(bonus, f.key);
     const premium = bonus.premiumByFormat && bonus.premiumByFormat[f.key];
     const printed = !!(bonus.printFormats && bonus.printFormats[f.key]);
-    const parts = [
-      `Margen sobre venta ${info.pct != null ? info.pct.toFixed(1) + '%' : '—'}`,
-      premium != null ? `Obsequio ${formatEurPdf(premium)}` : 'Sin obsequio',
-      `Salida impresa: ${printed ? 'Sí' : 'No'}`
+    return [
+      f.label,
+      info.pct != null ? info.pct.toFixed(1) + '%' : '—',
+      info.realPct != null ? info.realPct.toFixed(1) + '%' : '—',
+      premium != null ? formatEurPdf(premium) : '—',
+      printed ? 'Sí' : 'No'
     ];
-    return `${f.label}: ${parts.join(', ')}.`;
   }
 
-  /** Documento de referencia (no una tarifa): explica en prosa, formato a formato, qué
-   *  regla aplica HOY para PVP y Netos Bonus de una marca+gama concreta — sin precios en
-   *  €, que dependen del coste real de cada producto, solo la fórmula (ver ADR 0041,
-   *  reescrito narrativo en ADR 0064 a petición del jefe de Yako, "para poder imprimir y
-   *  recordar"). A4 vertical, con paginación automática si hay muchos formatos.
-   *  `templateDiffers` es `true`/`false`/`null` (null = esta marca no tiene plantilla
-   *  guardada todavía, no se menciona nada). */
-  function exportPolicyPdf(brand, gamaLabel, formats, pvp, bonus, bigContainerFormats, templateDiffers) {
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+  function diffValue(a, b) {
+    if (a === b) return false;
+    if (a == null && b == null) return false;
+    return true;
+  }
+
+  /** Líneas de "en qué se diferencia de la plantilla" para un mapa por formato
+   *  (byFormat/formatModes/premiumByFormat/printFormats/bigContainerFormats) — compara
+   *  clave a clave contra la plantilla, formateando cada valor con `fmt`. */
+  function diffMapLines(label, mapFrom, mapTo, fmt) {
+    const lines = [];
+    const keys = new Set([...Object.keys(mapFrom || {}), ...Object.keys(mapTo || {})]);
+    for (const k of [...keys].sort((a, b) => parseFloat(a) - parseFloat(b))) {
+      const va = (mapFrom || {})[k];
+      const vb = (mapTo || {})[k];
+      if (diffValue(va, vb)) lines.push(`${label} — formato ${k}: ${fmt(va)} → ${fmt(vb)}.`);
+    }
+    return lines;
+  }
+
+  /** Explica, en frases, en qué difiere la configuración vigente (`cfg`) de la plantilla
+   *  por defecto de la marca (`template`) — no un booleano, la diferencia real campo a
+   *  campo (petición explícita del jefe de Yako, ver ADR 0064 v2). `null` si esta marca
+   *  no tiene plantilla guardada todavía (no hay nada con qué comparar). */
+  function computeTemplateDiff(template, cfg) {
+    if (!template) return null;
+    const lines = [];
+    const tPvp = (template.priceLevels || []).find(l => l.id === 'pvp') || {};
+    const cPvp = (cfg.priceLevels || []).find(l => l.id === 'pvp') || {};
+    const tBonus = (template.priceLevels || []).find(l => l.id === 'netos_bonus') || {};
+    const cBonus = (cfg.priceLevels || []).find(l => l.id === 'netos_bonus') || {};
+
+    if (diffValue(tPvp.baseCost, cPvp.baseCost)) lines.push(`PVP — base de coste: ${BASE_COST_LABELS[tPvp.baseCost] || '—'} → ${BASE_COST_LABELS[cPvp.baseCost] || '—'}.`);
+    if (diffValue(tPvp.mode, cPvp.mode)) lines.push(`PVP — modo de margen: ${MODE_LABELS[tPvp.mode] || '—'} → ${MODE_LABELS[cPvp.mode] || '—'}.`);
+    if (diffValue(tPvp.defaultMargin, cPvp.defaultMargin)) lines.push(`PVP — margen por defecto: ${tPvp.defaultMargin}% → ${cPvp.defaultMargin}%.`);
+    if (diffValue(tPvp.rounding, cPvp.rounding)) lines.push(`PVP — redondeo: ${ROUNDING_LABELS[tPvp.rounding] || '—'} → ${ROUNDING_LABELS[cPvp.rounding] || '—'}.`);
+    lines.push(...diffMapLines('PVP — margen', tPvp.byFormat, cPvp.byFormat, v => v != null ? v + '%' : 'por defecto'));
+    lines.push(...diffMapLines('PVP — modo especial', tPvp.formatModes, cPvp.formatModes, v => v === '1x2' ? '1+2' : v === 'pvp_neto' ? 'PVP Neto' : 'ninguno'));
+
+    if (diffValue(tBonus.defaultMargin, cBonus.defaultMargin)) lines.push(`Netos Bonus — margen por defecto: ${tBonus.defaultMargin}% → ${cBonus.defaultMargin}%.`);
+    if (diffValue(tBonus.rounding, cBonus.rounding)) lines.push(`Netos Bonus — redondeo: ${ROUNDING_LABELS[tBonus.rounding] || '—'} → ${ROUNDING_LABELS[cBonus.rounding] || '—'}.`);
+    lines.push(...diffMapLines('Netos Bonus — margen', tBonus.byFormat, cBonus.byFormat, v => v != null ? v + '%' : 'por defecto'));
+    lines.push(...diffMapLines('Netos Bonus — obsequio', tBonus.premiumByFormat, cBonus.premiumByFormat, v => v != null ? formatEurPdf(v) : 'sin obsequio'));
+    lines.push(...diffMapLines('Netos Bonus — salida impresa', tBonus.printFormats, cBonus.printFormats, v => v ? 'Sí' : 'No'));
+
+    lines.push(...diffMapLines('Bidones y Cubas', template.bigContainerFormats, cfg.bigContainerFormats, v => v ? 'marcado' : 'sin marcar'));
+
+    return lines;
+  }
+
+  /** Dibuja la política de UNA marca+gama en el `doc` ya posicionado en la página
+   *  actual (usado tanto por `exportPolicyPdf` como, marca a marca, por
+   *  `exportAllPoliciesPdf` — ver ADR 0064 v2, "una hoja por cada marca"). */
+  function renderBrandPolicyPage(doc, policy) {
+    const { brand, gamaLabel, formats, pvp, bonus, cfg, template } = policy;
     const todayStr = new Date().toISOString().slice(0, 10);
     const pageWidth = doc.internal.pageSize.getWidth();
-    const pageHeight = doc.internal.pageSize.getHeight();
-    const marginLeft = 14;
-    const marginRight = 14;
-    const maxWidth = pageWidth - marginLeft - marginRight;
-    let y = 18;
+    const accent = hexToRgb(HEADER_COLOR_BY_BRAND[brand.id] || brand.color);
 
-    function ensureSpace(lineHeight) {
-      if (y + lineHeight > pageHeight - 14) { doc.addPage(); y = 18; }
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(15);
+    doc.setTextColor(30, 30, 30);
+    doc.text(`Políticas de precios de la marca ${brand.label} para la gama ${gamaLabel} a día de ${todayStr}`, 14, 16, { maxWidth: pageWidth - 28 });
+    let y = 24;
+
+    const tableStyles = { fontSize: 8.5, cellPadding: 1.8 };
+    const headStyles = { fillColor: accent, textColor: 255, fontStyle: 'bold' };
+    const altStyles = { fillColor: [246, 247, 249] };
+
+    if (!formats.length) {
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9.5);
+      doc.setTextColor(130, 130, 130);
+      doc.text('Esta marca/gama no tiene ninguna tarifa importada todavía — no hay formatos que resumir.', 14, y + 6);
+      y += 14;
+    } else {
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(10.5);
+      doc.setTextColor(60, 60, 60);
+      doc.text('PVP (va a Skrit)', 14, y);
+      doc.autoTable({
+        startY: y + 3,
+        head: [['Formato', 'Coste', 'Tipo de margen', 'Margen', 'Beneficio', '1+2', 'Bidones y Cubas']],
+        body: formats.map(f => pvpTableRow(pvp, f)),
+        styles: tableStyles, headStyles, alternateRowStyles: altStyles,
+        margin: { left: 14, right: 14 }
+      });
+      y = doc.lastAutoTable.finalY + 8;
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(10.5);
+      doc.setTextColor(60, 60, 60);
+      doc.text('Netos Bonus (uso interno — coste el más bajo disponible: triple-neto → neto-neto → factura)', 14, y, { maxWidth: pageWidth - 28 });
+      doc.autoTable({
+        startY: y + 3,
+        head: [['Formato', 'Margen', 'Beneficio', 'Obsequio', 'Salida impresa']],
+        body: formats.map(f => bonusTableRow(bonus, f)),
+        styles: tableStyles, headStyles, alternateRowStyles: altStyles,
+        margin: { left: 14, right: 14 }
+      });
+      y = doc.lastAutoTable.finalY + 8;
     }
-    function writeLines(text, opts) {
-      const o = opts || {};
-      doc.setFont('helvetica', o.bold ? 'bold' : 'normal');
-      doc.setFontSize(o.size || 10);
-      doc.setTextColor.apply(doc, o.color || [40, 40, 40]);
-      const lines = doc.splitTextToSize(text, maxWidth - (o.indent || 0));
-      for (const line of lines) {
-        ensureSpace(o.lineHeight || 5.5);
-        doc.text(line, marginLeft + (o.indent || 0), y);
-        y += o.lineHeight || 5.5;
+
+    const diff = computeTemplateDiff(template, cfg);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10.5);
+    doc.setTextColor(60, 60, 60);
+    doc.text('Diferencia con la plantilla por defecto', 14, y);
+    y += 5;
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.setTextColor(90, 90, 90);
+    const pageHeight = doc.internal.pageSize.getHeight();
+    const noteLines = diff == null
+      ? [`${brand.label} todavía no tiene una plantilla por defecto guardada.`]
+      : diff.length === 0
+        ? ['Sin diferencias — la configuración vigente coincide con la plantilla por defecto.']
+        : diff;
+    for (const line of noteLines) {
+      const wrapped = doc.splitTextToSize(`•  ${line}`, pageWidth - 28);
+      for (const w of wrapped) {
+        if (y > pageHeight - 14) { doc.addPage(); y = 18; }
+        doc.text(w, 14, y);
+        y += 5;
       }
     }
+  }
 
-    writeLines(`Políticas de precios de la marca ${brand.label} para la gama ${gamaLabel} a día de ${todayStr}`, { bold: true, size: 14, color: [30, 30, 30], lineHeight: 7 });
-    y += 2;
-    writeLines(`${BASE_COST_LABELS[pvp.baseCost] || BASE_COST_LABELS.factura} · Modo de margen: ${MODE_LABELS[pvp.mode] || MODE_LABELS.sale} · Redondeo: ${ROUNDING_LABELS[pvp.rounding] || pvp.rounding}`, { size: 9.5, color: [90, 90, 90] });
-    y += 4;
-
-    writeLines('PVP (va a Skrit)', { bold: true, size: 11.5, color: [30, 30, 30], lineHeight: 6 });
-    if (!formats.length) {
-      writeLines('Esta marca/gama no tiene ninguna tarifa importada todavía — no hay formatos que resumir.', { size: 9.5, color: [130, 130, 130] });
-    } else {
-      for (const f of formats) writeLines(`—  ${pvpFormatLine(pvp, bigContainerFormats, f)}`, { size: 9.5, indent: 2 });
-    }
-    y += 4;
-
-    writeLines(`Netos Bonus (uso interno) · Coste el más bajo disponible (triple-neto → neto-neto → factura) · Redondeo: ${ROUNDING_LABELS[bonus.rounding] || bonus.rounding}`, { bold: true, size: 11.5, color: [30, 30, 30], lineHeight: 6 });
-    if (!formats.length) {
-      writeLines('Sin formatos que resumir.', { size: 9.5, color: [130, 130, 130] });
-    } else {
-      for (const f of formats) writeLines(`—  ${bonusFormatLine(bonus, f)}`, { size: 9.5, indent: 2 });
-    }
-
-    if (templateDiffers) {
-      y += 4;
-      writeLines(`Nota: esta configuración difiere de la plantilla por defecto de ${brand.label}.`, { size: 9.5, color: [180, 90, 20] });
-    }
+  /** Documento de referencia (no una tarifa): tabla, formato a formato, de qué regla
+   *  aplica HOY para PVP y Netos Bonus de una marca+gama concreta, más en qué difiere de
+   *  la plantilla por defecto de la marca — sin precios en €, que dependen del coste
+   *  real de cada producto, solo la fórmula (ver ADR 0041, rehecho en ADR 0064 a
+   *  petición del jefe de Yako). A4 vertical. */
+  function exportPolicyPdf(policy) {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+    renderBrandPolicyPage(doc, policy);
 
     const totalPages = doc.internal.getNumberOfPages();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
     for (let i = 1; i <= totalPages; i++) {
       doc.setPage(i);
       doc.setFontSize(8);
@@ -210,57 +298,31 @@ const PdfWriter = (() => {
       doc.text(`Página ${i} de ${totalPages}`, pageWidth - 30, pageHeight - 8);
     }
 
-    const filename = `Política de Precios ${ExcelWriter.fileBrandLabel(brand.abbr)} ${gamaLabel} ${ExcelWriter.dateSlug()}.pdf`;
+    const filename = `Política de Precios ${ExcelWriter.fileBrandLabel(policy.brand.abbr)} ${policy.gamaLabel} ${ExcelWriter.dateSlug()}.pdf`;
     doc.save(filename);
     return filename;
   }
 
-  /** Resumen compacto (sin desglose por formato, para que entren las 6 marcas en una
-   *  sola hoja) — ver ADR 0041. */
+  /** Una hoja (o varias, si hay muchos formatos) POR MARCA, mismo detalle que
+   *  `exportPolicyPdf` — pedido explícito de Yako: "no quiero un resumen, quiero una
+   *  hoja por cada marca" (ver ADR 0064 v2, reemplaza el resumen compacto de ADR 0041). */
   function exportAllPoliciesPdf(brandPolicies) {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF({ unit: 'mm', format: 'a4' });
-    const todayStr = new Date().toISOString().slice(0, 10);
-
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(16);
-    doc.setTextColor(30, 30, 30);
-    doc.text('Políticas de Precios — Todas las marcas', 14, 18);
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(10);
-    doc.setTextColor(110, 110, 110);
-    doc.text(`Generado el ${todayStr} · Recambios Ibiza`, 14, 24);
-
-    const body = brandPolicies.map(({ brand, pvp, bonus }) => {
-      const modes = (pvp.formatModes && Object.values(pvp.formatModes)) || [];
-      const notes = [];
-      if (modes.includes('1x2')) notes.push('1+2 activo');
-      if (modes.includes('pvp_neto')) notes.push('PVP Neto activo');
-      const obsequioCount = bonus.premiumByFormat ? Object.keys(bonus.premiumByFormat).length : 0;
-      if (obsequioCount) notes.push(`Obsequio en ${obsequioCount} formato${obsequioCount > 1 ? 's' : ''}`);
-      return [
-        brand.label,
-        BASE_COST_LABELS[pvp.baseCost] || BASE_COST_LABELS.factura,
-        `${pvp.defaultMargin}% (${MODE_LABELS[pvp.mode] || MODE_LABELS.sale})`,
-        ROUNDING_LABELS[pvp.rounding] || pvp.rounding,
-        `${bonus.defaultMargin}%`,
-        notes.join(' · ') || '—'
-      ];
+    brandPolicies.forEach((policy, i) => {
+      if (i > 0) doc.addPage();
+      renderBrandPolicyPage(doc, policy);
     });
 
-    doc.autoTable({
-      startY: 30,
-      head: [['Marca', 'PVP: coste', 'PVP: margen', 'PVP: redondeo', 'Bonus: margen', 'Notas']],
-      body,
-      styles: { fontSize: 9, cellPadding: 2.4 },
-      headStyles: { fillColor: [51, 65, 85], textColor: 255, fontStyle: 'bold' },
-      alternateRowStyles: { fillColor: [246, 247, 249] }
-    });
-
+    const totalPages = doc.internal.getNumberOfPages();
     const pageWidth = doc.internal.pageSize.getWidth();
-    doc.setFontSize(8);
-    doc.setTextColor(150);
-    doc.text('Página 1 de 1', pageWidth - 30, doc.internal.pageSize.getHeight() - 8);
+    const pageHeight = doc.internal.pageSize.getHeight();
+    for (let i = 1; i <= totalPages; i++) {
+      doc.setPage(i);
+      doc.setFontSize(8);
+      doc.setTextColor(150);
+      doc.text(`Página ${i} de ${totalPages}`, pageWidth - 30, pageHeight - 8);
+    }
 
     const filename = `Política de Precios Todas las Marcas ${ExcelWriter.dateSlug()}.pdf`;
     doc.save(filename);

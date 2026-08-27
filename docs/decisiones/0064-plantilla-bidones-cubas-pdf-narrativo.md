@@ -89,6 +89,38 @@ plantilla, `gatherBrandPolicy`/`doExportPolicies` con gama real, `GAMA_LABELS`/
 - Confirmar en Neon (acceso directo autorizado) que la plantilla y `bigContainerFormats`
   llegan a `pricing_rules` igual que cualquier otro cambio de reglas.
 
+## Adenda (2026-08-27, mismo día) — PDF rehecho de nuevo: tabla, no prosa
+
+El formato narrativo (guiones, prosa) de la sección C no era lo que el jefe de Yako quería
+— tras ver el resultado, Yako especificó exactamente lo que hacía falta:
+
+- **"Todas las marcas" deja de ser un resumen compacto**: pasa a ser **una hoja por
+  marca**, con el mismo detalle que la exportación de una sola marca (antes: una fila por
+  marca en una tabla única). `exportAllPoliciesPdf` ahora recorre `brandPolicies` y llama
+  a un `renderBrandPolicyPage(doc, policy)` compartido por cada una, añadiendo página
+  nueva salvo en la primera — mismo helper que usa `exportPolicyPdf` para una sola marca.
+- **Tabla, no prosa** — columnas exactas pedidas por Yako para PVP: Formato / Coste
+  (factura, neto-neto o triple-neto) / Tipo de margen (venta/compra) / Margen (%) /
+  **Beneficio** (%, el margen REAL tras redondeo — `Pricing.compute`'s `realMarginPct`,
+  ya existía, no se usaba en este PDF) / 1+2 ("Sí (permitido)"/"No (no permitido)") /
+  **Bidones y Cubas** ("Neto" si el formato tiene el modo especial "PVP Neto" activo,
+  "PVP" si no). **Importante**: esta última columna reusa el NOMBRE "Bidones y Cubas"
+  pero para un concepto DISTINTO al de la sección A (la casilla nueva de exportación a
+  Skrit) — es literalmente el interruptor "PVP Neto" que ya existía antes de hoy,
+  renombrado en esta columna a petición explícita de Yako. Los dos conceptos conviven sin
+  relacionarse: la casilla de exportación no aparece en este PDF.
+  Netos Bonus con columnas equivalentes (Formato/Margen/Beneficio/Obsequio/Salida
+  impresa), mismo patrón que el PDF anterior a ADR 0041.
+- **"Diferencia con la plantilla por defecto" deja de ser una nota booleana** ("sí/no
+  difiere") — ahora es una explicación real, campo a campo: `computeTemplateDiff(template,
+  cfg)` compara base de coste/modo/margen por defecto/redondeo de ambos niveles, más cada
+  entrada de `byFormat`/`formatModes`/`premiumByFormat`/`printFormats`/
+  `bigContainerFormats`, y lista qué cambió ("PVP — margen: formato 20L: 30% → 35%.").
+- `gatherBrandPolicy` (screen-rules.js) pasa a devolver `cfg`/`template` en crudo (antes
+  solo un booleano `templateDiffers`) para que `pdf-writer.js` pueda construir ese diff.
+  `PdfWriter.exportPolicyPdf`/`exportAllPoliciesPdf` pasan a recibir el objeto `policy`
+  completo en vez de una lista larga de argumentos posicionales.
+
 ## Referencias
 
 - ADR 0041 (PDF de políticas original).
