@@ -35,9 +35,12 @@ const AdPartsTripleNeto = (() => {
     return parseInt(m[2], 10) * 12 + MONTHS[m[1]];
   }
 
-  /** Busca, en las primeras filas, una con columna "ref" y al menos dos columnas de
+  /** Busca, en las primeras filas, una con columna "ref" y al menos una columna de
    *  mes/año a su derecha — esa es la cabecera real (puede no ser la fila 0: la fila
-   *  0 suele ser solo el rótulo "Triple-neto" repetido, decorativo). */
+   *  0 suele ser solo el rótulo "Triple-neto" repetido, decorativo). Habitualmente
+   *  trae dos columnas (mes actual + uno anterior de referencia), pero Yako a veces
+   *  quita la columna antigua antes de soltar el fichero — con una sola basta para
+   *  reconocerlo igual, siempre se usa la de mes/año más reciente de las presentes. */
   function findHeader(raw) {
     for (let i = 0; i < Math.min(6, raw.length); i++) {
       const row = raw[i];
@@ -49,7 +52,7 @@ const AdPartsTripleNeto = (() => {
         const mv = monthValue(row[c]);
         if (mv != null) monthCols.push({ col: c, monthValue: mv, label: row[c] });
       }
-      if (monthCols.length >= 2) {
+      if (monthCols.length >= 1) {
         monthCols.sort((a, b) => b.monthValue - a.monthValue);
         return { headerIdx: i, idxRef, idxDesc: idxRef - 1, idxCurrent: monthCols[0].col, currentLabel: monthCols[0].label };
       }

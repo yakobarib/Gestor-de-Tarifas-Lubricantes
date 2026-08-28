@@ -2,6 +2,17 @@
 
 Formato inspirado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [v1.0.18] — 2026-08-28
+
+### Corregido
+- Fichero dedicado de Triple-Neto de AD Parts: se reconoce también cuando
+  trae una sola columna de mes (antes exigía siempre dos, mes actual + uno
+  de referencia anterior) — un fichero recortado a un solo mes se rechazaba
+  con "No se reconoce el formato de esta tarifa" y su coste triple-neto se
+  quedaba sin actualizar.
+
+Ver [ADR 0067](docs/decisiones/0067-triple-neto-ad-parts-una-sola-columna-de-mes.md).
+
 ## [v1.0.17] — 2026-08-27
 
 ### Añadido
