@@ -2,6 +2,25 @@
 
 Formato inspirado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [v1.0.16] — 2026-08-27
+
+### Cambiado — IMPORTANTE, cambia el PVP de todos los formatos
+- El cálculo de PVP pasa a ser en dos pasos: (1) el margen de la casilla,
+  tal cual, sin sustituirlo aunque "1+2"/"PVP Neto en Bidones y Cubas"
+  estén activos; (2) un segundo paso que deja hueco para descontar al
+  cliente sin bajar del margen mínimo — ÷0,5 en el caso normal, ÷(1/3) con
+  "1+2" activo, o ningún segundo paso con "PVP Neto en Bidones y Cubas".
+  Esto duplica el PVP de cualquier formato que hoy no tenga "1+2" ni "PVP
+  Neto" activo — confirmado explícitamente antes de aplicarlo.
+- Netos Bonus (hojas para comerciales, nunca va a Skrit) se queda sin
+  cambios — solo el paso del margen, sin doblar. Pendiente de confirmar con
+  Yako si también debería doblarse.
+- De paso, la columna "Margen" del PDF de políticas ya muestra siempre el
+  valor real de la casilla de Reglas (antes mostraba 83,3%/20%/15% fijo
+  para formatos con "1+2"/"PVP Neto" activo).
+
+Ver [ADR 0065](docs/decisiones/0065-formula-pvp-dos-pasos.md).
+
 ## [v1.0.15] — 2026-08-27
 
 ### Quitado

@@ -3,17 +3,21 @@
    ============================================================================ */
 const Pricing = (() => {
 
-  // Modos especiales por formato dentro del nivel PVP (ver ADR 0026 v2): antes "1+2" y
-  // "Bidones y Cubas Neto" eran niveles aparte; ahora son un interruptor por formato
-  // dentro del propio PVP (un formato solo puede ir de una forma), con fórmula fija —
-  // no editable por Yako, es la misma cuenta de siempre.
-  // "1+2": cost/0,5/(1/3) = cost×6 = 83,33% de margen sobre venta (ver ADR 0026 original).
-  const PROMO_1X2_MARGIN_PCT = Math.round(100 * (1 - (0.5 / 3)) * 100) / 100;
-  // Bidones ~200L al 20% sobre venta, cubas ~1000L al 15% — el propio litraje real de la
-  // fila decide el tramo, sin depender de una lista fija de formatKeys por marca.
-  const PVP_NETO_CUBA_THRESHOLD_LITERS = 500;
-  const PVP_NETO_BIDON_MARGIN_PCT = 20;
-  const PVP_NETO_CUBA_MARGIN_PCT = 15;
+  // Modos especiales por formato dentro del nivel PVP (ver ADR 0065 — reemplaza el
+  // esquema de ADR 0026 v2, que sustituía el margen por una fórmula fija): "1+2" y
+  // "PVP Neto en Bidones y Cubas" YA NO cambian el margen en sí — el margen paso 1
+  // sigue siendo siempre el de la casilla (byFormat o, si está vacía, el margen por
+  // defecto). Lo que cambia es el paso 2, "hueco para poder descontar al cliente sin
+  // bajar del margen mínimo marcado":
+  //   - Formato normal (ni "1+2" ni "Bidones y Cubas"): al resultado del paso 1 se le
+  //     aplica un segundo paso ÷0,5 (equivale a ×2) — deja hueco para hasta un 50% de
+  //     descuento a cliente sin perder el margen mínimo.
+  //   - "1+2": el segundo paso es ÷(1/3) (equivale a ×3, hueco para hasta ~66% de
+  //     descuento) — el cliente "paga 1 caja y se lleva 3".
+  //   - "PVP Neto en Bidones y Cubas": SIN paso 2 — el resultado final es el del paso 1
+  //     tal cual (son formatos grandes, sin margen de descuento a cliente por diseño).
+  const PROMO_1X2_STEP2_DIVISOR = 1 / 3;
+  const NORMAL_STEP2_DIVISOR = 0.5;
 
   /**
    * PVP a partir de coste y % de margen.
@@ -121,23 +125,15 @@ const Pricing = (() => {
       return { marginPct: null, mode: cfg.marginMode || cfg.mode || 'sale', pvp: null, gain: null, realMarginPct: null, isManual: false, noCost: true };
     }
 
-    // Modo especial por formato (nivel PVP): sustituye el margen normal por la fórmula
-    // fija de "1+2" o "PVP Neto" para ese formato — mutuamente excluyente, un formato
-    // solo puede tener un modo activo a la vez (ver ADR 0026 v2).
+    // Modo especial por formato (nivel PVP, mutuamente excluyente — ver ADR 0026 v2):
+    // el margen paso 1 es SIEMPRE el de la casilla (byFormat o, si no hay, el margen por
+    // defecto) — "1+2"/"PVP Neto en Bidones y Cubas" ya no lo sustituyen (ver ADR 0065),
+    // solo deciden el paso 2 más abajo.
     const formatMode = cfg.formatModes && cfg.formatModes[row.formatKey];
-    let marginPct, mode;
-    if (formatMode === '1x2') {
-      marginPct = PROMO_1X2_MARGIN_PCT;
-      mode = 'sale';
-    } else if (formatMode === 'pvp_neto') {
-      marginPct = (row.liters != null && row.liters >= PVP_NETO_CUBA_THRESHOLD_LITERS) ? PVP_NETO_CUBA_MARGIN_PCT : PVP_NETO_BIDON_MARGIN_PCT;
-      mode = 'sale';
-    } else {
-      marginPct = (cfg.byFormat && cfg.byFormat[row.formatKey] != null)
-        ? cfg.byFormat[row.formatKey]
-        : cfg.defaultMargin;
-      mode = cfg.marginMode || cfg.mode || 'sale';
-    }
+    const marginPct = (cfg.byFormat && cfg.byFormat[row.formatKey] != null)
+      ? cfg.byFormat[row.formatKey]
+      : cfg.defaultMargin;
+    const mode = cfg.marginMode || cfg.mode || 'sale';
 
     // "Precio del premio" (ej. Netos Bonus: 50€ bidones / 100€ cubas) — un importe
     // fijo que se suma al coste ANTES de aplicar el margen, no un coste real de la
@@ -149,7 +145,18 @@ const Pricing = (() => {
     if (isManual) {
       pvp = manual;
     } else {
-      const pvpRaw = pvpFromMargin(costWithPremium, marginPct, mode);
+      // Paso 1: margen sobre el coste (+obsequio), fórmula de siempre.
+      const step1 = pvpFromMargin(costWithPremium, marginPct, mode);
+      // Paso 2 (ver ADR 0065): hueco para poder descontar al cliente sin bajar del
+      // margen mínimo marcado — SOLO aplica al nivel PVP (`cfg.id === 'pvp'`). Netos
+      // Bonus no es un precio de venta con descuento a cliente (son hojas internas para
+      // comerciales, nunca va a Skrit) — se queda con el resultado del paso 1 tal cual,
+      // igual que antes de ADR 0065. Dentro de PVP, se salta el paso 2 entero si el
+      // formato es "PVP Neto en Bidones y Cubas" (formatos grandes, sin ese margen de
+      // descuento por diseño).
+      const pvpRaw = (cfg.id !== 'pvp' || formatMode === 'pvp_neto')
+        ? step1
+        : step1 / (formatMode === '1x2' ? PROMO_1X2_STEP2_DIVISOR : NORMAL_STEP2_DIVISOR);
       pvp = round(pvpRaw, cfg.rounding);
     }
     const gain = costWithPremium != null ? pvp - costWithPremium : null;
