@@ -574,6 +574,16 @@ table.preview th.liters, table.preview td.liters { max-width: 76px; }
 }
 :root[data-theme="dark"] .format-table td input[type="number"].has-value { background-color: #3a3f47; color: #e5e7eb; }
 :root[data-theme="light"] .format-table td input[type="number"].has-value { background-color: #e2e4e8; }
+
+/* PVP fijado a mano (cualquier tipo de exportación, ver ADR 0066) — llamativo a
+   propósito, es dinero: no debe pasar desapercibido que ese precio ya no sigue la regla
+   de margen configurada en Reglas. */
+input[type="number"].manual-pvp-input.is-manual { background-color: #fde68a; font-weight: 700; color: #7c4a03; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) input[type="number"].manual-pvp-input.is-manual { background-color: #7c5e12; color: #fde68a; }
+}
+:root[data-theme="dark"] input[type="number"].manual-pvp-input.is-manual { background-color: #7c5e12; color: #fde68a; }
+:root[data-theme="light"] input[type="number"].manual-pvp-input.is-manual { background-color: #fde68a; color: #7c4a03; }
 .format-toggle-btn {
   padding: 0.2rem 0.6rem; font-size: 0.72rem; border-radius: 999px; margin: 0; cursor: pointer;
   background: var(--surface-muted); color: var(--pico-muted-color); border: 1px solid var(--border-muted);
@@ -589,13 +599,21 @@ table.preview th.liters, table.preview td.liters { max-width: 76px; }
    y de PVP varía por marca (factura / neto-neto / triple neto; PVP / Bidones y Cubas
    Neto / Netos Bonus…), así que en vez de un grid rígido de columnas cada marca envuelve
    sus propios chips y salta de línea con normalidad. */
-.compare-member { padding: 0.5rem 0; border-bottom: 1px solid var(--pico-card-border-color); font-size: 0.86rem; }
-.compare-member:last-child { border-bottom: none; }
+/* Tarjetas una al lado de otra (antes apiladas) — mismo ancho mínimo que se reparte
+   solo, en vez de una sola columna larga difícil de comparar de un vistazo. */
+.compare-members-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 0.7rem; }
+.compare-member {
+  background: var(--pico-card-background-color); border: 1px solid var(--pico-card-border-color);
+  border-radius: var(--radius-md); padding: 0.65rem 0.85rem; font-size: 0.86rem;
+  box-shadow: var(--shadow-card);
+}
 .compare-member-head { display: flex; justify-content: space-between; align-items: baseline; gap: 0.6rem; }
 .compare-member-head strong { font-size: 0.9rem; }
-.compare-member-costs, .compare-member-pvps { display: flex; gap: 0.4rem; flex-wrap: wrap; margin-top: 0.3rem; }
+.compare-member-costs, .compare-member-pvps, .compare-member-gains { display: flex; gap: 0.4rem; flex-wrap: wrap; margin-top: 0.3rem; }
 .compare-member .no-tarifa { color: var(--pico-muted-color); font-style: italic; }
 .chip.pvp { font-weight: 700; color: var(--pico-primary); background: color-mix(in srgb, var(--pico-primary) 12%, transparent); border-color: transparent; }
+/* Beneficio en € según la regla vigente (ver ADR 0066) — verde, distinto del PVP. */
+.chip.gain { font-weight: 700; color: #2d7a2d; background: color-mix(in srgb, #2d7a2d 12%, transparent); border-color: transparent; }
 
 .hidden { display: none !important; }
 .muted { color: var(--pico-muted-color); }

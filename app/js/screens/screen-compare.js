@@ -188,20 +188,24 @@ const ScreenCompare = (() => {
         continue;
       }
       const levels = loadLevelsFor(mBrandId, masterRow.gama);
-      const pvpsHtml = levels.length
-        ? levels.map(l => {
-            const c = Pricing.compute(masterRow, l);
-            return c.pvp != null ? `<span class="chip pvp">${escapeHtml(l.label)}: <strong>${formatEur(c.pvp)}</strong></span>` : '';
-          }).join('')
+      const computed = levels.map(l => ({ level: l, c: Pricing.compute(masterRow, l) })).filter(x => x.c.pvp != null);
+      const pvpsHtml = computed.length
+        ? computed.map(({ level, c }) => `<span class="chip pvp">${escapeHtml(level.label)}: <strong>${formatEur(c.pvp)}</strong></span>`).join('')
         : '<span class="muted">sin niveles configurados</span>';
+      // Beneficio en € según la regla vigente en Reglas para esa marca/gama (ver ADR
+      // 0066) — mismo `gain` que ya calcula Pricing.compute, no un cálculo aparte.
+      const gainsHtml = computed.length
+        ? computed.map(({ level, c }) => `<span class="chip gain">${escapeHtml(level.label)} beneficio: <strong>${formatEur(c.gain)}</strong></span>`).join('')
+        : '';
       rowsHtml.push(memberRowHtml(mBrand ? mBrand.label : mBrandId, prefixedRef, `
         <div>${escapeHtml(masterRow.description || '')}</div>
         <div class="compare-member-costs">${costChipsHtml(masterRow)}</div>
         <div class="compare-member-pvps">${pvpsHtml}</div>
+        ${gainsHtml ? `<div class="compare-member-gains">${gainsHtml}</div>` : ''}
       `));
     }
 
-    el.innerHTML = `<h4>Equivalencias de ${escapeHtml(ref)}</h4>${rowsHtml.join('')}`;
+    el.innerHTML = `<h4>Equivalencias de ${escapeHtml(ref)}</h4><div class="compare-members-grid">${rowsHtml.join('')}</div>`;
   }
 
   async function handleFreeSearch() {

@@ -72,6 +72,34 @@ const ScreenExport = (() => {
     return upper.startsWith(brandAbbr) ? upper.slice(brandAbbr.length) : upper;
   }
 
+  /** Input de "PVP manual" — ver ADR 0066: disponible en cualquier vista previa con
+   *  PVP (no solo "PVP (Ventas)"), fijar un precio a mano es la misma acción tenga la
+   *  pestaña que tenga el usuario delante. Resaltado (`is-manual`) cuando ya hay un
+   *  valor puesto — dinero, no debe pasar desapercibido. */
+  function manualPvpInputHtml(ref, gama, levelId, manualVal) {
+    return `<input type="number" step="0.01" value="${manualVal ?? ''}" placeholder="auto" data-ref="${escapeHtml(ref)}" data-gama="${escapeHtml(gama)}" data-level="${escapeHtml(levelId)}" data-field="manualPvp" class="manual-pvp-input${manualVal != null ? ' is-manual' : ''}" style="width:74px;text-align:right;padding:0.1rem 0.3rem;margin:0;font-size:0.8rem;">`;
+  }
+
+  /** Conecta todos los inputs de "PVP manual" de una tabla ya pintada — mismo mecanismo
+   *  para las 3 vistas previas que lo ofrecen (Skrit, Ventas, Netos Bonus). */
+  function bindManualPvpInputs(tbody) {
+    tbody.querySelectorAll('input[data-field="manualPvp"]').forEach(inp => {
+      inp.addEventListener('change', (e) => {
+        const ref = e.target.dataset.ref;
+        const gama = e.target.dataset.gama;
+        const levelId = e.target.dataset.level;
+        const raw = e.target.value;
+        let v = null;
+        if (raw !== '' && raw != null) {
+          const parsed = parseFloat(raw);
+          if (isFinite(parsed) && parsed > 0) v = parsed;
+        }
+        saveManualOverride(currentBrandId, gama, levelId, ref, v);
+        renderPreviewTable();
+      });
+    });
+  }
+
   /** Acumula "huecos" de datos (litros/descripción/precio) de las filas visibles del
    *  tipo de exportación activo — ver ADR 0034. Un mismo array de errores se reutiliza
    *  fila a fila en cada rama de `renderPreviewTable`. */
@@ -262,8 +290,8 @@ const ScreenExport = (() => {
     const levelOptions = [];
     for (const l of levels) {
       if (l.id === 'pvp') {
-        levelOptions.push('<option value="level:pvp">PVP (Venta)</option>');
         levelOptions.push('<option value="skrit:pvp">PVP (Skrit)</option>');
+        levelOptions.push('<option value="level:pvp">PVP (Ventas)</option>');
         levelOptions.push('<option value="print:pvp">PVP (Imprimir)</option>');
       } else if (l.id === 'netos_bonus') {
         levelOptions.push(`<option value="level:${escapeHtml(l.id)}">${escapeHtml(l.label)}${l.goesToSkrit ? ' (Venta)' : ' (uso interno)'}</option>`);
@@ -420,7 +448,7 @@ const ScreenExport = (() => {
     }
 
     if (kind === 'skrit') {
-      thead.innerHTML = `<tr><th>Marca</th><th>Referencia</th><th>Producto</th><th class="num liters">Litros</th><th>Familia</th><th>Bidones y Cubas</th><th class="num">Coste factura</th><th class="num">PVP</th></tr>`;
+      thead.innerHTML = `<tr><th>Marca</th><th>Referencia</th><th>Producto</th><th class="num liters">Litros</th><th>Familia</th><th>Bidones y Cubas</th><th class="num">Coste factura</th><th class="num">PVP</th><th class="num">PVP manual</th></tr>`;
       const byGama = currentGama === '__all__' ? loadLevelsByGama(currentBrandId, brand.gamas) : null;
       const levelCache = {};
       const levelFor = (gama) => {
@@ -453,6 +481,7 @@ const ScreenExport = (() => {
           <td>${isBigContainer ? 'Sí' : '—'}</td>
           <td class="num">${formatEur(cost)}</td>
           <td class="num"><strong>${formatEur(c.pvp)}</strong></td>
+          <td class="num">${manualPvpInputHtml(r.ref, r.gama, 'pvp', level && level.manualOverride ? level.manualOverride[r.ref] : null)}</td>
         `;
         if (c.pvp == null) tr.className = 'warn';
         frag.appendChild(tr);
@@ -460,6 +489,7 @@ const ScreenExport = (() => {
       tbody.innerHTML = '';
       tbody.appendChild(frag);
       renderErrorsBox(tally);
+      bindManualPvpInputs(tbody);
       return;
     }
 
@@ -510,13 +540,14 @@ const ScreenExport = (() => {
     }
 
     // kind === 'level' && key === 'netos_bonus': vista mínima igual que el Excel
-    // exportado (ver ADR 0034) — sin Estado/margen/PVP manual/ganancia, que son ayudas
-    // de edición exclusivas de PVP (Venta), la única exención al WYSIWYG estricto.
+    // exportado (ver ADR 0034) — sin Estado/margen/ganancia, que son ayudas de edición
+    // exclusivas de PVP (Ventas). "PVP manual" sí está disponible aquí también (ver ADR
+    // 0066 — fijar un precio a mano ya no es exclusivo de esa vista).
     if (key === 'netos_bonus') {
       thead.innerHTML = `
         <tr>
           <th>Marca</th><th>Referencia</th><th>Producto</th><th class="num liters">Litros</th><th>Familia</th><th>Bidones y Cubas</th>
-          <th class="num">Coste factura</th><th class="num">Coste neto-neto</th><th class="num">Coste triple neto</th><th class="num">PVP</th>
+          <th class="num">Coste factura</th><th class="num">Coste neto-neto</th><th class="num">Coste triple neto</th><th class="num">PVP</th><th class="num">PVP manual</th>
         </tr>`;
       const byGama = currentGama === '__all__' ? loadLevelsByGama(currentBrandId, brand.gamas) : null;
       const levelCache = {};
@@ -559,6 +590,7 @@ const ScreenExport = (() => {
           <td class="num">${formatEur(r.costNetoNeto)}</td>
           <td class="num">${formatEur(r.costTripleNeto)}</td>
           <td class="num"><strong>${formatEur(c.pvp)}</strong></td>
+          <td class="num">${manualPvpInputHtml(r.ref, r.gama, 'netos_bonus', level && level.manualOverride ? level.manualOverride[r.ref] : null)}</td>
         `;
         if (c.pvp == null) tr.className = 'warn';
         frag.appendChild(tr);
@@ -566,6 +598,7 @@ const ScreenExport = (() => {
       tbody.innerHTML = '';
       tbody.appendChild(frag);
       renderErrorsBox(tally);
+      bindManualPvpInputs(tbody);
       return;
     }
 
@@ -620,7 +653,7 @@ const ScreenExport = (() => {
         <td class="num">${formatEur(r.costFactura)}</td>
         <td class="num">${c.marginPct != null ? c.marginPct.toFixed(1) + '%' : '—'}</td>
         <td class="num" title="${escapeHtml(pvpTitle)}"><strong${c.isManual ? ' style="color:#1a6bcf;"' : ''}>${formatEur(c.pvp)}</strong></td>
-        <td class="num"><input type="number" step="0.01" value="${manualVal ?? ''}" placeholder="auto" data-ref="${escapeHtml(r.ref)}" data-gama="${escapeHtml(r.gama)}" data-level="${escapeHtml(key)}" data-field="manualPvp" style="width:74px;text-align:right;padding:0.1rem 0.3rem;margin:0;font-size:0.8rem;"></td>
+        <td class="num">${manualPvpInputHtml(r.ref, r.gama, key, manualVal)}</td>
         <td class="num">${formatEur(c.gain)}</td>
         <td class="num">${c.realMarginPct != null ? c.realMarginPct.toFixed(1) + '%' : '—'}</td>
       `;
@@ -629,22 +662,7 @@ const ScreenExport = (() => {
     tbody.innerHTML = '';
     tbody.appendChild(frag);
     renderErrorsBox(tally);
-
-    tbody.querySelectorAll('input[data-field="manualPvp"]').forEach(inp => {
-      inp.addEventListener('change', (e) => {
-        const ref = e.target.dataset.ref;
-        const gama = e.target.dataset.gama;
-        const levelId = e.target.dataset.level;
-        const raw = e.target.value;
-        let v = null;
-        if (raw !== '' && raw != null) {
-          const parsed = parseFloat(raw);
-          if (isFinite(parsed) && parsed > 0) v = parsed;
-        }
-        saveManualOverride(currentBrandId, gama, levelId, ref, v);
-        renderPreviewTable();
-      });
-    });
+    bindManualPvpInputs(tbody);
   }
 
   async function doExport() {

@@ -2,6 +2,24 @@
 
 Formato inspirado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [v1.0.17] — 2026-08-27
+
+### Añadido
+- Exportación: "PVP manual" ya se puede fijar desde cualquier vista con PVP
+  (Skrit, Netos Bonus), no solo desde "PVP (Ventas)" — y la casilla se
+  resalta en ámbar cuando ya tiene un precio puesto a mano.
+- Comparación: cada tarjeta de equivalencia añade el beneficio en € por
+  nivel, según lo configurado ahora mismo en Reglas.
+
+### Cambiado
+- Exportación: "PVP (Skrit)" pasa a ser la primera opción del desplegable
+  (y la que sale por defecto); "PVP (Venta)" se renombra a "PVP (Ventas)"
+  y pasa a segunda posición.
+- Comparación: las tarjetas de equivalencia se colocan una al lado de otra
+  (antes apiladas en una sola columna).
+
+Ver [ADR 0066](docs/decisiones/0066-detalles-exportacion-comparacion.md).
+
 ## [v1.0.16] — 2026-08-27
 
 ### Cambiado — IMPORTANTE, cambia el PVP de todos los formatos
