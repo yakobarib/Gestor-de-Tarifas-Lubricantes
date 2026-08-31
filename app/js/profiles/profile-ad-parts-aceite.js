@@ -15,6 +15,25 @@
   const findRefHeader = ExcelReader.findRefHeader;
   const AD_PARTS_FAM_BY_FAMILIA = { 'ACEITE MOTOR': '06' };
 
+  /** Resuelve las 3 hojas del formato "de trabajo" (Coste/ADStandard/CosteSC) por
+   *  contenido del nombre, no por coincidencia exacta — Yako reorganiza y renombra
+   *  estas hojas de vez en cuando (ej. "Coste" → "Coste AD", "CosteSC" → "Coste
+   *  Sport Car") y un nombre exacto se rompe con cualquier cambio cosmético. Cada
+   *  hoja se consume como mucho una vez, más específica primero (Sport Car, luego
+   *  Standard, luego lo que quede de "coste" para Normal). */
+  function resolveWorkingSheetNames(names) {
+    const remaining = names.slice();
+    const takeMatch = (test) => {
+      const idx = remaining.findIndex(n => test(n.toLowerCase()));
+      if (idx < 0) return null;
+      return remaining.splice(idx, 1)[0];
+    };
+    const scName = takeMatch(n => n === 'costesc' || n.includes('sport'));
+    const stdName = takeMatch(n => n === 'adstandard' || n.includes('standard'));
+    const costeName = takeMatch(n => n === 'coste' || n.includes('coste'));
+    return { costeName, stdName, scName };
+  }
+
   function readADPartsAceiteRaw(workbook) {
     const tarifaRaw = sheetRows(workbook, 'Tarifa');
     const tarifaByRef = new Map();
@@ -82,10 +101,12 @@
 
   function readADPartsAceiteWorking(workbook) {
     const rows = [];
+    const { costeName, stdName, scName } = resolveWorkingSheetNames(workbook.SheetNames);
 
-    // Hoja "Coste" → gama normal. PRODUCTO viene en carry-forward (solo se
-    // repite en la primera fila de cada producto), Envase en texto.
-    const rawCoste = sheetRows(workbook, 'Coste');
+    // Hoja "Coste" (o como la haya renombrado Yako) → gama normal. PRODUCTO viene
+    // en carry-forward (solo se repite en la primera fila de cada producto),
+    // Envase en texto.
+    const rawCoste = costeName ? sheetRows(workbook, costeName) : null;
     if (rawCoste) {
       const h = findRefHeader(rawCoste);
       if (h) {
@@ -110,9 +131,9 @@
       }
     }
 
-    // Hoja "ADStandard" → gama standard. Producto y Envase (numérico) vienen
-    // en todas las filas, sin carry-forward.
-    const rawStd = sheetRows(workbook, 'ADStandard');
+    // Hoja "ADStandard" (o renombrada) → gama standard. Producto y Envase
+    // (numérico) vienen en todas las filas, sin carry-forward.
+    const rawStd = stdName ? sheetRows(workbook, stdName) : null;
     if (rawStd) {
       const h = findRefHeader(rawStd);
       if (h) {
@@ -138,10 +159,10 @@
       }
     }
 
-    // Hoja "CosteSC" → línea Sport Car (3ª línea, solo presente en el
-    // formato "de trabajo"). Misma forma que "Coste" (carry-forward de
+    // Hoja "CosteSC" (o renombrada) → línea Sport Car (3ª línea, solo presente
+    // en el formato "de trabajo"). Misma forma que "Coste" (carry-forward de
     // producto), la ref sin punto de la 1ª columna de ref es la que se usa.
-    const rawSc = sheetRows(workbook, 'CosteSC');
+    const rawSc = scName ? sheetRows(workbook, scName) : null;
     if (rawSc) {
       const h = findRefHeader(rawSc);
       if (h) {
@@ -176,10 +197,12 @@
     detect(filename, workbook) {
       const f = (filename || '').toLowerCase();
       if (f.includes('quimico') || f.includes('químico')) return false;
-      if (f.includes('ad parts') || f.includes('adp') || f.includes('aceite ad') || f.includes('tarifa ad ')) return true;
+      if (f.includes('ad parts') || f.includes('adp') || f.includes('aceite ad') ||
+          f.includes('ad aceite') || f.includes('tarifa ad ')) return true;
       const names = workbook.SheetNames;
       if (names.includes('AD NORMAL') || names.includes('AD STANDARD')) return true;
-      if (names.includes('Coste') && names.includes('ADStandard')) return true;
+      const { costeName, stdName } = resolveWorkingSheetNames(names);
+      if (costeName && stdName) return true;
       return false;
     },
     read(workbook) {

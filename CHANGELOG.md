@@ -2,6 +2,16 @@
 
 Formato inspirado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [v1.0.19] — 2026-08-28
+
+### Corregido
+- Tarifa "de trabajo" de AD Parts Aceite (hojas Coste/ADStandard/CosteSC):
+  se reconocen por contenido del nombre en vez de exigir el nombre exacto
+  — renombrar las hojas (ej. al "limpiar" el fichero antes de importar) ya
+  no rompe la detección con "No se reconoce el formato de esta tarifa".
+
+Ver [ADR 0068](docs/decisiones/0068-ad-parts-aceite-hojas-de-trabajo-por-contenido.md).
+
 ## [v1.0.18] — 2026-08-28
 
 ### Corregido
