@@ -2,6 +2,15 @@
 
 Formato inspirado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [v1.0.20] — 2026-08-31
+
+### Cambiado
+- Exportación: "PVP (Ventas)" se renombra a "PVP (Datos)".
+- Exportación: el desplegable de tipos ahora se ordena alfabéticamente en
+  vez de con un orden manual fijo.
+
+Ver [ADR 0069](docs/decisiones/0069-exportacion-orden-alfabetico-pvp-datos.md).
+
 ## [v1.0.19] — 2026-08-28
 
 ### Corregido

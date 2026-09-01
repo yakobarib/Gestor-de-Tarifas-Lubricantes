@@ -287,27 +287,32 @@ const ScreenExport = (() => {
     // vista rica de siempre para revisar/ajustar ("Venta"), un Excel mínimo listo para
     // Skrit sin columnas de auditoría ("Skrit"), y un PDF sin coste para entregar a
     // cliente/comercial ("Imprimir"). Los demás niveles (Netos Bonus) siguen igual.
-    const levelOptions = [];
+    const entries = [];
     for (const l of levels) {
       if (l.id === 'pvp') {
-        levelOptions.push('<option value="skrit:pvp">PVP (Skrit)</option>');
-        levelOptions.push('<option value="level:pvp">PVP (Ventas)</option>');
-        levelOptions.push('<option value="print:pvp">PVP (Imprimir)</option>');
+        entries.push({ value: 'skrit:pvp', label: 'PVP (Skrit)' });
+        entries.push({ value: 'level:pvp', label: 'PVP (Datos)' });
+        entries.push({ value: 'print:pvp', label: 'PVP (Imprimir)' });
       } else if (l.id === 'netos_bonus') {
-        levelOptions.push(`<option value="level:${escapeHtml(l.id)}">${escapeHtml(l.label)}${l.goesToSkrit ? ' (Venta)' : ' (uso interno)'}</option>`);
+        entries.push({ value: `level:${l.id}`, label: `${l.label}${l.goesToSkrit ? ' (Venta)' : ' (uso interno)'}` });
         // PDF sin coste para comerciales, solo con las filas de Netos Bonus (ver ADR 0039).
-        levelOptions.push('<option value="print:netos_bonus">PVP (Bonus)</option>');
+        entries.push({ value: 'print:netos_bonus', label: 'PVP (Bonus)' });
       } else {
-        levelOptions.push(`<option value="level:${escapeHtml(l.id)}">${escapeHtml(l.label)}${l.goesToSkrit ? ' (Venta)' : ' (uso interno)'}</option>`);
+        entries.push({ value: `level:${l.id}`, label: `${l.label}${l.goesToSkrit ? ' (Venta)' : ' (uso interno)'}` });
       }
     }
-    const listOptions = Object.entries(PRICE_LIST_TYPES).map(([key, spec]) => `<option value="list:${key}">${escapeHtml(spec.label)} (Compra)</option>`);
+    for (const [key, spec] of Object.entries(PRICE_LIST_TYPES)) {
+      entries.push({ value: `list:${key}`, label: `${spec.label} (Compra)` });
+    }
     // "Valor Regalo 1+1" solo se ofrece si algún formato de PVP tiene el modo "1+2"
     // activado en al menos una gama de esta marca (en "Todas") o en la gama elegida.
     if (has1x2) {
-      listOptions.push('<option value="list:regalo_1x1">Valor Regalo 1+1 (Compra)</option>');
+      entries.push({ value: 'list:regalo_1x1', label: 'Valor Regalo 1+1 (Compra)' });
     }
-    sel.innerHTML = levelOptions.concat(listOptions).join('');
+    // Orden alfabético por etiqueta (pedido por Yako) — así el desplegable se reordena
+    // solo si en el futuro se añade/renombra algún tipo de exportación, sin tocar aquí.
+    entries.sort((a, b) => a.label.localeCompare(b.label, 'es'));
+    sel.innerHTML = entries.map(e => `<option value="${e.value}">${escapeHtml(e.label)}</option>`).join('');
     currentOption = sel.value || '';
     renderPreview();
   }
