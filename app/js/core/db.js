@@ -109,7 +109,13 @@ const MasterDB = (() => {
           // el resto no la trae, y las tarifas de salida caen de vuelta a `description`.
           descriptionExport: r.descriptionExport || (existing ? existing.descriptionExport : null),
           liters: verified ? verified.liters : (r.liters != null ? r.liters : (existing ? existing.liters : null)),
-          formatKey: verified ? Parser.formatKey(verified.liters) : (r.formatKey || (existing ? existing.formatKey : '?')),
+          // Guardia igual que `liters` arriba: `'?'` es un string truthy, así que un
+          // `r.formatKey || existing.formatKey` sin más pisaba un formato ya resuelto con
+          // `'?'` cada vez que una reimportación posterior no lograba extraer los litros
+          // de esa fila (ej. Repsol cambia la redacción de la descripción entre tarifas) —
+          // bug real detectado por Yako: refs con `liters` correcto pero `formatKey: '?'`.
+          formatKey: verified ? Parser.formatKey(verified.liters)
+            : ((r.formatKey && r.formatKey !== '?') ? r.formatKey : (existing ? existing.formatKey : '?')),
           fam: r.fam != null ? r.fam : (existing ? existing.fam : null),
           litersDetected: verified ? verified.liters != null : !!r.litersDetected,
           descVerified: !!verified

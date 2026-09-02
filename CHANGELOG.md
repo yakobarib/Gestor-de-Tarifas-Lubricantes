@@ -2,6 +2,20 @@
 
 Formato inspirado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [v1.0.22] — 2026-08-31
+
+### Corregido
+- Una reimportación que no lograba extraer los litros de una fila podía
+  pisar con "?" un formato ya resuelto de una tarifa anterior, aunque
+  los litros en sí se conservaran correctos — 5 referencias de Repsol
+  afectadas, ya reparadas en la base compartida.
+
+### Cambiado
+- Reglas: los botones de "Plantillas" se recolocan junto al selector de
+  nivel de precio (columna derecha), ganando una fila de espacio vertical.
+
+Ver [ADR 0071](docs/decisiones/0071-formatkey-no-se-pisa-con-interrogante.md).
+
 ## [v1.0.21] — 2026-08-31
 
 ### Añadido
