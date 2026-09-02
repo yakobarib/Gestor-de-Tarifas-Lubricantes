@@ -23,22 +23,9 @@ const ScreenRules = (() => {
   let currentLevelId = 'pvp';
 
   const LEVEL_LEGENDS = {
-    pvp: `<strong>PVP</strong> es el precio que va a Skrit. Sale de la base de coste que
-      tenga auditada esta marca/gama (factura, neto-neto o triple neto; el selector de
-      "Base de coste" solo ofrece las que de verdad tengan datos). Cada formato admite
-      además un modo especial que sustituye su margen normal por una fórmula fija,
-      mutuamente excluyente (un formato solo puede ir de una forma): "1+2" (el cliente
-      paga 1 caja y se lleva 3, hasta 5L, 83,33% de margen sobre venta) o "PVP Neto"
-      (bidones ~200L al 20%, cubas ~1000L al 15%, a partir de ~150L).`,
-    netos_bonus: `<strong>Netos Bonus</strong> nunca va a Skrit — son hojas impresas para
-      comerciales. El coste siempre es el más bajo disponible (triple-neto, si no
-      neto-neto, si no factura) más el "Obsequio" en € que se ponga por formato antes de
-      aplicar el margen (deja vacío = sin obsequio); la fila "Salida impresa" decide qué
-      formatos entran en la hoja que se imprime.`,
-    netos_gasolineras: `<strong>Netos Gasolineras</strong> nunca va a Skrit — mismo
-      patrón que Netos Bonus (coste en cascada, más el "Obsequio" en € por formato antes
-      de aplicar el margen, y la fila "Salida impresa" decide qué formatos entran en la
-      hoja que se imprime).`
+    pvp: `<strong>PVP</strong>: aplica los cálculos según las opciones elegidas para exportar el PVP que va a Skrit.`,
+    netos_bonus: `<strong>Netos Bonus</strong>: precios para el programa Bonus de comerciales — precio de salida más margen más el obsequio, hasta llegar al precio neto especial de venta.`,
+    netos_gasolineras: `<strong>Netos Gasolineras</strong>: precios Netos exclusivos para Gasolineras — precio de partida más un margen ajustado.`
   };
 
   // Umbral que decide si el formato puede tener el modo "1+2" (hasta 5L) o "PVP Neto"

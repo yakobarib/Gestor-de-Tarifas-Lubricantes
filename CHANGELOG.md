@@ -2,6 +2,13 @@
 
 Formato inspirado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [v1.0.23] — 2026-08-31
+
+### Cambiado
+- Reglas: la leyenda explicativa de cada nivel de precio pasa a una sola
+  línea; se quita el texto de ayuda bajo "Gama" — "Nivel de precio" y
+  "Plantillas" quedan ahora a la misma altura, más espacio de pantalla.
+
 ## [v1.0.22] — 2026-08-31
 
 ### Corregido
