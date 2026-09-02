@@ -46,7 +46,6 @@ const ScreenExport = (() => {
     'level:pvp': 'PVP Venta',
     'skrit:pvp': 'PVP SKRIT',
     'print:pvp': 'PVP Comerciales',
-    'level:netos_bonus': 'Neto Bonus',
     'print:netos_bonus': 'PVP Bonus',
     'level:netos_gasolineras': 'Neto Gasolineras',
     'list:neto_factura': 'Neto Factura',
@@ -295,9 +294,10 @@ const ScreenExport = (() => {
         entries.push({ value: 'level:pvp', label: 'PVP (Datos)' });
         entries.push({ value: 'print:pvp', label: 'PVP (Imprimir)' });
       } else if (l.id === 'netos_bonus') {
-        entries.push({ value: `level:${l.id}`, label: `${l.label}${l.goesToSkrit ? ' (Venta)' : ' (uso interno)'}` });
-        // PDF sin coste para comerciales, solo con las filas de Netos Bonus (ver ADR 0039).
-        entries.push({ value: 'print:netos_bonus', label: 'PVP (Bonus)' });
+        // Consolidado en una sola opción (ver ADR 0072): antes había "Netos Bonus (uso
+        // interno)" (Excel rico) Y "PVP (Bonus)" (PDF, ver ADR 0039) por separado — ahora
+        // Netos Bonus usa siempre el formato PDF, "PVP (Bonus)" desaparece del desplegable.
+        entries.push({ value: 'print:netos_bonus', label: `${l.label} (uso interno)` });
       } else {
         entries.push({ value: `level:${l.id}`, label: `${l.label}${l.goesToSkrit ? ' (Venta)' : ' (uso interno)'}` });
       }

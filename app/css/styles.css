@@ -211,6 +211,17 @@ article h4 { font-size: 0.88rem; }
    pasar el botón a una línea aparte; aquí se reduce solo para esta fila. */
 .export-toolbar .field { flex-basis: 150px; min-width: 130px; }
 
+/* Exportación: la pantalla entera debe caber en el viewport sin scroll de página — lo
+   único que crece de verdad es el listado (cientos de filas), así que es lo único que
+   debe hacer scroll, dentro de sí mismo (pedido por Yako). `100px` = alto real de
+   `.app-header`, mismo valor medido que ya usa la barra sticky de Tarifas más arriba.
+   `overflow-y: auto` en la propia sección es solo una red de seguridad (pantallas muy
+   estrechas donde ni el toolbar cabría) — en el caso normal no debería activarse. */
+#screen-export { display: flex; flex-direction: column; max-height: calc(100vh - 100px); overflow-y: auto; }
+#screen-export > article { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+#screen-export #exportPreviewWrap:not(.hidden) { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+#screen-export .table-wrap { flex: 1; min-height: 0; max-height: none; }
+
 /* Cuadrícula de tarjetas por marca (pantalla Importación) — auto-fit (no auto-fill) para
    que las tarjetas reales ocupen todo el ancho disponible sin dejar columnas fantasma
    vacías que roben espacio (el ancho final debe coincidir con el de #dropZone, debajo). */

@@ -2,6 +2,18 @@
 
 Formato inspirado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [v1.0.24] — 2026-08-31
+
+### Cambiado
+- Exportación: la pantalla entera cabe en un viewport sin necesitar
+  scroll de página — solo el listado (largo por naturaleza) hace scroll
+  dentro de sí mismo.
+- Exportación: "Netos Bonus" y "PVP (Bonus)" se consolidan en una sola
+  opción del desplegable — Netos Bonus pasa a exportarse siempre como
+  PDF sin coste (antes era un Excel completo aparte de "PVP (Bonus)").
+
+Ver [ADR 0072](docs/decisiones/0072-exportacion-sin-scroll-y-netos-bonus-pdf.md).
+
 ## [v1.0.23] — 2026-08-31
 
 ### Cambiado

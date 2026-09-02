@@ -171,10 +171,12 @@ const ScreenHelp = (() => {
         trabajo.</li>
         <li><strong>PVP (Imprimir)</strong>: un PDF sin ningún coste (solo Referencia,
         Producto, Litros y PVP) — para entregar a un cliente o comercial.</li>
-        <li><strong>Netos Bonus / Netos Gasolineras</strong>: el listado de la tarifa
-        correspondiente configurada en Reglas, solo con los formatos marcados "Salida
-        impresa". Si una marca no muestra "Netos Gasolineras" en el desplegable todavía,
-        abre esa marca en Reglas una vez (con "Todas las gamas") para que se cree.</li>
+        <li><strong>Netos Bonus</strong>: un PDF sin coste (solo Referencia, Descripción,
+        Litros y PVP Bonus), solo con los formatos marcados "Salida impresa" en Reglas.</li>
+        <li><strong>Netos Gasolineras</strong>: el listado completo (Excel) de la tarifa
+        Netos Gasolineras configurada en Reglas, solo con los formatos marcados "Salida
+        impresa". Si una marca no la muestra todavía en el desplegable, abre esa marca en
+        Reglas una vez (con "Todas las gamas") para que se cree.</li>
         <li><strong>Neto Factura / Neto-Neto / Triple Neto</strong>: listados simples con
         el coste tal cual, sin ningún margen — para consulta o auditoría.</li>
         <li><strong>Valor Regalo 1+1</strong>: solo aparece si algún formato tiene
