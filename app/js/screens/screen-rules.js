@@ -19,6 +19,27 @@ const ScreenRules = (() => {
   const $ = (id) => document.getElementById(id);
   let currentBrandId = null;
   let currentGama = 'default';
+  // Qué tarjeta de nivel se muestra (ver ADR 0070 — antes se mostraban las 3 a la vez).
+  let currentLevelId = 'pvp';
+
+  const LEVEL_LEGENDS = {
+    pvp: `<strong>PVP</strong> es el precio que va a Skrit. Sale de la base de coste que
+      tenga auditada esta marca/gama (factura, neto-neto o triple neto; el selector de
+      "Base de coste" solo ofrece las que de verdad tengan datos). Cada formato admite
+      además un modo especial que sustituye su margen normal por una fórmula fija,
+      mutuamente excluyente (un formato solo puede ir de una forma): "1+2" (el cliente
+      paga 1 caja y se lleva 3, hasta 5L, 83,33% de margen sobre venta) o "PVP Neto"
+      (bidones ~200L al 20%, cubas ~1000L al 15%, a partir de ~150L).`,
+    netos_bonus: `<strong>Netos Bonus</strong> nunca va a Skrit — son hojas impresas para
+      comerciales. El coste siempre es el más bajo disponible (triple-neto, si no
+      neto-neto, si no factura) más el "Obsequio" en € que se ponga por formato antes de
+      aplicar el margen (deja vacío = sin obsequio); la fila "Salida impresa" decide qué
+      formatos entran en la hoja que se imprime.`,
+    netos_gasolineras: `<strong>Netos Gasolineras</strong> nunca va a Skrit — mismo
+      patrón que Netos Bonus (coste en cascada, más el "Obsequio" en € por formato antes
+      de aplicar el margen, y la fila "Salida impresa" decide qué formatos entran en la
+      hoja que se imprime).`
+  };
 
   // Umbral que decide si el formato puede tener el modo "1+2" (hasta 5L) o "PVP Neto"
   // (bidones/cubas, a partir de ~150L) disponible como interruptor — fuera de ese rango
@@ -48,6 +69,19 @@ const ScreenRules = (() => {
   function defaultNetosBonusLevel() {
     return {
       id: 'netos_bonus', label: 'Netos Bonus', baseCost: 'tripleNeto', baseCostField: 'costTripleNeto',
+      costCascade: ['costTripleNeto', 'costNetoNeto', 'costFactura'], mode: 'sale', defaultMargin: 20,
+      byFormat: {}, premiumByFormat: {},
+      printFormats: {}, rounding: '2dec', manualOverride: {}, goesToSkrit: false
+    };
+  }
+
+  /** Netos Gasolineras (ver ADR 0070) — mismo patrón que Netos Bonus (copia pedida
+   *  explícitamente por Yako, "prácticamente lo mismo"): coste en cascada, nunca va a
+   *  Skrit, obsequio por formato y "Salida impresa" propios. Mismo `defaultMargin` de
+   *  partida (20%) para no inventar un valor sin que Yako lo haya pedido. */
+  function defaultNetosGasolinerasLevel() {
+    return {
+      id: 'netos_gasolineras', label: 'Netos Gasolineras', baseCost: 'tripleNeto', baseCostField: 'costTripleNeto',
       costCascade: ['costTripleNeto', 'costNetoNeto', 'costFactura'], mode: 'sale', defaultMargin: 20,
       byFormat: {}, premiumByFormat: {},
       printFormats: {}, rounding: '2dec', manualOverride: {}, goesToSkrit: false
@@ -114,7 +148,17 @@ const ScreenRules = (() => {
     }
     if (bonus.onlyFormats) { delete bonus.onlyFormats; changed = true; }
 
-    const order = ['pvp', 'netos_bonus'];
+    // Netos Gasolineras (ADR 0070) — mismo alta perezosa que Netos Bonus arriba, para
+    // que las marcas ya configuradas antes de este cambio la ganen la primera vez que se
+    // abran en Reglas, sin migración aparte.
+    let gasolineras = cfg.priceLevels.find(l => l.id === 'netos_gasolineras');
+    if (!gasolineras) {
+      gasolineras = defaultNetosGasolinerasLevel();
+      cfg.priceLevels.push(gasolineras);
+      changed = true;
+    }
+
+    const order = ['pvp', 'netos_bonus', 'netos_gasolineras'];
     cfg.priceLevels.sort((a, b) => order.indexOf(a.id) - order.indexOf(b.id));
     return changed;
   }
@@ -165,6 +209,7 @@ const ScreenRules = (() => {
       formats,
       pvp: cfg.priceLevels.find(l => l.id === 'pvp'),
       bonus: cfg.priceLevels.find(l => l.id === 'netos_bonus'),
+      gasolineras: cfg.priceLevels.find(l => l.id === 'netos_gasolineras'),
       cfg,
       template
     };
@@ -238,13 +283,39 @@ const ScreenRules = (() => {
     return keys.map(k => ({ key: k, count: counts[k], label: Parser.formatLabel(k === '?' ? null : parseFloat(k)) }));
   }
 
+  /** Un selector por marca/gama (no una tarjeta fija por nivel, ver ADR 0070) — al haber
+   *  pasado de 2 a 3 niveles fijos, mostrarlos todos a la vez ocupaba demasiada pantalla.
+   *  Las opciones salen de `cfg.priceLevels` (no de una lista fija), así que si en el
+   *  futuro se copia el patrón para un cuarto nivel, el selector lo recoge solo. */
+  function renderLevelSelect(cfg) {
+    const sel = $('rulesLevelSelect');
+    if (!sel) return;
+    sel.innerHTML = cfg.priceLevels.map(l =>
+      `<option value="${escapeHtml(l.id)}" ${l.id === currentLevelId ? 'selected' : ''}>${escapeHtml(l.label)}</option>`
+    ).join('');
+  }
+
+  /** Leyenda explicativa partida por nivel (antes explicaba PVP y Netos Bonus a la vez
+   *  en un único párrafo — con 3 niveles ya no cabía sin ocupar demasiado, ver ADR 0070). */
+  function renderLevelLegend() {
+    const el = $('rulesLevelLegend');
+    if (el) el.innerHTML = LEVEL_LEGENDS[currentLevelId] || '';
+  }
+
   async function renderLevels() {
     const cfg = loadConfig(currentBrandId, currentGama);
     const avail = await availableCostFields(currentBrandId, currentGama);
     const formats = await availableFormats(currentBrandId, currentGama);
     if (migrateLevels(cfg, formats)) saveConfig(currentBrandId, currentGama, cfg);
+    renderLevelSelect(cfg);
+    // El índice real dentro de `cfg.priceLevels` (no 0) — lo necesitan
+    // updateLevelField/updateByFormat/etc. para escribir en el nivel correcto tras
+    // filtrar a uno solo visible.
+    let index = cfg.priceLevels.findIndex(l => l.id === currentLevelId);
+    if (index < 0) { index = 0; currentLevelId = cfg.priceLevels[0].id; }
+    renderLevelLegend();
     const el = $('levelsContainer');
-    el.innerHTML = cfg.priceLevels.map((lvl, i) => levelCardHtml(lvl, i, avail, formats)).join('');
+    el.innerHTML = levelCardHtml(cfg.priceLevels[index], index, avail, formats);
   }
 
   function formatToggleCell(lvl, formatKey, mode) {
@@ -266,13 +337,16 @@ const ScreenRules = (() => {
       return `<td><input type="number" min="0" max="500" step="0.5" class="${hasValue ? 'has-value' : ''}" data-field="byFormat" data-index="${lvl._index}" data-format="${escapeHtml(f.key)}" placeholder="${lvl.defaultMargin}" value="${hasValue ? lvl.byFormat[f.key] : ''}"></td>`;
     }).join('')}</tr>`;
 
+    // Cualquier nivel que no sea PVP sigue el patrón "Netos Bonus" (coste en cascada,
+    // obsequio por formato, salida impresa) — Netos Gasolineras lo copia sin cambios,
+    // y un futuro nivel calcado heredaría el mismo patrón sin tocar este código.
     let extraRows = '';
     if (lvl.id === 'pvp') {
       extraRows = `
         <tr><th>1+2</th>${formats.map(f => (f.key !== '?' && parseFloat(f.key) <= PROMO_1X2_MAX_LITERS) ? formatToggleCell(lvl, f.key, '1x2') : '<td class="disabled">—</td>').join('')}</tr>
         <tr><th>PVP Neto en Bidones y Cubas</th>${formats.map(f => (f.key !== '?' && parseFloat(f.key) >= PVP_NETO_MIN_LITERS) ? formatToggleCell(lvl, f.key, 'pvp_neto') : '<td class="disabled">—</td>').join('')}</tr>
       `;
-    } else if (lvl.id === 'netos_bonus') {
+    } else {
       const premiumRow = `<tr><th>Obsequio (€)</th>${formats.map(f => {
         const hasValue = lvl.premiumByFormat && lvl.premiumByFormat[f.key] != null;
         return `<td><input type="number" min="0" step="0.5" class="${hasValue ? 'has-value' : ''}" data-field="premiumByFormat" data-index="${lvl._index}" data-format="${escapeHtml(f.key)}" placeholder="0" value="${hasValue ? lvl.premiumByFormat[f.key] : ''}"></td>`;
@@ -282,7 +356,7 @@ const ScreenRules = (() => {
 
     return `
       <div class="format-table-wrap">
-        <label>Margen por formato (%) — deja vacío para usar el margen por defecto${lvl.id === 'pvp' ? '. "1+2" y "PVP Neto" sustituyen ese margen por su fórmula fija cuando están activados para ese formato' : ''}${lvl.id === 'netos_bonus' ? '. "Obsequio" es el coste en € del regalo de ese formato — se suma al coste antes de calcular el margen (deja vacío = sin obsequio)' : ''}</label>
+        <label>Margen por formato (%) — deja vacío para usar el margen por defecto${lvl.id === 'pvp' ? '. "1+2" y "PVP Neto" sustituyen ese margen por su fórmula fija cuando están activados para ese formato' : '. "Obsequio" es el coste en € del regalo de ese formato — se suma al coste antes de calcular el margen (deja vacío = sin obsequio)'}</label>
         <div class="format-table-scroll">
           <table class="format-table" data-index="${lvl._index}">
             <thead><tr><th></th>${formats.map(f => `<th>${escapeHtml(f.label)}<small>${f.count} refs</small></th>`).join('')}</tr></thead>
@@ -295,7 +369,9 @@ const ScreenRules = (() => {
 
   function levelCardHtml(lvl, index, avail, formats) {
     lvl._index = index; // leído por formatTableHtml para el data-index de la tabla
-    const isBonus = lvl.id === 'netos_bonus';
+    // Solo PVP puede ir a Skrit — cualquier otro nivel (Netos Bonus, Netos Gasolineras...)
+    // es siempre uso interno, sin interruptor.
+    const isBonus = lvl.id !== 'pvp';
     return `
       <div class="level-card" data-index="${index}">
         <div class="level-card-head">
@@ -425,6 +501,11 @@ const ScreenRules = (() => {
     });
     $('rulesGamaSelect').addEventListener('change', (e) => {
       currentGama = e.target.value;
+      renderLevels();
+    });
+    const levelSel = $('rulesLevelSelect');
+    if (levelSel) levelSel.addEventListener('change', (e) => {
+      currentLevelId = e.target.value;
       renderLevels();
     });
     $('levelsContainer').addEventListener('change', (e) => {

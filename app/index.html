@@ -59,7 +59,7 @@
     <div class="sidebar-footer">
       <p>Diseñado por <strong>Yakoba Moreno</strong></p>
       <p>Desarrollado en <strong>Claude Code</strong></p>
-      <span class="sidebar-version">v1.0.20</span>
+      <span class="sidebar-version">v1.0.21</span>
     </div>
   </aside>
 
@@ -242,19 +242,7 @@
 <section id="screen-rules" class="screen-section hidden">
   <article style="margin-bottom: 1rem;">
     <h3>Niveles de precio por marca / gama</h3>
-    <p class="muted" style="font-size:0.85rem;">
-      Cada marca (y gama, si tiene varias) genera dos precios de salida: <strong>PVP</strong> (el
-      que va a Skrit) y <strong>Netos Bonus</strong> (hojas impresas para comerciales, nunca va a
-      Skrit) — ambos a partir de la base de coste que tenga auditada (factura, neto-neto o triple
-      neto; el selector de "Base de coste" solo ofrece las que de verdad tengan datos para esa
-      marca/gama). En PVP, cada formato admite además un modo especial que sustituye su margen
-      normal por una fórmula fija, mutuamente excluyente (un formato solo puede ir de una forma):
-      "1+2" (el cliente paga 1 caja y se lleva 3, hasta 5L, 83,33% de margen sobre venta) o
-      "PVP Neto" (bidones ~200L al 20%, cubas ~1000L al 15%, a partir de ~150L). En Netos Bonus,
-      el coste siempre es el más bajo disponible (triple-neto, si no neto-neto, si no factura) más
-      el "Obsequio" en € que se ponga por formato antes de aplicar el margen (deja vacío = sin
-      obsequio); la fila "Salida impresa" decide qué formatos entran en la hoja que se imprime.
-    </p>
+    <p id="rulesLevelLegend" class="muted" style="font-size:0.85rem;"></p>
     <div class="filter-row rules-top-row">
       <div class="rules-marca-gama">
         <div class="field">
@@ -265,6 +253,10 @@
           <label for="rulesGamaSelect">Gama</label>
           <select id="rulesGamaSelect"></select>
           <p class="hint" style="margin:0.3rem 0 0;">Con "Todas las gamas" seleccionada, guardar aplica la misma configuración a todas las gamas de la marca a la vez (sobrescribe cualquier diferencia que hubiera entre ellas). Elige una gama suelta si necesita un margen distinto al resto.</p>
+        </div>
+        <div class="field">
+          <label for="rulesLevelSelect">Nivel de precio</label>
+          <select id="rulesLevelSelect"></select>
         </div>
       </div>
       <div class="rules-policy-export">
@@ -331,7 +323,7 @@
      ========================================================================== -->
 <section id="screen-export" class="screen-section hidden">
   <article>
-    <h3>Exportar a Skrit</h3>
+    <h3>Exportar Tarifas</h3>
     <p class="muted" style="font-size:0.85rem;">
       Elige marca, gama y tipo de exportación — la previsualización de abajo muestra
       exactamente lo que va a salir en el fichero (Excel o PDF, según el tipo).

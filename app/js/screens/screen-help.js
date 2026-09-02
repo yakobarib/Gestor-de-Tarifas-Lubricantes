@@ -87,7 +87,9 @@ const ScreenHelp = (() => {
       <p>Es la única pantalla donde se configura el margen. Elige marca y gama (o "Todas
       las gamas" — al guardar, difunde la misma configuración a todas las gamas de esa
       marca de golpe, sobrescribiendo cualquier diferencia que hubiera entre ellas). Hay
-      siempre exactamente dos tarjetas fijas, que no se pueden eliminar.</p>
+      siempre exactamente tres niveles fijos, que no se pueden eliminar — el selector
+      "Nivel de precio" muestra uno a la vez, para no ocupar toda la pantalla con los tres
+      a golpe de vista.</p>
       <h4>PVP (la que va a Skrit)</h4>
       <ul>
         <li><strong>Base de coste</strong>: factura, neto-neto o triple-neto — solo se
@@ -105,12 +107,12 @@ const ScreenHelp = (() => {
         <li><strong>¿Va a Skrit?</strong>: si esta marca/gama debe subirse a Skrit (casi
         siempre sí).</li>
       </ul>
-      <h4>Netos Bonus</h4>
-      <p>Una segunda tarifa completamente aparte, para hojas impresas que usan los
-      comerciales — nunca va a Skrit. Tiene su propio coste (siempre el más bajo
-      disponible: triple-neto, si no neto-neto, si no factura) y su propio margen por
-      formato. La fila "Salida impresa" decide qué formatos entran en esa hoja cuando se
-      exporte desde Exportación.</p>
+      <h4>Netos Bonus / Netos Gasolineras</h4>
+      <p>Dos tarifas completamente aparte de PVP, para hojas impresas de uso interno —
+      nunca van a Skrit. Cada una tiene su propio coste (siempre el más bajo disponible:
+      triple-neto, si no neto-neto, si no factura) y su propio margen por formato. La fila
+      "Salida impresa" decide qué formatos entran en esa hoja cuando se exporte desde
+      Exportación. Netos Gasolineras sigue exactamente el mismo patrón que Netos Bonus.</p>
       <h4>Flujo recomendado</h4>
       <ol>
         <li>Configura el margen por defecto de cada marca la primera vez.</li>
@@ -159,7 +161,7 @@ const ScreenHelp = (() => {
       salir en el fichero.</p>
       <h4>Tipos de exportación</h4>
       <ul>
-        <li><strong>PVP (Venta)</strong>: la tabla completa y editable — margen, PVP
+        <li><strong>PVP (Datos)</strong>: la tabla completa y editable — margen, PVP
         calculado, PVP manual (para forzar un precio distinto en una ref concreta),
         ganancia y margen real. Úsala para revisar/ajustar antes de exportar. Para volver
         un PVP manual a automático, borra el número del campo y pulsa Tab o Intro (déjalo
@@ -169,8 +171,10 @@ const ScreenHelp = (() => {
         trabajo.</li>
         <li><strong>PVP (Imprimir)</strong>: un PDF sin ningún coste (solo Referencia,
         Producto, Litros y PVP) — para entregar a un cliente o comercial.</li>
-        <li><strong>Netos Bonus</strong>: el listado de la tarifa de Netos Bonus
-        configurada en Reglas, solo con los formatos marcados "Salida impresa".</li>
+        <li><strong>Netos Bonus / Netos Gasolineras</strong>: el listado de la tarifa
+        correspondiente configurada en Reglas, solo con los formatos marcados "Salida
+        impresa". Si una marca no muestra "Netos Gasolineras" en el desplegable todavía,
+        abre esa marca en Reglas una vez (con "Todas las gamas") para que se cree.</li>
         <li><strong>Neto Factura / Neto-Neto / Triple Neto</strong>: listados simples con
         el coste tal cual, sin ningún margen — para consulta o auditoría.</li>
         <li><strong>Valor Regalo 1+1</strong>: solo aparece si algún formato tiene

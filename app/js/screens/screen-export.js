@@ -48,6 +48,7 @@ const ScreenExport = (() => {
     'print:pvp': 'PVP Comerciales',
     'level:netos_bonus': 'Neto Bonus',
     'print:netos_bonus': 'PVP Bonus',
+    'level:netos_gasolineras': 'Neto Gasolineras',
     'list:neto_factura': 'Neto Factura',
     'list:neto_neto': 'Neto-Neto',
     'list:triple_neto': 'Triple-Neto',
@@ -544,11 +545,12 @@ const ScreenExport = (() => {
       return;
     }
 
-    // kind === 'level' && key === 'netos_bonus': vista mínima igual que el Excel
-    // exportado (ver ADR 0034) — sin Estado/margen/ganancia, que son ayudas de edición
-    // exclusivas de PVP (Ventas). "PVP manual" sí está disponible aquí también (ver ADR
-    // 0066 — fijar un precio a mano ya no es exclusivo de esa vista).
-    if (key === 'netos_bonus') {
+    // kind === 'level' && key en {'netos_bonus', 'netos_gasolineras'}: vista mínima
+    // igual que el Excel exportado (ver ADR 0034) — sin Estado/margen/ganancia, que son
+    // ayudas de edición exclusivas de PVP (Datos). "PVP manual" sí está disponible aquí
+    // también (ver ADR 0066 — fijar un precio a mano ya no es exclusivo de esa vista).
+    // Netos Gasolineras copia el patrón de Netos Bonus tal cual (ver ADR 0070).
+    if (key === 'netos_bonus' || key === 'netos_gasolineras') {
       thead.innerHTML = `
         <tr>
           <th>Marca</th><th>Referencia</th><th>Producto</th><th class="num liters">Litros</th><th>Familia</th><th>Bidones y Cubas</th>
@@ -559,8 +561,8 @@ const ScreenExport = (() => {
       const levelFor = (gama) => {
         if (levelCache[gama]) return levelCache[gama];
         const lvl = currentGama === '__all__'
-          ? (byGama[gama] || []).find(l => l.id === 'netos_bonus')
-          : loadLevels(currentBrandId, currentGama).find(l => l.id === 'netos_bonus');
+          ? (byGama[gama] || []).find(l => l.id === key)
+          : loadLevels(currentBrandId, currentGama).find(l => l.id === key);
         levelCache[gama] = lvl || null;
         return levelCache[gama];
       };
@@ -569,8 +571,8 @@ const ScreenExport = (() => {
         if (bigContainerCache[gama]) return bigContainerCache[gama];
         return (bigContainerCache[gama] = bigContainerFormatsFor(currentBrandId, currentGama === '__all__' ? gama : currentGama));
       };
-      // Netos Bonus es una hoja impresa: solo entran los formatos marcados como "Salida
-      // impresa" en Reglas para la gama real de cada fila (ver ADR 0026 v2).
+      // Hoja impresa: solo entran los formatos marcados como "Salida impresa" en Reglas
+      // para la gama real de cada fila (ver ADR 0026 v2).
       visible = visible.filter(r => {
         const lvl = levelFor(r.gama);
         return lvl && lvl.printFormats && lvl.printFormats[r.formatKey];
@@ -595,7 +597,7 @@ const ScreenExport = (() => {
           <td class="num">${formatEur(r.costNetoNeto)}</td>
           <td class="num">${formatEur(r.costTripleNeto)}</td>
           <td class="num"><strong>${formatEur(c.pvp)}</strong></td>
-          <td class="num">${manualPvpInputHtml(r.ref, r.gama, 'netos_bonus', level && level.manualOverride ? level.manualOverride[r.ref] : null)}</td>
+          <td class="num">${manualPvpInputHtml(r.ref, r.gama, key, level && level.manualOverride ? level.manualOverride[r.ref] : null)}</td>
         `;
         if (c.pvp == null) tr.className = 'warn';
         frag.appendChild(tr);
@@ -743,12 +745,14 @@ const ScreenExport = (() => {
     // distinto, así que se resuelve fila a fila según la gama real de cada fila.
     const byGama = currentGama === '__all__' ? loadLevelsByGama(currentBrandId, brand.gamas) : null;
     const levelForGama = (gama) => byGama ? (byGama[gama] || []).find(l => l.id === key) : loadLevels(currentBrandId, currentGama).find(l => l.id === key);
-    // Netos Bonus es una hoja impresa: solo se exportan los formatos marcados como
-    // "Salida impresa" para la gama real de cada fila (WYSIWYG con la previsualización).
+    // Netos Bonus/Netos Gasolineras son hojas impresas: solo se exportan los formatos
+    // marcados como "Salida impresa" para la gama real de cada fila (WYSIWYG con la
+    // previsualización) — mismo patrón para las dos (ver ADR 0070).
     let exportRows = filtered;
-    if (key === 'netos_bonus') {
+    if (key === 'netos_bonus' || key === 'netos_gasolineras') {
+      const levelLabel = key === 'netos_bonus' ? 'Netos Bonus' : 'Netos Gasolineras';
       exportRows = filtered.filter(r => { const lvl = levelForGama(r.gama); return lvl && lvl.printFormats && lvl.printFormats[r.formatKey]; });
-      if (!exportRows.length) { alert('Ningún formato visible está marcado con "Salida impresa" en Netos Bonus.'); return; }
+      if (!exportRows.length) { alert(`Ningún formato visible está marcado con "Salida impresa" en ${levelLabel}.`); return; }
     }
     if (currentGama === '__all__') {
       const anyLevel = brand.gamas.map(g => levelForGama(g)).find(Boolean);

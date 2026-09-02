@@ -2,6 +2,22 @@
 
 Formato inspirado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [v1.0.21] — 2026-08-31
+
+### Añadido
+- Nueva tarifa fija "Netos Gasolineras" en Reglas (mismo patrón que Netos
+  Bonus: coste en cascada, obsequio por formato, salida impresa) — también
+  disponible en Exportación como "Netos Gasolineras (uso interno)".
+- Reglas: selector "Nivel de precio" para ver PVP / Netos Bonus / Netos
+  Gasolineras de uno en uno en vez de las 3 tarjetas a la vez — la leyenda
+  explicativa ahora también es una por nivel, en vez de un único párrafo
+  combinado.
+
+### Cambiado
+- Exportación: título "Exportar a Skrit" → "Exportar Tarifas".
+
+Ver [ADR 0070](docs/decisiones/0070-netos-gasolineras-selector-de-nivel.md).
+
 ## [v1.0.20] — 2026-08-31
 
 ### Cambiado
