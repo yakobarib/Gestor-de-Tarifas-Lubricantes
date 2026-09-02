@@ -79,8 +79,13 @@ body { padding: 0; margin: 0; box-sizing: border-box; font-size: 0.94rem; backgr
 }
 /* `.app-shell` mide exactamente 100vh (menos el padding) y estira a sus dos hijos por
    igual — la barra lateral ya no necesita `sticky`, sencillamente nunca se mueve. Todo el
-   scroll de una pantalla larga (Reglas) ocurre dentro de `.app-main`. */
-.app-main { flex: 1; min-width: 0; height: 100%; overflow-y: auto; overflow-x: hidden; }
+   scroll de una pantalla larga (Reglas) ocurre dentro de `.app-main`. Columna flex (en vez
+   de flujo normal) para que una pantalla concreta (Exportación, ver más abajo) pueda pedir
+   "todo el alto que quede tras el header" con `flex: 1; min-height: 0` sin necesidad de
+   restar a mano el alto del header — el resto de pantallas no piden ese `flex` y se
+   comportan exactamente igual que en flujo normal (mismo ancho, mismo overflow-y en
+   `.app-main` si su contenido no cabe). */
+.app-main { flex: 1; min-width: 0; height: 100%; overflow-y: auto; overflow-x: hidden; display: flex; flex-direction: column; }
 
 .sidebar-brand { display: flex; align-items: center; gap: 0.5rem; padding: 0.1rem 0.2rem 0.1rem; min-width: 0; }
 .brand-logo { width: 28px; height: auto; flex-shrink: 0; color: var(--text-strong); }
@@ -213,11 +218,12 @@ article h4 { font-size: 0.88rem; }
 
 /* Exportación: la pantalla entera debe caber en el viewport sin scroll de página — lo
    único que crece de verdad es el listado (cientos de filas), así que es lo único que
-   debe hacer scroll, dentro de sí mismo (pedido por Yako). `100px` = alto real de
-   `.app-header`, mismo valor medido que ya usa la barra sticky de Tarifas más arriba.
-   `overflow-y: auto` en la propia sección es solo una red de seguridad (pantallas muy
-   estrechas donde ni el toolbar cabría) — en el caso normal no debería activarse. */
-#screen-export { display: flex; flex-direction: column; max-height: calc(100vh - 100px); overflow-y: auto; }
+   debe hacer scroll, dentro de sí mismo (pedido por Yako). Al ser `.app-main` ahora una
+   columna flex (ver arriba), `flex: 1; min-height: 0` le basta para ocupar exactamente
+   el alto que quede tras el header — nada de restar un número de píxeles a mano, que
+   dejaba un resto de scroll si el header medía un pelín distinto de lo calculado (bug
+   real, primer intento de este mismo cambio). */
+#screen-export:not(.hidden) { flex: 1; min-height: 0; display: flex; flex-direction: column; }
 #screen-export > article { display: flex; flex-direction: column; flex: 1; min-height: 0; }
 #screen-export #exportPreviewWrap:not(.hidden) { display: flex; flex-direction: column; flex: 1; min-height: 0; }
 #screen-export .table-wrap { flex: 1; min-height: 0; max-height: none; }
@@ -344,6 +350,10 @@ table.preview tr.fmt-20, table.preview tr.fmt-60 { background: rgba(200, 100, 20
 table.preview tr.fmt-208, table.preview tr.fmt-1000 { background: rgba(255, 150, 100, 0.05); }
 table.preview input[data-field="liters"] { width: 68px; text-align: right; padding: 0.1rem 0.3rem; margin: 0; font-size: 0.78rem; }
 table.preview th.liters, table.preview td.liters { max-width: 76px; }
+/* "Producto" sin acotar podía llegar a empujar la tabla más allá del ancho disponible
+   y obligar a scroll horizontal en pantallas normales (ej. PVP Skrit) — el texto
+   completo se sigue viendo en el `title` del `<td>` al pasar el ratón. */
+table.preview th.prod, table.preview td.prod { max-width: 260px; overflow: hidden; text-overflow: ellipsis; }
 .status-chip { display: inline-block; padding: 0 0.4rem; border-radius: 0.7rem; font-size: 0.66rem; font-weight: 650; letter-spacing: 0.02em; }
 .status-chip.new { background: #dbeafe; color: #1a6bcf; }
 .status-chip.stable { background: #e6f4e6; color: #2d7a2d; }

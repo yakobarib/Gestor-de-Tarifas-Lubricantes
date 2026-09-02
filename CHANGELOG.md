@@ -2,6 +2,28 @@
 
 Formato inspirado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [v1.0.25] — 2026-09-02
+
+### Corregido
+- Exportación: el scroll de página residual (que quedaba tras ADR 0072)
+  ya no aparece — arreglado de raíz en vez de ajustar el número a mano.
+- Bug real: al fijar un PVP manual y pulsar Intro, el desplegable de
+  "Tipo de exportación" perdía la selección y saltaba a "Neto Factura",
+  cambiando de golpe a otra tabla completamente distinta.
+- PVP (Skrit): la columna "Producto" ya no obliga a scroll horizontal.
+
+### Cambiado
+- "Neto-Neto" → "Neto Neto"; "Triple Neto" → "Neto Triple" (ahora sale
+  justo después de "Neto Neto" al ordenarse alfabéticamente).
+- Netos Gasolineras pasa a exportarse en PDF (antes Excel), con el
+  mismo formato de columnas que Netos Bonus: Marca, Referencia,
+  Producto, Litros y "PVP {Bonus/Gasolineras}" — Netos Bonus gana la
+  columna Marca que no tenía.
+- PVP (Datos) pierde la columna "PVP manual" — se edita desde PVP
+  (Skrit).
+
+Ver [ADR 0073](docs/decisiones/0073-exportacion-batch-scroll-columnas-y-bug-select.md).
+
 ## [v1.0.24] — 2026-08-31
 
 ### Cambiado

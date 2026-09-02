@@ -161,23 +161,21 @@ const ScreenHelp = (() => {
       salir en el fichero.</p>
       <h4>Tipos de exportación</h4>
       <ul>
-        <li><strong>PVP (Datos)</strong>: la tabla completa y editable — margen, PVP
-        calculado, PVP manual (para forzar un precio distinto en una ref concreta),
-        ganancia y margen real. Úsala para revisar/ajustar antes de exportar. Para volver
-        un PVP manual a automático, borra el número del campo y pulsa Tab o Intro (déjalo
-        vacío) — se recalcula solo con el margen configurado en Reglas.</li>
+        <li><strong>PVP (Datos)</strong>: la tabla completa, de solo lectura — margen,
+        PVP calculado, ganancia y margen real. Úsala para revisar antes de exportar; el
+        PVP manual se edita desde PVP (Skrit), no desde aquí.</li>
         <li><strong>PVP (Skrit)</strong>: el Excel mínimo tal cual se sube a Skrit —
-        Marca, Referencia, Descripción, Litros, Coste de compra y PVP, sin columnas de
-        trabajo.</li>
+        Marca, Referencia, Descripción, Litros, Coste de compra, PVP y PVP manual (para
+        forzar un precio distinto en una ref concreta — bórralo y pulsa Tab o Intro para
+        volver al cálculo automático).</li>
         <li><strong>PVP (Imprimir)</strong>: un PDF sin ningún coste (solo Referencia,
         Producto, Litros y PVP) — para entregar a un cliente o comercial.</li>
-        <li><strong>Netos Bonus</strong>: un PDF sin coste (solo Referencia, Descripción,
-        Litros y PVP Bonus), solo con los formatos marcados "Salida impresa" en Reglas.</li>
-        <li><strong>Netos Gasolineras</strong>: el listado completo (Excel) de la tarifa
-        Netos Gasolineras configurada en Reglas, solo con los formatos marcados "Salida
-        impresa". Si una marca no la muestra todavía en el desplegable, abre esa marca en
-        Reglas una vez (con "Todas las gamas") para que se cree.</li>
-        <li><strong>Neto Factura / Neto-Neto / Triple Neto</strong>: listados simples con
+        <li><strong>Netos Bonus / Netos Gasolineras</strong>: un PDF sin coste (Marca,
+        Referencia, Producto, Litros y "PVP Bonus"/"PVP Gasolineras"), solo con los
+        formatos marcados "Salida impresa" en Reglas. Si una marca no muestra "Netos
+        Gasolineras" todavía en el desplegable, abre esa marca en Reglas una vez (con
+        "Todas las gamas") para que se cree.</li>
+        <li><strong>Neto Factura / Neto Neto / Neto Triple</strong>: listados simples con
         el coste tal cual, sin ningún margen — para consulta o auditoría.</li>
         <li><strong>Valor Regalo 1+1</strong>: solo aparece si algún formato tiene
         activado "1+2" en Reglas — el coste de la caja que se regala en esa promoción,

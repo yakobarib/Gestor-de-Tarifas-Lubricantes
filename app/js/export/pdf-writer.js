@@ -52,14 +52,21 @@ const PdfWriter = (() => {
     doc.text(`${gamaLabel ? gamaLabel + ' · ' : ''}Vigente a ${dateStr} · Recambios Ibiza`, 14, 24);
 
     // Mayúsculas y ref sin espacios (ver ADR 0034) — homogeneiza entre marcas que
-    // entran con distinta capitalización/espaciado.
-    const body = rows.map(r => [
-      Parser.upperRef(r.ref),
-      Parser.upperOut(r.description || ''),
-      r.liters != null ? Parser.formatLabel(r.liters) : '—',
-      formatEurPdf(r._printPvp)
-    ]);
+    // entran con distinta capitalización/espaciado. `includeBrand` (ver ADR 0073, PDF de
+    // Netos Bonus/Netos Gasolineras) antepone la marca — a diferencia de PVP (Imprimir),
+    // que no la lleva porque en pantalla solo hay una marca elegida a la vez.
+    const body = rows.map(r => {
+      const cells = [
+        Parser.upperRef(r.ref),
+        Parser.upperOut(r.description || ''),
+        r.liters != null ? Parser.formatLabel(r.liters) : '—',
+        formatEurPdf(r._printPvp)
+      ];
+      if (cfg.includeBrand) cells.unshift(brand.abbr);
+      return cells;
+    });
 
+    const numCol = cfg.includeBrand ? 1 : 0;
     doc.autoTable({
       startY: 30,
       head: [columns],
@@ -68,9 +75,9 @@ const PdfWriter = (() => {
       headStyles: { fillColor: accent, textColor: 255, fontStyle: 'bold' },
       alternateRowStyles: { fillColor: [246, 247, 249] },
       columnStyles: {
-        0: { cellWidth: 32 },
-        2: { cellWidth: 22, halign: 'right' },
-        3: { cellWidth: 26, halign: 'right' }
+        [numCol]: { cellWidth: 32 },
+        [numCol + 2]: { cellWidth: 22, halign: 'right' },
+        [numCol + 3]: { cellWidth: 26, halign: 'right' }
       },
       margin: { top: 30 }
     });

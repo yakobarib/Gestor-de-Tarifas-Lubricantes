@@ -34,8 +34,8 @@ const ScreenExport = (() => {
   // Neto-Neto"), ver ADR 0035.
   const PRICE_LIST_TYPES = {
     neto_factura: { costField: 'costFactura', label: 'Neto Factura', columnHeader: 'Compra Factura' },
-    neto_neto: { costField: 'costNetoNeto', label: 'Neto-Neto', columnHeader: 'Compra Neto-Neto' },
-    triple_neto: { costField: 'costTripleNeto', label: 'Triple Neto', columnHeader: 'Compra Triple-Neto' }
+    neto_neto: { costField: 'costNetoNeto', label: 'Neto Neto', columnHeader: 'Compra Neto-Neto' },
+    triple_neto: { costField: 'costTripleNeto', label: 'Neto Triple', columnHeader: 'Compra Triple-Neto' }
   };
 
   /** Nombre de "tipo" tal como debe aparecer en el fichero exportado — distinto, en
@@ -47,10 +47,10 @@ const ScreenExport = (() => {
     'skrit:pvp': 'PVP SKRIT',
     'print:pvp': 'PVP Comerciales',
     'print:netos_bonus': 'PVP Bonus',
-    'level:netos_gasolineras': 'Neto Gasolineras',
+    'print:netos_gasolineras': 'PVP Gasolineras',
     'list:neto_factura': 'Neto Factura',
-    'list:neto_neto': 'Neto-Neto',
-    'list:triple_neto': 'Triple-Neto',
+    'list:neto_neto': 'Neto Neto',
+    'list:triple_neto': 'Neto Triple',
     'list:regalo_1x1': 'Valor Regalo 1+1'
   };
 
@@ -286,20 +286,19 @@ const ScreenExport = (() => {
     // El nivel "pvp" se ofrece en 3 variantes con distinta salida (ver ADR 0031): la
     // vista rica de siempre para revisar/ajustar ("Venta"), un Excel mínimo listo para
     // Skrit sin columnas de auditoría ("Skrit"), y un PDF sin coste para entregar a
-    // cliente/comercial ("Imprimir"). Los demás niveles (Netos Bonus) siguen igual.
+    // cliente/comercial ("Imprimir"). Cualquier otro nivel (Netos Bonus, Netos
+    // Gasolineras, una futura copia del mismo patrón) ofrece una única opción: un PDF
+    // sin coste con columnas Marca/Referencia/Producto/Litros/"PVP {sufijo}", solo con
+    // los formatos marcados "Salida impresa" — antes Netos Bonus tenía además una vista
+    // Excel "rica" aparte, consolidada aquí en una sola (ver ADR 0072/0073).
     const entries = [];
     for (const l of levels) {
       if (l.id === 'pvp') {
         entries.push({ value: 'skrit:pvp', label: 'PVP (Skrit)' });
         entries.push({ value: 'level:pvp', label: 'PVP (Datos)' });
         entries.push({ value: 'print:pvp', label: 'PVP (Imprimir)' });
-      } else if (l.id === 'netos_bonus') {
-        // Consolidado en una sola opción (ver ADR 0072): antes había "Netos Bonus (uso
-        // interno)" (Excel rico) Y "PVP (Bonus)" (PDF, ver ADR 0039) por separado — ahora
-        // Netos Bonus usa siempre el formato PDF, "PVP (Bonus)" desaparece del desplegable.
-        entries.push({ value: 'print:netos_bonus', label: `${l.label} (uso interno)` });
       } else {
-        entries.push({ value: `level:${l.id}`, label: `${l.label}${l.goesToSkrit ? ' (Venta)' : ' (uso interno)'}` });
+        entries.push({ value: `print:${l.id}`, label: `${l.label} (uso interno)` });
       }
     }
     for (const [key, spec] of Object.entries(PRICE_LIST_TYPES)) {
@@ -314,7 +313,17 @@ const ScreenExport = (() => {
     // solo si en el futuro se añade/renombra algún tipo de exportación, sin tocar aquí.
     entries.sort((a, b) => a.label.localeCompare(b.label, 'es'));
     sel.innerHTML = entries.map(e => `<option value="${e.value}">${escapeHtml(e.label)}</option>`).join('');
-    currentOption = sel.value || '';
+    // Reconstruir el <select> pierde la selección si no se restaura a mano — el
+    // navegador cae por defecto en la primera opción de la lista (con el orden
+    // alfabético, casi siempre "Neto Factura"). Esto se llama en cada `rules:changed`
+    // (ver setupListeners), incluida una edición de PVP manual — sin esto, guardar un
+    // PVP manual saltaba de vuelta a "Neto Factura" y con él a la vista de arriba,
+    // bug real reportado por Yako.
+    if (currentOption && entries.some(e => e.value === currentOption)) {
+      sel.value = currentOption;
+    } else {
+      currentOption = sel.value || '';
+    }
     renderPreview();
   }
 
@@ -398,7 +407,7 @@ const ScreenExport = (() => {
 
     if (kind === 'list' && key === 'regalo_1x1') {
       // Sin columna Estado: el Excel exportado tampoco la tiene (ver ADR 0034, WYSIWYG).
-      thead.innerHTML = `<tr><th>Marca</th><th>Referencia</th><th>Producto</th><th class="num liters">Litros</th><th class="num">Valor Regalo 1+1</th></tr>`;
+      thead.innerHTML = `<tr><th>Marca</th><th>Referencia</th><th class="prod">Producto</th><th class="num liters">Litros</th><th class="num">Valor Regalo 1+1</th></tr>`;
       updateCountBox(visible.length, rows.length);
       const levelCache = {};
       const levelFor = (gama) => (gama in levelCache) ? levelCache[gama] : (levelCache[gama] = pvpLevelFor(currentBrandId, gama));
@@ -413,7 +422,7 @@ const ScreenExport = (() => {
         tr.innerHTML = `
           <td>${escapeHtml(brand.abbr)}</td>
           <td>${escapeHtml(exportRef(r, brand.abbr))}</td>
-          <td title="${escapeHtml(r.description)}">${escapeHtml(truncate(exportDescription(r), 60))}</td>
+          <td class="prod" title="${escapeHtml(r.description)}">${escapeHtml(truncate(exportDescription(r), 60))}</td>
           <td class="num liters">${r.liters ?? '—'}</td>
           <td class="num">${formatEur(value)}</td>
         `;
@@ -429,7 +438,7 @@ const ScreenExport = (() => {
     if (kind === 'list') {
       const spec = PRICE_LIST_TYPES[key];
       // Sin columna Estado: el Excel exportado tampoco la tiene (ver ADR 0034, WYSIWYG).
-      thead.innerHTML = `<tr><th>Marca</th><th>Referencia</th><th>Producto</th><th class="num liters">Litros</th><th class="num">${escapeHtml(spec.columnHeader || spec.label)}</th></tr>`;
+      thead.innerHTML = `<tr><th>Marca</th><th>Referencia</th><th class="prod">Producto</th><th class="num liters">Litros</th><th class="num">${escapeHtml(spec.columnHeader || spec.label)}</th></tr>`;
       updateCountBox(visible.length, rows.length);
       const tally = newErrorTally();
       const frag = document.createDocumentFragment();
@@ -440,7 +449,7 @@ const ScreenExport = (() => {
         tr.innerHTML = `
           <td>${escapeHtml(brand.abbr)}</td>
           <td>${escapeHtml(exportRef(r, brand.abbr))}</td>
-          <td title="${escapeHtml(r.description)}">${escapeHtml(truncate(exportDescription(r), 60))}</td>
+          <td class="prod" title="${escapeHtml(r.description)}">${escapeHtml(truncate(exportDescription(r), 60))}</td>
           <td class="num liters">${r.liters ?? '—'}</td>
           <td class="num">${formatEur(cost)}</td>
         `;
@@ -454,7 +463,7 @@ const ScreenExport = (() => {
     }
 
     if (kind === 'skrit') {
-      thead.innerHTML = `<tr><th>Marca</th><th>Referencia</th><th>Producto</th><th class="num liters">Litros</th><th>Familia</th><th>Bidones y Cubas</th><th class="num">Coste factura</th><th class="num">PVP</th><th class="num">PVP manual</th></tr>`;
+      thead.innerHTML = `<tr><th>Marca</th><th>Referencia</th><th class="prod">Producto</th><th class="num liters">Litros</th><th>Familia</th><th>Bidones y Cubas</th><th class="num">Coste factura</th><th class="num">PVP</th><th class="num">PVP manual</th></tr>`;
       const byGama = currentGama === '__all__' ? loadLevelsByGama(currentBrandId, brand.gamas) : null;
       const levelCache = {};
       const levelFor = (gama) => {
@@ -481,7 +490,7 @@ const ScreenExport = (() => {
         tr.innerHTML = `
           <td>${escapeHtml(brand.abbr)}</td>
           <td>${escapeHtml(exportRef(r, brand.abbr))}</td>
-          <td title="${escapeHtml(r.description)}">${escapeHtml(truncate(exportDescription(r), 60))}</td>
+          <td class="prod" title="${escapeHtml(r.description)}">${escapeHtml(truncate(exportDescription(r), 60))}</td>
           <td class="num liters">${r.liters ?? '—'}</td>
           <td>${escapeHtml(Parser.upperOut(r.fam) || '—')}</td>
           <td>${isBigContainer ? 'Sí' : '—'}</td>
@@ -500,13 +509,18 @@ const ScreenExport = (() => {
     }
 
     if (kind === 'print') {
-      // "PVP (Imprimir)" usa siempre el nivel "pvp"; "PVP (Bonus)" (ver ADR 0039) usa
-      // "netos_bonus" y, como su Excel, solo entran los formatos con "Salida impresa"
-      // marcada — mismo criterio que la rama `key === 'netos_bonus'` de más abajo.
-      const isBonus = key === 'netos_bonus';
-      thead.innerHTML = isBonus
-        ? `<tr><th>Referencia</th><th>Descripción</th><th class="num liters">Litros</th><th class="num">PVP Bonus</th></tr>`
-        : `<tr><th>Referencia</th><th>Producto</th><th class="num liters">Litros</th><th class="num">PVP</th></tr>`;
+      // "PVP (Imprimir)" usa siempre el nivel "pvp"; Netos Bonus/Netos Gasolineras (ver
+      // ADR 0039/0073) usan su propio nivel y, como su Excel de antes, solo entran los
+      // formatos con "Salida impresa" marcada — mismo criterio que la rama de más abajo.
+      // Ambas comparten exactamente el mismo formato de columnas (Marca, Referencia,
+      // Producto, Litros, "PVP {sufijo}"), solo cambia el sufijo — a diferencia de PVP
+      // (Imprimir), que no lleva Marca (siempre una sola marca en pantalla a la vez, no
+      // hace falta repetirla) ni obliga a "Salida impresa".
+      const isSecondary = key !== 'pvp';
+      const suffix = key === 'netos_bonus' ? 'Bonus' : 'Gasolineras';
+      thead.innerHTML = isSecondary
+        ? `<tr><th>Marca</th><th>Referencia</th><th class="prod">Producto</th><th class="num liters">Litros</th><th class="num">PVP ${suffix}</th></tr>`
+        : `<tr><th>Referencia</th><th class="prod">Producto</th><th class="num liters">Litros</th><th class="num">PVP</th></tr>`;
       const byGama = currentGama === '__all__' ? loadLevelsByGama(currentBrandId, brand.gamas) : null;
       const levelCache = {};
       const levelFor = (gama) => {
@@ -515,7 +529,7 @@ const ScreenExport = (() => {
         levelCache[gama] = lvl || null;
         return levelCache[gama];
       };
-      if (isBonus) {
+      if (isSecondary) {
         visible = visible.filter(r => {
           const lvl = levelFor(r.gama);
           return lvl && lvl.printFormats && lvl.printFormats[r.formatKey];
@@ -531,8 +545,9 @@ const ScreenExport = (() => {
         trackRowErrors(tally, r, c.pvp == null);
         const tr = document.createElement('tr');
         tr.innerHTML = `
+          ${isSecondary ? `<td>${escapeHtml(brand.abbr)}</td>` : ''}
           <td>${escapeHtml(Parser.upperRef(r.ref))}</td>
-          <td title="${escapeHtml(r.description)}">${escapeHtml(truncate(exportDescription(r), 60))}</td>
+          <td class="prod" title="${escapeHtml(r.description)}">${escapeHtml(truncate(exportDescription(r), 60))}</td>
           <td class="num liters">${r.liters ?? '—'}</td>
           <td class="num"><strong>${formatEur(c.pvp)}</strong></td>
         `;
@@ -545,78 +560,16 @@ const ScreenExport = (() => {
       return;
     }
 
-    // kind === 'level' && key en {'netos_bonus', 'netos_gasolineras'}: vista mínima
-    // igual que el Excel exportado (ver ADR 0034) — sin Estado/margen/ganancia, que son
-    // ayudas de edición exclusivas de PVP (Datos). "PVP manual" sí está disponible aquí
-    // también (ver ADR 0066 — fijar un precio a mano ya no es exclusivo de esa vista).
-    // Netos Gasolineras copia el patrón de Netos Bonus tal cual (ver ADR 0070).
-    if (key === 'netos_bonus' || key === 'netos_gasolineras') {
-      thead.innerHTML = `
-        <tr>
-          <th>Marca</th><th>Referencia</th><th>Producto</th><th class="num liters">Litros</th><th>Familia</th><th>Bidones y Cubas</th>
-          <th class="num">Coste factura</th><th class="num">Coste neto-neto</th><th class="num">Coste triple neto</th><th class="num">PVP</th><th class="num">PVP manual</th>
-        </tr>`;
-      const byGama = currentGama === '__all__' ? loadLevelsByGama(currentBrandId, brand.gamas) : null;
-      const levelCache = {};
-      const levelFor = (gama) => {
-        if (levelCache[gama]) return levelCache[gama];
-        const lvl = currentGama === '__all__'
-          ? (byGama[gama] || []).find(l => l.id === key)
-          : loadLevels(currentBrandId, currentGama).find(l => l.id === key);
-        levelCache[gama] = lvl || null;
-        return levelCache[gama];
-      };
-      const bigContainerCache = {};
-      const bigContainerFor = (gama) => {
-        if (bigContainerCache[gama]) return bigContainerCache[gama];
-        return (bigContainerCache[gama] = bigContainerFormatsFor(currentBrandId, currentGama === '__all__' ? gama : currentGama));
-      };
-      // Hoja impresa: solo entran los formatos marcados como "Salida impresa" en Reglas
-      // para la gama real de cada fila (ver ADR 0026 v2).
-      visible = visible.filter(r => {
-        const lvl = levelFor(r.gama);
-        return lvl && lvl.printFormats && lvl.printFormats[r.formatKey];
-      });
-      updateCountBox(visible.length, rows.length);
-      const tally = newErrorTally();
-      const frag = document.createDocumentFragment();
-      for (const r of visible.slice(0, 500)) {
-        const level = levelFor(r.gama);
-        const c = level ? Pricing.compute(r, level) : { pvp: null };
-        const isBigContainer = !!bigContainerFor(r.gama)[r.formatKey];
-        trackRowErrors(tally, r, c.pvp == null);
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td>${escapeHtml(brand.abbr)}</td>
-          <td>${escapeHtml(exportRef(r, brand.abbr))}</td>
-          <td title="${escapeHtml(r.description)}">${escapeHtml(truncate(exportDescription(r), 60))}</td>
-          <td class="num liters">${r.liters ?? '—'}</td>
-          <td>${escapeHtml(Parser.upperOut(r.fam) || '—')}</td>
-          <td>${isBigContainer ? 'Sí' : '—'}</td>
-          <td class="num">${formatEur(r.costFactura)}</td>
-          <td class="num">${formatEur(r.costNetoNeto)}</td>
-          <td class="num">${formatEur(r.costTripleNeto)}</td>
-          <td class="num"><strong>${formatEur(c.pvp)}</strong></td>
-          <td class="num">${manualPvpInputHtml(r.ref, r.gama, key, level && level.manualOverride ? level.manualOverride[r.ref] : null)}</td>
-        `;
-        if (c.pvp == null) tr.className = 'warn';
-        frag.appendChild(tr);
-      }
-      tbody.innerHTML = '';
-      tbody.appendChild(frag);
-      renderErrorsBox(tally);
-      bindManualPvpInputs(tbody);
-      return;
-    }
-
-    // kind === 'level' && key === 'pvp' — vista rica para revisar/ajustar antes de
-    // exportar (margen, PVP manual, ganancia y margen real no salen en el Excel — única
-    // exención al WYSIWYG estricto, decisión explícita de Yako, ver ADR 0034).
+    // kind === 'level' && key === 'pvp' — única llave que sigue llegando aquí (ver ADR
+    // 0073: Netos Bonus/Netos Gasolineras ya no usan `kind: 'level'`) — vista rica para
+    // revisar/ajustar antes de exportar (margen, ganancia y margen real no salen en el
+    // Excel — única exención al WYSIWYG estricto, decisión explícita de Yako, ver ADR
+    // 0034). Sin "PVP manual" (ver ADR 0073) — Yako lo edita desde PVP (Skrit).
     thead.innerHTML = `
       <tr>
-        <th>Ref</th><th>Estado</th><th>Producto</th><th class="num liters">Litros</th>
+        <th>Ref</th><th>Estado</th><th class="prod">Producto</th><th class="num liters">Litros</th>
         <th class="num">Coste/envase</th><th class="num">% Margen</th><th class="num">PVP envase</th>
-        <th class="num">PVP manual</th><th class="num">Ganancia €</th><th class="num">Margen real</th>
+        <th class="num">Ganancia €</th><th class="num">Margen real</th>
       </tr>`;
     const byGama = currentGama === '__all__' ? loadLevelsByGama(currentBrandId, brand.gamas) : null;
     const levelCache = {};
@@ -637,7 +590,7 @@ const ScreenExport = (() => {
       const tr = document.createElement('tr');
       if (!level) {
         trackRowErrors(tally, r, true);
-        tr.innerHTML = `<td>${escapeHtml(Parser.upperRef(r.ref))}</td><td></td><td title="${escapeHtml(r.description)}">${escapeHtml(truncate(exportDescription(r), 60))}</td><td class="num liters">${r.liters ?? '—'}</td><td class="num">${formatEur(r.costFactura)}</td><td colspan="5" class="muted" style="font-style:italic;">nivel no configurado en esta gama</td>`;
+        tr.innerHTML = `<td>${escapeHtml(Parser.upperRef(r.ref))}</td><td></td><td class="prod" title="${escapeHtml(r.description)}">${escapeHtml(truncate(exportDescription(r), 60))}</td><td class="num liters">${r.liters ?? '—'}</td><td class="num">${formatEur(r.costFactura)}</td><td colspan="4" class="muted" style="font-style:italic;">nivel no configurado en esta gama</td>`;
         frag.appendChild(tr);
         continue;
       }
@@ -650,17 +603,15 @@ const ScreenExport = (() => {
       if (r._status === 'new') { statusChip = '<span class="status-chip new">NUEVA</span>'; classes.push('status-new'); }
       else if (r._rebrandedFrom) statusChip = `<span class="status-chip stable" title="Antes: ${escapeHtml(r._rebrandedFrom)}">REBRAND</span>`;
       tr.className = classes.join(' ');
-      const manualVal = level.manualOverride ? level.manualOverride[r.ref] : null;
       const pvpTitle = c.isManual ? 'PVP fijado manualmente' : '';
       tr.innerHTML = `
         <td>${escapeHtml(Parser.upperRef(r.ref))}</td>
         <td>${statusChip}</td>
-        <td title="${escapeHtml(r.description)}">${escapeHtml(truncate(exportDescription(r), 60))}</td>
+        <td class="prod" title="${escapeHtml(r.description)}">${escapeHtml(truncate(exportDescription(r), 60))}</td>
         <td class="num liters">${r.liters ?? '—'}</td>
         <td class="num">${formatEur(r.costFactura)}</td>
         <td class="num">${c.marginPct != null ? c.marginPct.toFixed(1) + '%' : '—'}</td>
         <td class="num" title="${escapeHtml(pvpTitle)}"><strong${c.isManual ? ' style="color:#1a6bcf;"' : ''}>${formatEur(c.pvp)}</strong></td>
-        <td class="num">${manualPvpInputHtml(r.ref, r.gama, key, manualVal)}</td>
         <td class="num">${formatEur(c.gain)}</td>
         <td class="num">${c.realMarginPct != null ? c.realMarginPct.toFixed(1) + '%' : '—'}</td>
       `;
@@ -669,7 +620,6 @@ const ScreenExport = (() => {
     tbody.innerHTML = '';
     tbody.appendChild(frag);
     renderErrorsBox(tally);
-    bindManualPvpInputs(tbody);
   }
 
   async function doExport() {
@@ -717,43 +667,41 @@ const ScreenExport = (() => {
       }
       // 'print': solo las filas con PVP calculado (mismo criterio que la previsualización).
       // Se recalcula `_printPvp` aquí en vez de fiarse del último render de la tabla, por
-      // si los filtros cambiaron sin repintar. "PVP (Bonus)" además solo incluye los
-      // formatos marcados "Salida impresa" — mismo criterio que su Excel (ADR 0026 v2).
+      // si los filtros cambiaron sin repintar. Netos Bonus/Netos Gasolineras además solo
+      // incluyen los formatos marcados "Salida impresa" — mismo criterio que su Excel
+      // (ADR 0026 v2), y comparten el mismo formato de columnas entre sí (ADR 0073).
       const resolveLevel = typeof resolver === 'function' ? resolver : () => resolver;
-      const isBonus = key === 'netos_bonus';
+      const isSecondary = key !== 'pvp';
+      const secondaryLabel = key === 'netos_bonus' ? 'Netos Bonus' : 'Netos Gasolineras';
       let printable = filtered.filter(r => {
         const level = resolveLevel(r);
         const pvp = level ? Pricing.compute(r, level).pvp : null;
         r._printPvp = pvp;
         return pvp != null;
       });
-      if (isBonus) {
+      if (isSecondary) {
         printable = printable.filter(r => {
           const lvl = resolveLevel(r);
           return lvl && lvl.printFormats && lvl.printFormats[r.formatKey];
         });
       }
-      if (!printable.length) { alert(isBonus ? 'Ningún formato visible está marcado con "Salida impresa" en Netos Bonus.' : 'Ninguna referencia visible tiene PVP calculado.'); return; }
+      if (!printable.length) { alert(isSecondary ? `Ningún formato visible está marcado con "Salida impresa" en ${secondaryLabel}.` : 'Ninguna referencia visible tiene PVP calculado.'); return; }
       const gamaLabel = currentGama === '__all__' ? '' : (GAMA_LABELS[currentGama] || currentGama);
-      const pdfOpts = isBonus ? { title: 'Tarifa Netos Bonus', columns: ['Referencia', 'Descripción', 'Litros', 'PVP Bonus'] } : undefined;
+      const pdfOpts = isSecondary
+        ? { title: `Tarifa ${secondaryLabel}`, columns: ['Marca', 'Referencia', 'Producto', 'Litros', `PVP ${secondaryLabel === 'Netos Bonus' ? 'Bonus' : 'Gasolineras'}`], includeBrand: true }
+        : undefined;
       const fname = PdfWriter.exportPriceListPdf(printable, brand, gamaLabel, tariffDate, EXPORT_FILE_TYPE_LABELS[currentOption], pdfOpts);
       $('exportStatus').innerHTML = `<small style="color: var(--pico-ins-color);">✓ Exportado: <strong>${escapeHtml(fname)}</strong> (${printable.length} filas).</small>`;
       return;
     }
 
-    // kind === 'level' — en "Todas" cada gama puede tener ese nivel con un margen
-    // distinto, así que se resuelve fila a fila según la gama real de cada fila.
+    // kind === 'level' — solo llega aquí "pvp" (ver ADR 0073: Netos Bonus/Netos
+    // Gasolineras ahora exportan siempre en PDF, kind 'print', más arriba). En "Todas"
+    // cada gama puede tener ese nivel con un margen distinto, así que se resuelve fila a
+    // fila según la gama real de cada fila.
     const byGama = currentGama === '__all__' ? loadLevelsByGama(currentBrandId, brand.gamas) : null;
     const levelForGama = (gama) => byGama ? (byGama[gama] || []).find(l => l.id === key) : loadLevels(currentBrandId, currentGama).find(l => l.id === key);
-    // Netos Bonus/Netos Gasolineras son hojas impresas: solo se exportan los formatos
-    // marcados como "Salida impresa" para la gama real de cada fila (WYSIWYG con la
-    // previsualización) — mismo patrón para las dos (ver ADR 0070).
-    let exportRows = filtered;
-    if (key === 'netos_bonus' || key === 'netos_gasolineras') {
-      const levelLabel = key === 'netos_bonus' ? 'Netos Bonus' : 'Netos Gasolineras';
-      exportRows = filtered.filter(r => { const lvl = levelForGama(r.gama); return lvl && lvl.printFormats && lvl.printFormats[r.formatKey]; });
-      if (!exportRows.length) { alert(`Ningún formato visible está marcado con "Salida impresa" en ${levelLabel}.`); return; }
-    }
+    const exportRows = filtered;
     if (currentGama === '__all__') {
       const anyLevel = brand.gamas.map(g => levelForGama(g)).find(Boolean);
       // exportSkritV2 llama al resolver con la FILA, no con la gama — a diferencia de
