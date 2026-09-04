@@ -14,6 +14,22 @@
    ============================================================================ */
 const ExcelWriter = (() => {
 
+  /** Familia especial que Skrit espera para "Bidones y Cubas" (formatos grandes, ~180kg/
+   *  200L en adelante) — distinta de la familia real que trae cada tarifa de proveedor.
+   *  Pedido explícito de Yako; Racing Oil no está en la lista (no la dio) y se queda con
+   *  su familia real, sin sobrescribir. Clave = `brandAbbr` (ya disponible en las dos
+   *  funciones que la usan, sin necesidad de pasar también el `brandId`). */
+  const BIDONES_CUBAS_FAM_BY_ABBR = { ADP: '07', REP: '09', CAT: '03', ENI: '12', SHL: '30' };
+
+  /** Familia de salida de una fila: la especial de Bidones y Cubas si ese formato tiene
+   *  activado "PVP Neto en Bidones y Cubas" en Reglas (mismo criterio que la columna
+   *  "BIDONES Y CUBAS", ver ADR 0064 adenda — no un umbral de litros a mano, para no
+   *  fallar con el bidón de 180kg de Repsol), si no la familia real de la tarifa. */
+  function exportFamilia(r, brandAbbr, isBigContainer) {
+    if (isBigContainer && BIDONES_CUBAS_FAM_BY_ABBR[brandAbbr]) return BIDONES_CUBAS_FAM_BY_ABBR[brandAbbr];
+    return Parser.upperOut(r.fam || '');
+  }
+
   /** Descripción para cualquier tarifa de salida: usa la renombrada del perfil si
    *  existe (hoy solo Repsol la trae — ver ADR 0013), si no la original tal cual —
    *  en mayúsculas (ver ADR 0034, homogeneiza entre marcas que entran en minúsculas). */
@@ -121,13 +137,14 @@ const ExcelWriter = (() => {
       const c = Pricing.compute(r, resolveLevel(r) || {});
       if (c.pvp == null) continue; // sin coste base para este nivel (ej. netoNeto/tripleNeto aún no auditado)
       const bigContainerMap = resolveBigContainer(r) || {};
+      const isBigContainer = !!bigContainerMap[r.formatKey];
       ws.addRow([
         brandAbbr,
         exportRef(r.ref, brandAbbr),
         exportDescription(r),
         r.liters || null,
-        Parser.upperOut(r.fam || ''),
-        bigContainerMap[r.formatKey] ? 'SÍ' : '',
+        exportFamilia(r, brandAbbr, isBigContainer),
+        isBigContainer ? 'SÍ' : '',
         r.costFactura != null ? r.costFactura : null,
         r.costNetoNeto != null ? r.costNetoNeto : null,
         r.costTripleNeto != null ? r.costTripleNeto : null,
@@ -191,13 +208,14 @@ const ExcelWriter = (() => {
       if (c.pvp == null) continue; // sin coste base para este nivel
       const cost = Pricing.resolveCost(r, level);
       const bigContainerMap = resolveBigContainer(r) || {};
+      const isBigContainer = !!bigContainerMap[r.formatKey];
       ws.addRow([
         brandAbbr,
         exportRef(r.ref, brandAbbr),
         exportDescription(r),
         r.liters || null,
-        Parser.upperOut(r.fam || ''),
-        bigContainerMap[r.formatKey] ? 'SÍ' : '',
+        exportFamilia(r, brandAbbr, isBigContainer),
+        isBigContainer ? 'SÍ' : '',
         typeof cost === 'number' ? cost : null,
         c.pvp
       ]);

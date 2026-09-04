@@ -2,6 +2,16 @@
 
 Formato inspirado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [v1.0.26] — 2026-09-04
+
+### Añadido
+- Exportación a Skrit (PVP Skrit y PVP Datos): la columna FAMILIA de los
+  formatos "Bidones y Cubas" (ver "PVP Neto en Bidones y Cubas" en
+  Reglas) se sustituye por el código especial que Skrit espera para esa
+  marca — 07 AD Parts, 09 Repsol, 03 Castrol, 12 Eni, 30 Shell.
+
+Ver [ADR 0074](docs/decisiones/0074-familia-bidones-y-cubas-por-marca-en-skrit.md).
+
 ## [v1.0.25] — 2026-09-02
 
 ### Corregido
