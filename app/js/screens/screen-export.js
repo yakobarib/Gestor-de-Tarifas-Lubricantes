@@ -492,7 +492,7 @@ const ScreenExport = (() => {
           <td>${escapeHtml(exportRef(r, brand.abbr))}</td>
           <td class="prod" title="${escapeHtml(r.description)}">${escapeHtml(truncate(exportDescription(r), 60))}</td>
           <td class="num liters">${r.liters ?? '—'}</td>
-          <td>${escapeHtml(Parser.upperOut(r.fam) || '—')}</td>
+          <td>${escapeHtml(ExcelWriter.exportFamilia(r, brand.abbr, isBigContainer)) || '—'}</td>
           <td>${isBigContainer ? 'Sí' : '—'}</td>
           <td class="num">${formatEur(cost)}</td>
           <td class="num"><strong>${formatEur(c.pvp)}</strong></td>

@@ -2,6 +2,15 @@
 
 Formato inspirado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [v1.0.27] — 2026-09-04
+
+### Corregido
+- La previsualización en pantalla de "PVP (Skrit)" no aplicaba todavía
+  la familia especial de "Bidones y Cubas" (ADR 0074) — solo el fichero
+  exportado la tenía. Ya coinciden.
+
+Ver [ADR 0075](docs/decisiones/0075-fix-previsualizacion-familia-bidones-cubas.md).
+
 ## [v1.0.26] — 2026-09-04
 
 ### Añadido

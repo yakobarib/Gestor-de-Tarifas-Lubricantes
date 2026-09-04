@@ -246,5 +246,5 @@ const ExcelWriter = (() => {
     return downloadWorkbook(wb, `Pendientes de validar ${brandLabel} ${dateSlug()}.xlsx`);
   }
 
-  return { exportSkritV2, exportSkritLean, exportPriceList, exportPendingValidation, buildFilename, dateSlug, fileBrandLabel };
+  return { exportSkritV2, exportSkritLean, exportPriceList, exportPendingValidation, buildFilename, dateSlug, fileBrandLabel, exportFamilia };
 })();
