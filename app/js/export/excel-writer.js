@@ -18,21 +18,22 @@ const ExcelWriter = (() => {
    *  Skrit.xlsx", que Yako va rellenando a mano formato a formato según decide, marca a
    *  marca, qué familia debe salir en Skrit (distinta de la familia real que trae cada
    *  tarifa de proveedor — Skrit tiene su propio sistema). Por ahora solo tiene los
-   *  formatos de "Bidones y Cubas" (185/200/205/208/600/850/1000L); el resto de litrajes
-   *  se deja sin entrada a propósito hasta que Yako decida esas también — sin entrada,
-   *  "Familia Skrit" sale vacía para esa fila, NO se inventa un valor ni se cae a la
-   *  familia real. Clave = `brandAbbr` (ya disponible donde se usa), luego litros exactos
-   *  redondeados a 3 decimales (mismo criterio que `Parser.formatKey`). El Excel de Yako
-   *  usa "SHE" para Shell — aquí se guarda como `SHL`, el `brandAbbr` real de la app;
-   *  ACTUALIZAR ESTA TABLA A MANO cada vez que Yako mande una versión nueva del fichero,
-   *  no hay import automático todavía (dataset pequeño y decidido por él a mano). */
+   *  formatos grandes (170/180/185/200/204/205/208/209/500/600/850/1000L); el resto de
+   *  litrajes se deja sin entrada a propósito hasta que Yako decida esas también — sin
+   *  entrada, "Familia Skrit" sale vacía para esa fila, NO se inventa un valor ni se cae
+   *  a la familia real. Clave = `brandAbbr` (ya disponible donde se usa), luego litros
+   *  exactos redondeados a 3 decimales (mismo criterio que `Parser.formatKey`). El Excel
+   *  de Yako usa "SHE" para Shell — aquí se guarda como `SHL`, el `brandAbbr` real de la
+   *  app; ACTUALIZAR ESTA TABLA A MANO cada vez que Yako mande una versión nueva del
+   *  fichero, no hay import automático todavía (dataset pequeño y decidido por él a
+   *  mano). Última actualización: 2026-09-09 (añadidos 170/180/204/500L). */
   const FAMILIA_SKRIT = {
-    ADP: { 185: '07', 200: '07', 205: '07', 208: '07', 209: '07', 600: '07', 850: '07', 1000: '07' },
-    CAT: { 185: '03', 200: '03', 205: '03', 208: '03', 209: '03', 600: '03', 850: '03', 1000: '03' },
-    REP: { 185: '09', 200: '09', 205: '09', 208: '09', 209: '09', 600: '09', 850: '09', 1000: '09' },
-    SHL: { 185: '30', 200: '30', 205: '30', 208: '30', 209: '30', 600: '30', 850: '30', 1000: '30' },
-    ENI: { 185: '12', 200: '12', 205: '12', 208: '12', 209: '12', 600: '12', 850: '12', 1000: '12' },
-    RAC: { 185: '05', 200: '05', 205: '05', 208: '05', 209: '05', 600: '05', 850: '05', 1000: '05' }
+    ADP: { 170: '07', 180: '07', 185: '07', 200: '07', 204: '07', 205: '07', 208: '07', 209: '07', 500: '07', 600: '07', 850: '07', 1000: '07' },
+    CAT: { 170: '03', 180: '03', 185: '03', 200: '03', 204: '03', 205: '03', 208: '03', 209: '03', 500: '03', 600: '03', 850: '03', 1000: '03' },
+    REP: { 170: '09', 180: '09', 185: '09', 200: '09', 204: '09', 205: '09', 208: '09', 209: '09', 500: '09', 600: '09', 850: '09', 1000: '09' },
+    SHL: { 170: '30', 180: '30', 185: '30', 200: '30', 204: '30', 205: '30', 208: '30', 209: '30', 500: '30', 600: '30', 850: '30', 1000: '30' },
+    ENI: { 170: '12', 180: '12', 185: '12', 200: '12', 204: '12', 205: '12', 208: '12', 209: '12', 500: '12', 600: '12', 850: '12', 1000: '12' },
+    RAC: { 170: '05', 180: '05', 185: '05', 200: '05', 204: '05', 205: '05', 208: '05', 209: '05', 500: '05', 600: '05', 850: '05', 1000: '05' }
   };
 
   /** "Familia Skrit" de una fila (o `''` si ese litraje concreto aún no está decidido) —

@@ -2,6 +2,13 @@
 
 Formato inspirado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [v1.0.30] — 2026-09-09
+
+### Añadido
+- Familia Skrit: rellenados 170L, 180L, 204L y 500L para las 6 marcas
+  (mismo código que el resto de formatos grandes), según lo que Yako
+  fue completando en `Familias Skrit.xlsx`.
+
 ## [v1.0.29] — 2026-09-09
 
 ### Cambiado
