@@ -14,20 +14,35 @@
    ============================================================================ */
 const ExcelWriter = (() => {
 
-  /** Familia especial que Skrit espera para "Bidones y Cubas" (formatos grandes, ~180kg/
-   *  200L en adelante) — distinta de la familia real que trae cada tarifa de proveedor.
-   *  Pedido explícito de Yako; Racing Oil no está en la lista (no la dio) y se queda con
-   *  su familia real, sin sobrescribir. Clave = `brandAbbr` (ya disponible en las dos
-   *  funciones que la usan, sin necesidad de pasar también el `brandId`). */
-  const BIDONES_CUBAS_FAM_BY_ABBR = { ADP: '07', REP: '09', CAT: '03', ENI: '12', SHL: '30' };
+  /** "Familia Skrit" (ver ADR 0076) — de "Base de Conocimiento/Familias/Familias
+   *  Skrit.xlsx", que Yako va rellenando a mano formato a formato según decide, marca a
+   *  marca, qué familia debe salir en Skrit (distinta de la familia real que trae cada
+   *  tarifa de proveedor — Skrit tiene su propio sistema). Por ahora solo tiene los
+   *  formatos de "Bidones y Cubas" (185/200/205/208/600/850/1000L); el resto de litrajes
+   *  se deja sin entrada a propósito hasta que Yako decida esas también — sin entrada,
+   *  "Familia Skrit" sale vacía para esa fila, NO se inventa un valor ni se cae a la
+   *  familia real. Clave = `brandAbbr` (ya disponible donde se usa), luego litros exactos
+   *  redondeados a 3 decimales (mismo criterio que `Parser.formatKey`). El Excel de Yako
+   *  usa "SHE" para Shell — aquí se guarda como `SHL`, el `brandAbbr` real de la app;
+   *  ACTUALIZAR ESTA TABLA A MANO cada vez que Yako mande una versión nueva del fichero,
+   *  no hay import automático todavía (dataset pequeño y decidido por él a mano). */
+  const FAMILIA_SKRIT = {
+    ADP: { 185: '07', 200: '07', 205: '07', 208: '07', 600: '07', 850: '07', 1000: '07' },
+    CAT: { 185: '03', 200: '03', 205: '03', 208: '03', 600: '03', 850: '03', 1000: '03' },
+    REP: { 185: '09', 200: '09', 205: '09', 208: '09', 600: '09', 850: '09', 1000: '09' },
+    SHL: { 185: '30', 200: '30', 205: '30', 208: '30', 600: '30', 850: '30', 1000: '30' },
+    ENI: { 185: '12', 200: '12', 205: '12', 208: '12', 600: '12', 850: '12', 1000: '12' },
+    RAC: { 185: '05', 200: '05', 205: '05', 208: '05', 600: '05', 850: '05', 1000: '05' }
+  };
 
-  /** Familia de salida de una fila: la especial de Bidones y Cubas si ese formato tiene
-   *  activado "PVP Neto en Bidones y Cubas" en Reglas (mismo criterio que la columna
-   *  "BIDONES Y CUBAS", ver ADR 0064 adenda — no un umbral de litros a mano, para no
-   *  fallar con el bidón de 180kg de Repsol), si no la familia real de la tarifa. */
-  function exportFamilia(r, brandAbbr, isBigContainer) {
-    if (isBigContainer && BIDONES_CUBAS_FAM_BY_ABBR[brandAbbr]) return BIDONES_CUBAS_FAM_BY_ABBR[brandAbbr];
-    return Parser.upperOut(r.fam || '');
+  /** "Familia Skrit" de una fila (o `''` si ese litraje concreto aún no está decidido) —
+   *  no toca ni sustituye la familia real, que sigue viniendo tal cual de la tarifa. */
+  function familiaSkritFor(brandAbbr, liters) {
+    if (liters == null) return '';
+    const map = FAMILIA_SKRIT[brandAbbr];
+    if (!map) return '';
+    const key = Math.round(liters * 1000) / 1000;
+    return map[key] || '';
   }
 
   /** Descripción para cualquier tarifa de salida: usa la renombrada del perfil si
@@ -143,7 +158,7 @@ const ExcelWriter = (() => {
         exportRef(r.ref, brandAbbr),
         exportDescription(r),
         r.liters || null,
-        exportFamilia(r, brandAbbr, isBigContainer),
+        Parser.upperOut(r.fam || ''),
         isBigContainer ? 'SÍ' : '',
         r.costFactura != null ? r.costFactura : null,
         r.costNetoNeto != null ? r.costNetoNeto : null,
@@ -184,8 +199,9 @@ const ExcelWriter = (() => {
 
   /**
    * "PVP (Skrit)" (ver ADR 0031): el listado mínimo tal cual lo pide Yako para subir a
-   * Skrit — MARCA, REFERENCIA, DESCRIPCION (editada), LITROS (por envase), FAMILIA,
-   * COSTE COMPRA (el que usa el nivel para calcular el PVP) y PVP.
+   * Skrit — MARCA, REFERENCIA, DESCRIPCION (editada), LITROS (por envase), FAMILIA (la
+   * real de la tarifa), FAMILIA SKRIT (ver ADR 0076 — solo aquí, en ningún otro tipo de
+   * exportación), COSTE COMPRA (el que usa el nivel para calcular el PVP) y PVP.
    */
   async function exportSkritLean(rows, brandAbbr, levelConfig, tariffDate, typeLabel, bigContainerResolver) {
     const resolveLevel = typeof levelConfig === 'function' ? levelConfig : () => levelConfig;
@@ -198,6 +214,7 @@ const ExcelWriter = (() => {
       { header: 'DESCRIPCION', width: 50 },
       { header: 'LITROS', width: 8 },
       { header: 'FAMILIA', width: 8 },
+      { header: 'FAMILIA SKRIT', width: 12 },
       { header: 'BIDONES Y CUBAS', width: 14 },
       { header: 'COSTE FACTURA', width: 14, euro: true },
       { header: 'PVP', width: 12, euro: true }
@@ -214,7 +231,8 @@ const ExcelWriter = (() => {
         exportRef(r.ref, brandAbbr),
         exportDescription(r),
         r.liters || null,
-        exportFamilia(r, brandAbbr, isBigContainer),
+        Parser.upperOut(r.fam || ''),
+        familiaSkritFor(brandAbbr, r.liters),
         isBigContainer ? 'SÍ' : '',
         typeof cost === 'number' ? cost : null,
         c.pvp
@@ -246,5 +264,5 @@ const ExcelWriter = (() => {
     return downloadWorkbook(wb, `Pendientes de validar ${brandLabel} ${dateSlug()}.xlsx`);
   }
 
-  return { exportSkritV2, exportSkritLean, exportPriceList, exportPendingValidation, buildFilename, dateSlug, fileBrandLabel, exportFamilia };
+  return { exportSkritV2, exportSkritLean, exportPriceList, exportPendingValidation, buildFilename, dateSlug, fileBrandLabel, familiaSkritFor };
 })();

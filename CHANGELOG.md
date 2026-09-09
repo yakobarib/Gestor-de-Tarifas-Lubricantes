@@ -2,6 +2,17 @@
 
 Formato inspirado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [v1.0.28] — 2026-09-09
+
+### Cambiado
+- "PVP (Skrit)" gana una columna nueva, "FAMILIA SKRIT" — la familia
+  real de la tarifa (columna "FAMILIA") ya no se sustituye, ambas
+  salen en paralelo. Solo en este tipo de exportación; "PVP (Datos)"
+  vuelve a mostrar únicamente la familia real, como antes de v1.0.26.
+- Añadida la familia Skrit de Racing Oil para Bidones y Cubas (05).
+
+Ver [ADR 0076](docs/decisiones/0076-familia-skrit-columna-aparte-solo-en-pvp-skrit.md).
+
 ## [v1.0.27] — 2026-09-04
 
 ### Corregido

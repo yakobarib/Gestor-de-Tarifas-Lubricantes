@@ -463,7 +463,7 @@ const ScreenExport = (() => {
     }
 
     if (kind === 'skrit') {
-      thead.innerHTML = `<tr><th>Marca</th><th>Referencia</th><th class="prod">Producto</th><th class="num liters">Litros</th><th>Familia</th><th>Bidones y Cubas</th><th class="num">Coste factura</th><th class="num">PVP</th><th class="num">PVP manual</th></tr>`;
+      thead.innerHTML = `<tr><th>Marca</th><th>Referencia</th><th class="prod">Producto</th><th class="num liters">Litros</th><th>Familia</th><th>Familia Skrit</th><th>Bidones y Cubas</th><th class="num">Coste factura</th><th class="num">PVP</th><th class="num">PVP manual</th></tr>`;
       const byGama = currentGama === '__all__' ? loadLevelsByGama(currentBrandId, brand.gamas) : null;
       const levelCache = {};
       const levelFor = (gama) => {
@@ -492,7 +492,8 @@ const ScreenExport = (() => {
           <td>${escapeHtml(exportRef(r, brand.abbr))}</td>
           <td class="prod" title="${escapeHtml(r.description)}">${escapeHtml(truncate(exportDescription(r), 60))}</td>
           <td class="num liters">${r.liters ?? '—'}</td>
-          <td>${escapeHtml(ExcelWriter.exportFamilia(r, brand.abbr, isBigContainer)) || '—'}</td>
+          <td>${escapeHtml(Parser.upperOut(r.fam) || '—')}</td>
+          <td>${escapeHtml(ExcelWriter.familiaSkritFor(brand.abbr, r.liters)) || '—'}</td>
           <td>${isBigContainer ? 'Sí' : '—'}</td>
           <td class="num">${formatEur(cost)}</td>
           <td class="num"><strong>${formatEur(c.pvp)}</strong></td>
