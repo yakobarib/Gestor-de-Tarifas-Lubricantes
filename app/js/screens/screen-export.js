@@ -463,7 +463,7 @@ const ScreenExport = (() => {
     }
 
     if (kind === 'skrit') {
-      thead.innerHTML = `<tr><th>Marca</th><th>Referencia</th><th class="prod">Producto</th><th class="num liters">Litros</th><th>Familia</th><th>Familia Skrit</th><th>Bidones y Cubas</th><th class="num">Coste factura</th><th class="num">PVP</th><th class="num">PVP manual</th></tr>`;
+      thead.innerHTML = `<tr><th>Marca</th><th>Referencia</th><th class="prod">Producto</th><th class="num liters">Litros</th><th>${escapeHtml(ExcelWriter.familiaProveedorLabel(brand.abbr))}</th><th>Familia Skrit</th><th>Bidones y Cubas</th><th class="num">Coste factura</th><th class="num">PVP</th><th class="num">PVP manual</th></tr>`;
       const byGama = currentGama === '__all__' ? loadLevelsByGama(currentBrandId, brand.gamas) : null;
       const levelCache = {};
       const levelFor = (gama) => {

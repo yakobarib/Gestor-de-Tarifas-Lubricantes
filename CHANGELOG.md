@@ -2,6 +2,15 @@
 
 Formato inspirado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [v1.0.29] — 2026-09-09
+
+### Cambiado
+- "PVP (Skrit)": la columna "FAMILIA" pasa a llevar la marca en el
+  nombre — "FAMILIA AD", "FAMILIA CAT", "FAMILIA REP", "FAMILIA SHE",
+  "FAMILIA ENI", "FAMILIA RAC".
+
+Ver [ADR 0077](docs/decisiones/0077-columna-familia-con-nombre-de-marca-y-litros-completos.md).
+
 ## [v1.0.28] — 2026-09-09
 
 ### Cambiado

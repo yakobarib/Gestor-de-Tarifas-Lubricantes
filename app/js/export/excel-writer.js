@@ -27,12 +27,12 @@ const ExcelWriter = (() => {
    *  ACTUALIZAR ESTA TABLA A MANO cada vez que Yako mande una versión nueva del fichero,
    *  no hay import automático todavía (dataset pequeño y decidido por él a mano). */
   const FAMILIA_SKRIT = {
-    ADP: { 185: '07', 200: '07', 205: '07', 208: '07', 600: '07', 850: '07', 1000: '07' },
-    CAT: { 185: '03', 200: '03', 205: '03', 208: '03', 600: '03', 850: '03', 1000: '03' },
-    REP: { 185: '09', 200: '09', 205: '09', 208: '09', 600: '09', 850: '09', 1000: '09' },
-    SHL: { 185: '30', 200: '30', 205: '30', 208: '30', 600: '30', 850: '30', 1000: '30' },
-    ENI: { 185: '12', 200: '12', 205: '12', 208: '12', 600: '12', 850: '12', 1000: '12' },
-    RAC: { 185: '05', 200: '05', 205: '05', 208: '05', 600: '05', 850: '05', 1000: '05' }
+    ADP: { 185: '07', 200: '07', 205: '07', 208: '07', 209: '07', 600: '07', 850: '07', 1000: '07' },
+    CAT: { 185: '03', 200: '03', 205: '03', 208: '03', 209: '03', 600: '03', 850: '03', 1000: '03' },
+    REP: { 185: '09', 200: '09', 205: '09', 208: '09', 209: '09', 600: '09', 850: '09', 1000: '09' },
+    SHL: { 185: '30', 200: '30', 205: '30', 208: '30', 209: '30', 600: '30', 850: '30', 1000: '30' },
+    ENI: { 185: '12', 200: '12', 205: '12', 208: '12', 209: '12', 600: '12', 850: '12', 1000: '12' },
+    RAC: { 185: '05', 200: '05', 205: '05', 208: '05', 209: '05', 600: '05', 850: '05', 1000: '05' }
   };
 
   /** "Familia Skrit" de una fila (o `''` si ese litraje concreto aún no está decidido) —
@@ -43,6 +43,17 @@ const ExcelWriter = (() => {
     if (!map) return '';
     const key = Math.round(liters * 1000) / 1000;
     return map[key] || '';
+  }
+
+  /** Nombre de la columna "familia de proveedor" con la marca ya incluida (ej. "Familia
+   *  AD"), pedido por Yako para distinguirla a simple vista de "Familia Skrit" en el
+   *  mismo Excel — no siempre coincide con el `brandAbbr` interno de la app (AD Parts
+   *  es "AD" aquí, no "ADP"; Shell es "SHE", como en su propio Excel de familias, no
+   *  "SHL"). Si algún día se exportara una marca sin entrada aquí, cae a un genérico en
+   *  vez de romper. */
+  const FAMILIA_PROVEEDOR_LABEL = { ADP: 'Familia AD', CAT: 'Familia CAT', REP: 'Familia REP', SHL: 'Familia SHE', ENI: 'Familia ENI', RAC: 'Familia RAC' };
+  function familiaProveedorLabel(brandAbbr) {
+    return FAMILIA_PROVEEDOR_LABEL[brandAbbr] || 'Familia Proveedor';
   }
 
   /** Descripción para cualquier tarifa de salida: usa la renombrada del perfil si
@@ -199,9 +210,10 @@ const ExcelWriter = (() => {
 
   /**
    * "PVP (Skrit)" (ver ADR 0031): el listado mínimo tal cual lo pide Yako para subir a
-   * Skrit — MARCA, REFERENCIA, DESCRIPCION (editada), LITROS (por envase), FAMILIA (la
-   * real de la tarifa), FAMILIA SKRIT (ver ADR 0076 — solo aquí, en ningún otro tipo de
-   * exportación), COSTE COMPRA (el que usa el nivel para calcular el PVP) y PVP.
+   * Skrit — MARCA, REFERENCIA, DESCRIPCION (editada), LITROS (por envase), "FAMILIA
+   * {marca}" (la real de la tarifa, con la marca en el nombre de columna — ver ADR 0077),
+   * FAMILIA SKRIT (ver ADR 0076 — solo aquí, en ningún otro tipo de exportación), COSTE
+   * COMPRA (el que usa el nivel para calcular el PVP) y PVP.
    */
   async function exportSkritLean(rows, brandAbbr, levelConfig, tariffDate, typeLabel, bigContainerResolver) {
     const resolveLevel = typeof levelConfig === 'function' ? levelConfig : () => levelConfig;
@@ -213,7 +225,7 @@ const ExcelWriter = (() => {
       { header: 'REFERENCIA', width: 14 },
       { header: 'DESCRIPCION', width: 50 },
       { header: 'LITROS', width: 8 },
-      { header: 'FAMILIA', width: 8 },
+      { header: familiaProveedorLabel(brandAbbr).toUpperCase(), width: 12 },
       { header: 'FAMILIA SKRIT', width: 12 },
       { header: 'BIDONES Y CUBAS', width: 14 },
       { header: 'COSTE FACTURA', width: 14, euro: true },
@@ -264,5 +276,5 @@ const ExcelWriter = (() => {
     return downloadWorkbook(wb, `Pendientes de validar ${brandLabel} ${dateSlug()}.xlsx`);
   }
 
-  return { exportSkritV2, exportSkritLean, exportPriceList, exportPendingValidation, buildFilename, dateSlug, fileBrandLabel, familiaSkritFor };
+  return { exportSkritV2, exportSkritLean, exportPriceList, exportPendingValidation, buildFilename, dateSlug, fileBrandLabel, familiaSkritFor, familiaProveedorLabel };
 })();
