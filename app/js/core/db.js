@@ -118,7 +118,11 @@ const MasterDB = (() => {
             : ((r.formatKey && r.formatKey !== '?') ? r.formatKey : (existing ? existing.formatKey : '?')),
           fam: r.fam != null ? r.fam : (existing ? existing.fam : null),
           litersDetected: verified ? verified.liters != null : !!r.litersDetected,
-          descVerified: !!verified
+          descVerified: !!verified,
+          // Unidades por caja (ver ADR 0078 — "Valor Regalo 1+1") — mismo criterio
+          // null-aware que `liters`: una reimportación que no la traiga no borra la ya
+          // conocida.
+          unitsPerBox: r.unitsPerBox != null ? r.unitsPerBox : (existing ? existing.unitsPerBox : null)
         }
       );
       // Guardia: solo tocar el coste del `tariffType` de este import si la fila trae de
@@ -160,6 +164,7 @@ const MasterDB = (() => {
       if (r.formatKey != null) neonFields.formatKey = r.formatKey;
       if (r.litersDetected != null) neonFields.litersDetected = !!r.litersDetected;
       if (r.fam != null) neonFields.fam = r.fam;
+      if (r.unitsPerBox != null) neonFields.unitsPerBox = r.unitsPerBox;
       if (hasCost) {
         if (tariffType === 'triple_neto') { neonFields.costTripleNeto = r.costPerPack; neonFields.costTripleNetoImportedAt = now; }
         else if (tariffType === 'netoNeto') { neonFields.costNetoNeto = r.costPerPack; neonFields.costNetoNetoImportedAt = now; }
@@ -220,7 +225,8 @@ const MasterDB = (() => {
         costNetoNeto: nr.cost_neto_neto,
         costNetoNetoImportedAt: nr.cost_neto_neto_imported_at,
         costTripleNeto: nr.cost_triple_neto,
-        costTripleNetoImportedAt: nr.cost_triple_neto_imported_at
+        costTripleNetoImportedAt: nr.cost_triple_neto_imported_at,
+        unitsPerBox: nr.units_per_box
       });
     }
     await new Promise((resolve, reject) => {

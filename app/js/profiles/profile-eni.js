@@ -84,6 +84,11 @@
     const idxLitrosKg = headers.findIndex(h => h.includes('LITROS') || /KG\.?\s*UNIDAD/.test(h));
     const idxTarifa2 = headers.findIndex(h => h.includes('TARIFA 2') && !h.includes('UNIDAD DE VENTA'));
     const idxTarifa1 = headers.findIndex(h => h.includes('TARIFA 1') && !h.includes('UNIDAD DE VENTA'));
+    // Unidades por caja (ver ADR 0078, "Valor Regalo 1+1") — descartada hasta ahora
+    // porque no hacía falta para el precio (TARIFA 1/2 ya son por envase individual),
+    // pero verificada matemáticamente contra "...UNIDAD DE VENTA" (que sí es tarifa ×
+    // esta columna) al investigar ese cambio: el dato es de fiar.
+    const idxUdsPorEnvase = headers.findIndex(h => /UDS\.?\s*POR\s*ENVASE/.test(h));
     if (idxCodigo < 0 || idxProducto < 0 || (idxTarifa2 < 0 && idxTarifa1 < 0)) return [];
 
     const out = [];
@@ -111,6 +116,7 @@
       const liters = idxLitrosKg >= 0 ? parseLitrosKg(r[idxLitrosKg]) : null;
       const name = Parser.cleanDescription(String(productoRaw).replace(/^\s*eni\s+/i, ''));
       const description = liters != null ? `${name} ${formatLitersSuffix(liters)}` : name;
+      const udsPorEnvase = idxUdsPorEnvase >= 0 ? r[idxUdsPorEnvase] : null;
 
       out.push({
         ref: String(codigo).trim(),
@@ -120,7 +126,8 @@
         costPerPack: price,
         fam: currentFamily,
         gama: gamaId,
-        litersDetected: liters != null
+        litersDetected: liters != null,
+        unitsPerBox: (typeof udsPorEnvase === 'number' && udsPorEnvase > 0) ? udsPorEnvase : null
       });
     }
     return out;

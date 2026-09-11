@@ -95,6 +95,11 @@
     const idxRef = headers.findIndex(x => x.includes('COD'));
     const idxName = headers.findIndex(x => x.includes('PRODUCTO'));
     const idxEnvase = headers.findIndex(x => x.includes('ENVASE'));
+    // Unidades por caja (ver ADR 0078, "Valor Regalo 1+1") — hasta ahora descartada
+    // (el PRECIO ya es por envase individual, no hacía falta para el coste), pero
+    // Yako confirmó el dato real de la tarifa (4 uds. en el formato de 5L, no 5 como
+    // pensaba de memoria) al validar este cambio, así que se da por fiable.
+    const idxUdsPorCaja = headers.findIndex(x => x.includes('UDS') && x.includes('CAJA'));
     // TRANSMISIÓN e INDUSTRIA no rotulan "PRECIO" en la fila de cabecera (queda en
     // blanco) aunque el dato está en la misma columna F que en el resto de hojas —
     // se cae a esa posición fija cuando el texto no aparece.
@@ -116,6 +121,7 @@
       const { liters, suffix } = idxEnvase >= 0 ? parseEnvase(r[idxEnvase]) : { liters: null, suffix: '' };
       const name = Parser.cleanDescription(nameRaw);
       const description = suffix ? `${name} ${suffix}` : name;
+      const udsPorCaja = idxUdsPorCaja >= 0 ? r[idxUdsPorCaja] : null;
 
       out.push({
         // Excel a veces devuelve estos códigos con espacios sueltos en medio (huecos
@@ -128,7 +134,8 @@
         formatKey: Parser.formatKey(liters),
         costPerPack: price,
         gama: gamaId,
-        litersDetected: liters != null
+        litersDetected: liters != null,
+        unitsPerBox: (typeof udsPorCaja === 'number' && udsPorCaja > 0) ? udsPorCaja : null
       });
     }
     return out;

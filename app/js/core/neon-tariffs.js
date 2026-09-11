@@ -23,7 +23,8 @@ const NeonTariffs = (() => {
     costNetoNeto: 'cost_neto_neto',
     costNetoNetoImportedAt: 'cost_neto_neto_imported_at',
     costTripleNeto: 'cost_triple_neto',
-    costTripleNetoImportedAt: 'cost_triple_neto_imported_at'
+    costTripleNetoImportedAt: 'cost_triple_neto_imported_at',
+    unitsPerBox: 'units_per_box'
   };
 
   function neonReady() {

@@ -65,26 +65,35 @@
     return liters != null ? `${namePart} ${formatLitersSuffix(liters)}` : namePart;
   }
 
-  /** Litros del envase a partir de la parte de la descripción tras la primera
-   *  coma ("12X1L H Q3" -> 1, "208L B7" -> 208, "18K B5" -> 20 vía tabla). */
-  function parseLitersFromDescription(raw) {
+  /** Litros del envase Y unidades por caja a partir de la parte de la descripción tras
+   *  la primera coma ("12X1L H Q3" -> {liters:1, units:12}, "208L B7" -> {liters:208,
+   *  units:1} — sin "NxM" es un envase suelto, "1X1" conceptualmente — "18K B5" ->
+   *  {liters:20, units:1} vía tabla de conversión). `units` alimenta "Valor Regalo 1+1"
+   *  (ver ADR 0078) — Yako confirmó que el patrón "NxM" es el único que existe en la
+   *  tarifa real para envases en caja (12X1L, 4X4L, 4X5L, 6X.3L, 12X.4K), así que se
+   *  reutiliza tal cual, sin tabla ni casos especiales aparte. */
+  function parseEnvaseFromDescription(raw) {
     const rest = String(raw).split(',').slice(1).join(',').trim();
     let m = rest.match(/(\d+)\s*[xX]\s*([\d.,]+)\s*(L|KGS?|K)\b/i);
-    let num, isKg;
+    let num, isKg, units;
     if (m) {
+      units = parseInt(m[1], 10);
       num = parseFloat(m[2].replace(',', '.'));
       isKg = /^K/i.test(m[3]);
     } else {
       m = rest.match(/^([\d.,]+)\s*(L|KGS?|K)\b/i);
-      if (!m) return null;
+      if (!m) return { liters: null, units: null };
+      units = 1;
       num = parseFloat(m[1].replace(',', '.'));
       isKg = /^K/i.test(m[2]);
     }
-    if (isKg) {
-      const liters = KG_TO_L_DESC[num];
-      return liters != null ? liters : null;
-    }
-    return num;
+    const liters = isKg ? (KG_TO_L_DESC[num] != null ? KG_TO_L_DESC[num] : null) : num;
+    return { liters, units: liters != null ? units : null };
+  }
+
+  /** Envoltorio de compatibilidad — mismo resultado que antes, solo litros. */
+  function parseLitersFromDescription(raw) {
+    return parseEnvaseFromDescription(raw).liters;
   }
 
   function readCastrol(workbook) {
@@ -120,10 +129,15 @@
       // existe — la columna de "unidad de venta" de la tarifa no es fiable para cajas
       // (ver cabecera del fichero). Sin verificar todavía, se deriva de la descripción.
       const verified = MasterCache.get('castrol', refStr);
-      const liters = (verified && verified.liters != null) ? verified.liters : parseLitersFromDescription(nameRaw);
+      const envaseDesc = parseEnvaseFromDescription(nameRaw);
+      const liters = (verified && verified.liters != null) ? verified.liters : envaseDesc.liters;
       const description = cleanCastrolDescription(nameRaw, liters);
       const costPerPack = liters != null ? precioLitro * liters : null;
       if (costPerPack == null || costPerPack <= 0) continue;
+      // Unidades por caja (ver ADR 0078) — siempre de la descripción cruda, la
+      // verificación de litros no tiene equivalente para esto (el maestro compartido
+      // solo verifica descripción/litros, no unidades por caja).
+      const unitsPerBox = envaseDesc.units;
 
       const precioNetoLitro = idxPrecioNetoLitro >= 0 ? r[idxPrecioNetoLitro] : null;
       const precioNetoAportaciones = idxPrecioNetoAportaciones >= 0 ? r[idxPrecioNetoAportaciones] : null;
@@ -138,7 +152,8 @@
         costPerPack,
         gama,
         fam,
-        litersDetected: liters != null
+        litersDetected: liters != null,
+        unitsPerBox
       };
       if (liters != null && typeof precioNetoLitro === 'number' && isFinite(precioNetoLitro) && precioNetoLitro > 0) {
         row.costNetoNeto = precioNetoLitro * liters;

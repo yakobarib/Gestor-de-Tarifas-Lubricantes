@@ -57,6 +57,32 @@ const ExcelWriter = (() => {
     return FAMILIA_PROVEEDOR_LABEL[brandAbbr] || 'Familia Proveedor';
   }
 
+  /** Unidades por caja para marcas/formatos sin dato fiable en la propia tarifa (ver ADR
+   *  0078, "Valor Regalo 1+1") — Repsol/Eni/Racing Oil/Castrol ya traen `row.unitsPerBox`
+   *  desde el perfil (de la tarifa o de la descripción), así que esta tabla solo hace
+   *  falta para lo que Yako confirmó a mano. Estructura: `brandId` → gama (o `'*'` para
+   *  "cualquier gama de esta marca") → litros exactos → unidades. Sin entrada, `null` —
+   *  nunca se inventa un número. AD Parts necesita distinguir por gama porque el mismo
+   *  litraje (5L) lleva distinta caja en Aceite (5 uds.) que en Químicos (4 uds.).
+   *  Confirmado por Yako 2026-09-11; pendiente: AD Parts 1L (20 uds., ¿aceite, químicos,
+   *  o ambos?) — no incluido todavía, a la espera de esa confirmación. */
+  const UNITS_PER_BOX_FALLBACK = {
+    shell: { '*': { 1: 12, 4: 3, 5: 3 } },
+    ad_parts_aceite: {
+      normal: { 5: 5 }, standard: { 5: 5 }, sportcar: { 5: 5 },
+      quimico: { 5: 4, 0.5: 30 }
+    }
+  };
+
+  function unitsPerBoxFallback(brandId, gama, liters) {
+    if (liters == null) return null;
+    const byBrand = UNITS_PER_BOX_FALLBACK[brandId];
+    if (!byBrand) return null;
+    const key = Math.round(liters * 1000) / 1000;
+    const byGama = byBrand[gama] || byBrand['*'];
+    return (byGama && byGama[key] != null) ? byGama[key] : null;
+  }
+
   /** Descripción para cualquier tarifa de salida: usa la renombrada del perfil si
    *  existe (hoy solo Repsol la trae — ver ADR 0013), si no la original tal cual —
    *  en mayúsculas (ver ADR 0034, homogeneiza entre marcas que entran en minúsculas). */
@@ -277,5 +303,5 @@ const ExcelWriter = (() => {
     return downloadWorkbook(wb, `Pendientes de validar ${brandLabel} ${dateSlug()}.xlsx`);
   }
 
-  return { exportSkritV2, exportSkritLean, exportPriceList, exportPendingValidation, buildFilename, dateSlug, fileBrandLabel, familiaSkritFor, familiaProveedorLabel };
+  return { exportSkritV2, exportSkritLean, exportPriceList, exportPendingValidation, buildFilename, dateSlug, fileBrandLabel, familiaSkritFor, familiaProveedorLabel, unitsPerBoxFallback };
 })();

@@ -2,6 +2,24 @@
 
 Formato inspirado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [v1.0.31] — 2026-09-11
+
+### Corregido
+- "Valor Regalo 1+1" calculaba el coste de una sola unidad en vez del
+  coste de la caja completa que se regala (coste por unidad ×
+  unidades por caja).
+
+### Añadido
+- Unidades por caja: leídas de la propia tarifa para Repsol, Eni y
+  Racing Oil; deducidas de la descripción para Castrol (patrón "NxM");
+  con tabla de referencia confirmada por Yako para Shell y AD Parts
+  (por gama, no solo por litros).
+
+### Cambiado
+- "Valor Regalo 1+1 (Compra)" → "Valor Regalo 1+1 (Venta)".
+
+Ver [ADR 0078](docs/decisiones/0078-valor-regalo-1x1-coste-de-caja-completa.md).
+
 ## [v1.0.30] — 2026-09-09
 
 ### Añadido

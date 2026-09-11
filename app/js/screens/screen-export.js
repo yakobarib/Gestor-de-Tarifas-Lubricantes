@@ -197,16 +197,25 @@ const ScreenExport = (() => {
     return loadLevels(brandId, gama).find(l => l.id === 'pvp') || null;
   }
 
-  /** Valor en € del "regalo" de un 1+1: el coste (factura/neto-neto/triple neto, el que
-   *  use el PVP de esa gama) de la caja que se regala — no la calculamos con
+  /** Valor en € del "regalo" de un 1+1 (ver ADR 0078): el coste — factura/neto-neto/
+   *  triple neto, el que use el PVP de esa gama, ver `Pricing.resolveCost` — de la CAJA
+   *  que se regala, no de una sola unidad. "1+2" da 2 cajas gratis por cada una
+   *  comprada (coste asumido: 2 cajas); "1+1+regalo" da solo 1 caja gratis más este
+   *  valor en € — el dinero que sale de NO dar la segunda caja, así que el importe es
+   *  el coste de UNA caja: coste por unidad × unidades por caja. No se calcula con
    *  Pricing.compute porque eso daría el PVP, no el coste, y el override manual de PVP
    *  no debe afectar a este valor. null si ese formato no tiene el modo "1+2" activado
-   *  en PVP para esa gama (ver ADR 0026 v2). */
-  function regaloValueFor(row, pvpLevel) {
+   *  en PVP para esa gama (ver ADR 0026 v2), o si no hay unidades por caja fiables para
+   *  esa fila (de la tarifa, o de `ExcelWriter.unitsPerBoxFallback` si la marca no la
+   *  trae) — nunca se inventa un número. */
+  function regaloValueFor(row, pvpLevel, brandId) {
     if (!pvpLevel) return null;
     if (!pvpLevel.formatModes || pvpLevel.formatModes[row.formatKey] !== '1x2') return null;
-    const cost = Pricing.resolveCost(row, pvpLevel);
-    return (typeof cost === 'number' && isFinite(cost)) ? cost : null;
+    const costPerUnit = Pricing.resolveCost(row, pvpLevel);
+    if (typeof costPerUnit !== 'number' || !isFinite(costPerUnit)) return null;
+    const unitsPerBox = row.unitsPerBox != null ? row.unitsPerBox : ExcelWriter.unitsPerBoxFallback(brandId, row.gama, row.liters);
+    if (typeof unitsPerBox !== 'number' || !isFinite(unitsPerBox) || unitsPerBox <= 0) return null;
+    return costPerUnit * unitsPerBox;
   }
 
   function saveManualOverride(brandId, gama, levelId, ref, value) {
@@ -307,7 +316,7 @@ const ScreenExport = (() => {
     // "Valor Regalo 1+1" solo se ofrece si algún formato de PVP tiene el modo "1+2"
     // activado en al menos una gama de esta marca (en "Todas") o en la gama elegida.
     if (has1x2) {
-      entries.push({ value: 'list:regalo_1x1', label: 'Valor Regalo 1+1 (Compra)' });
+      entries.push({ value: 'list:regalo_1x1', label: 'Valor Regalo 1+1 (Venta)' });
     }
     // Orden alfabético por etiqueta (pedido por Yako) — así el desplegable se reordena
     // solo si en el futuro se añade/renombra algún tipo de exportación, sin tocar aquí.
@@ -415,7 +424,7 @@ const ScreenExport = (() => {
       const frag = document.createDocumentFragment();
       for (const r of visible.slice(0, 500)) {
         const level = levelFor(currentGama === '__all__' ? r.gama : currentGama);
-        const value = regaloValueFor(r, level);
+        const value = regaloValueFor(r, level, currentBrandId);
         r._regaloValue = value; // se reutiliza tal cual al exportar (WYSIWYG)
         trackRowErrors(tally, r, value == null);
         const tr = document.createElement('tr');
