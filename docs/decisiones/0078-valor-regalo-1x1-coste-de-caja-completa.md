@@ -59,10 +59,20 @@ no hay unidades por caja de ninguna de las dos fuentes.
 **Renombrado**: "Valor Regalo 1+1 (Compra)" → **"Valor Regalo 1+1 (Venta)"** — se trata
 como un dato de venta (lo que se le regala al cliente), no de compra.
 
+## Actualización 2026-09-11
+
+Yako confirmó AD Parts 1L: **20 uds. en Aceite (Normal/Standard/Sport Car), no aplica a
+Químicos** (no recuerda que exista ese formato ahí) — añadido a `UNITS_PER_BOX_FALLBACK`.
+
+De paso, creado `Base de Conocimiento/Familias/Unidades por Caja.xlsx` — mismo patrón que
+`Familias Skrit.xlsx` (una fila por litraje real, columnas por lo que hace falta
+confirmar a mano) — para que Yako tenga un sitio propio donde ver y ampliar estos datos,
+en vez de que vivan solo dentro del código. Solo lleva columnas para Shell y AD Parts
+(Aceite/Químicos separados): Repsol, Eni, Racing Oil y Castrol no aparecen porque se
+leen solos de cada tarifa, no hace falta tocarlos.
+
 ## Pendiente
 
-- AD Parts 1L (20 uds. según Yako) — falta confirmar si aplica a Aceite, Químicos o
-  ambos antes de añadirlo a la tabla.
 - Yako mencionó que podría convenir guardar en el maestro las unidades detectadas de la
   descripción de Castrol como columna visible, no solo usarlas internamente — no
   implementado en este cambio (`unitsPerBox` no se muestra en ninguna tabla, solo

@@ -60,16 +60,18 @@ const ExcelWriter = (() => {
   /** Unidades por caja para marcas/formatos sin dato fiable en la propia tarifa (ver ADR
    *  0078, "Valor Regalo 1+1") — Repsol/Eni/Racing Oil/Castrol ya traen `row.unitsPerBox`
    *  desde el perfil (de la tarifa o de la descripción), así que esta tabla solo hace
-   *  falta para lo que Yako confirmó a mano. Estructura: `brandId` → gama (o `'*'` para
-   *  "cualquier gama de esta marca") → litros exactos → unidades. Sin entrada, `null` —
-   *  nunca se inventa un número. AD Parts necesita distinguir por gama porque el mismo
-   *  litraje (5L) lleva distinta caja en Aceite (5 uds.) que en Químicos (4 uds.).
-   *  Confirmado por Yako 2026-09-11; pendiente: AD Parts 1L (20 uds., ¿aceite, químicos,
-   *  o ambos?) — no incluido todavía, a la espera de esa confirmación. */
+   *  falta para lo que Yako confirmó a mano — misma fuente que "Base de Conocimiento/
+   *  Familias/Unidades por Caja.xlsx", transcrita aquí igual que Familias Skrit.xlsx.
+   *  Estructura: `brandId` → gama (o `'*'` para "cualquier gama de esta marca") → litros
+   *  exactos → unidades. Sin entrada, `null` — nunca se inventa un número. AD Parts
+   *  necesita distinguir por gama porque el mismo litraje lleva distinta caja en Aceite
+   *  que en Químicos (5L: 5 uds. vs. 4 uds.; 1L: 20 uds. en Aceite, no aplica a
+   *  Químicos — Yako no recuerda que exista ese formato ahí). Confirmado por Yako
+   *  2026-09-11. */
   const UNITS_PER_BOX_FALLBACK = {
     shell: { '*': { 1: 12, 4: 3, 5: 3 } },
     ad_parts_aceite: {
-      normal: { 5: 5 }, standard: { 5: 5 }, sportcar: { 5: 5 },
+      normal: { 1: 20, 5: 5 }, standard: { 1: 20, 5: 5 }, sportcar: { 1: 20, 5: 5 },
       quimico: { 5: 4, 0.5: 30 }
     }
   };

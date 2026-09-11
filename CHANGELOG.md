@@ -2,6 +2,12 @@
 
 Formato inspirado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [v1.0.32] — 2026-09-11
+
+### Añadido
+- Unidades por caja de AD Parts 1L confirmadas: 20 en Aceite (Normal/
+  Standard/Sport Car), no aplica a Químicos.
+
 ## [v1.0.31] — 2026-09-11
 
 ### Corregido
