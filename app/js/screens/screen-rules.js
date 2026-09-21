@@ -164,9 +164,9 @@ const ScreenRules = (() => {
 
   function renderBrandSelect() {
     const sel = $('rulesBrandSelect');
-    sel.innerHTML = BRANDS.filter(b => !b.pending).map(b => `<option value="${b.id}">${escapeHtml(b.label)}</option>`).join('');
-    if (!currentBrandId) currentBrandId = sel.value;
-    sel.value = currentBrandId;
+    sel.innerHTML = '<option value="">Ninguna</option>'
+      + BRANDS.filter(b => !b.pending).map(b => `<option value="${b.id}">${escapeHtml(b.label)}</option>`).join('');
+    sel.value = currentBrandId || '';
     renderGamaSelect();
   }
 
@@ -224,6 +224,16 @@ const ScreenRules = (() => {
   function renderGamaSelect() {
     const brand = findBrand(currentBrandId);
     const sel = $('rulesGamaSelect');
+    // Sin marca elegida ("Ninguna"): ni se sintetiza ni se guarda ningún `cfg` — antes,
+    // con `currentBrandId=''`, `loadConfig`/`migrateLevels` seguían adelante igual que
+    // con una marca real y podían llegar a guardar un `pricing_rules` con
+    // `brand_id: ''` en Neon. Corte explícito aquí, antes de tocar nada.
+    if (!currentBrandId) {
+      sel.innerHTML = `<option value="">—</option>`;
+      sel.disabled = true;
+      renderNoLevelsState();
+      return;
+    }
     if (!brand || brand.gamas.length <= 1) {
       sel.innerHTML = `<option value="default">General</option>`;
       sel.disabled = true;
@@ -238,6 +248,16 @@ const ScreenRules = (() => {
       sel.value = currentGama;
     }
     renderLevels();
+  }
+
+  /** Estado vacío cuando no hay marca elegida — mismo hueco que ocuparían el selector de
+   *  nivel, la leyenda y las tarjetas, sin cargar ni sintetizar ningún `cfg`. */
+  function renderNoLevelsState() {
+    const levelSel = $('rulesLevelSelect');
+    if (levelSel) { levelSel.innerHTML = ''; levelSel.disabled = true; }
+    const legend = $('rulesLevelLegend');
+    if (legend) legend.innerHTML = '';
+    $('levelsContainer').innerHTML = '<p class="muted">Elige una marca para configurar sus reglas.</p>';
   }
 
   /** Qué bases de coste tienen datos reales para esta marca/gama en el maestro — para no
@@ -277,6 +297,7 @@ const ScreenRules = (() => {
   function renderLevelSelect(cfg) {
     const sel = $('rulesLevelSelect');
     if (!sel) return;
+    sel.disabled = false; // por si venía deshabilitado del estado "sin marca elegida"
     sel.innerHTML = cfg.priceLevels.map(l =>
       `<option value="${escapeHtml(l.id)}" ${l.id === currentLevelId ? 'selected' : ''}>${escapeHtml(l.label)}</option>`
     ).join('');
@@ -529,6 +550,15 @@ const ScreenRules = (() => {
     if (btnSave) btnSave.addEventListener('click', saveAsTemplate);
     const btnReset = $('btnResetTemplate');
     if (btnReset) btnReset.addEventListener('click', resetToTemplate);
+    // Reinicio a "Ninguna" al entrar en Reglas desde otra pestaña (pedido por Yako,
+    // mismo motivo que Comparación, ver ADR 0079) — sin esto, volver aquí después de
+    // haber editado una marca la deja seleccionada, con el riesgo de tocar sus reglas
+    // sin darse cuenta de qué marca es.
+    Store.on('screen:changed', (screen) => {
+      if (screen !== 'rules') return;
+      currentBrandId = null;
+      renderBrandSelect();
+    });
   }
 
   /** "Plantilla por defecto" de una marca (ver ADR 0064) — una fotografía completa del

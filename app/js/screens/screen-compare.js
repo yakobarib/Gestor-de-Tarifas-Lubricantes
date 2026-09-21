@@ -107,15 +107,24 @@ const ScreenCompare = (() => {
 
   function renderBrandSelect() {
     const sel = $('compareBrandSelect');
-    sel.innerHTML = BRANDS.filter(b => !b.pending).map(b => `<option value="${b.id}">${escapeHtml(b.label)}</option>`).join('');
-    if (!currentBrandId) currentBrandId = sel.value;
-    sel.value = currentBrandId;
+    sel.innerHTML = '<option value="">Ninguna</option>'
+      + BRANDS.filter(b => !b.pending).map(b => `<option value="${b.id}">${escapeHtml(b.label)}</option>`).join('');
+    sel.value = currentBrandId || '';
     renderGamaSelect();
   }
 
   function renderGamaSelect() {
     const brand = findBrand(currentBrandId);
     const sel = $('compareGamaSelect');
+    // Sin marca elegida ("Ninguna"): ni gama ni referencia tienen sentido todavía.
+    if (!currentBrandId) {
+      sel.innerHTML = `<option value="">—</option>`;
+      sel.disabled = true;
+      $('compareRefSelect').innerHTML = '<option value="">Elige una marca primero</option>';
+      $('compareRefSelect').disabled = true;
+      return;
+    }
+    $('compareRefSelect').disabled = false;
     if (!brand || brand.gamas.length <= 1) {
       sel.innerHTML = `<option value="default">General</option>`;
       sel.disabled = true;

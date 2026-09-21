@@ -2,6 +2,19 @@
 
 Formato inspirado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [v1.0.36] — 2026-09-21
+
+### Añadido
+- Reglas y Comparación: nueva opción "Ninguna" en el selector de
+  Marca — ahora es la opción por defecto al entrar en cada pantalla
+  desde otra pestaña, en vez de caer en la primera marca de la lista.
+
+### Corregido
+- Reglas: con "Ninguna" elegida, ya no se sintetizaba/guardaba
+  silenciosamente una configuración con `brand_id` vacío.
+
+Ver [ADR 0080](docs/decisiones/0080-ninguna-por-defecto-en-reglas-y-comparacion.md).
+
 ## [v1.0.35] — 2026-09-21
 
 ### Cambiado
