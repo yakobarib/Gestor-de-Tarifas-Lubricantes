@@ -55,6 +55,13 @@
   --page-bg: #0f1115;
 }
 
+/* Tamaño de letra (ver fontsize.js) — "Grande" es el actual de siempre, sin tocar nada;
+   "Mediano"/"Pequeño" reducen el `font-size` de <html>, que es la base de cualquier
+   medida en `rem` de toda la hoja de estilos (comprobado: no hay ningún `font-size` en
+   px), así que basta con esta única regla para escalar la app entera de golpe. */
+:root[data-font-size="medium"] { font-size: 90%; }
+:root[data-font-size="small"] { font-size: 80%; }
+
 /* html/body ya no hacen scroll — el scroll vive dentro de `.app-main` para que la
    barra lateral (un hermano flex fuera de ese contenedor) nunca se mueva, sea lo larga
    que sea la pantalla activa (antes, con `position: sticky`, se "despegaba" en cuanto el

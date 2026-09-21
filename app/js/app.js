@@ -21,7 +21,16 @@ function setupHeaderActions() {
   if (btnHelp) btnHelp.addEventListener('click', () => ScreenHelp.open(Router.current()));
 
   const btnSettings = document.getElementById('btnSettings');
-  if (btnSettings) btnSettings.addEventListener('click', () => showToast('Ajustes — próximamente'));
+  const modalSettings = document.getElementById('modalSettings');
+  if (btnSettings && modalSettings) {
+    btnSettings.addEventListener('click', () => modalSettings.classList.remove('hidden'));
+    const btnSettingsClose = document.getElementById('btnSettingsClose');
+    if (btnSettingsClose) btnSettingsClose.addEventListener('click', () => modalSettings.classList.add('hidden'));
+    document.getElementById('settingsFontSize').addEventListener('click', (e) => {
+      const btn = e.target.closest('button[data-size]');
+      if (btn) FontSize.set(btn.dataset.size);
+    });
+  }
 
   const btnLogin = document.getElementById('btnLogin');
   if (btnLogin) {
@@ -36,6 +45,7 @@ function setupHeaderActions() {
  *  inicializa — se muestra el login y solo se sigue cuando entra. */
 document.addEventListener('DOMContentLoaded', async () => {
   Theme.init();
+  FontSize.init();
   const loggedIn = await Auth.init();
   if (!loggedIn) { Auth.showLoginOverlay(finishBoot); return; }
   await finishBoot();

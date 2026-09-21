@@ -2,6 +2,15 @@
 
 Formato inspirado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [v1.0.37] — 2026-09-21
+
+### Añadido
+- Pantalla de Ajustes (el botón del header ya hace algo): selector de
+  tamaño de letra con tres opciones — Pequeño, Mediano y Grande (el
+  actual). Se guarda y se aplica a toda la app.
+
+Ver [ADR 0081](docs/decisiones/0081-ajustes-selector-de-tamano-de-letra.md).
+
 ## [v1.0.36] — 2026-09-21
 
 ### Añadido
