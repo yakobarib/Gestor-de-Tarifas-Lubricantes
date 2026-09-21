@@ -1,4 +1,4 @@
-# ADR 0079 — El filtro de formato en Exportación no perdía el dato, solo la selección visual
+# ADR 0079 — El filtro de formato no perdía el dato, solo la selección visual (Exportación y Tarifas)
 
 **Fecha:** 2026-09-21
 **Estado:** Aceptada
@@ -29,9 +29,31 @@ filas) seguía teniendo "208" aunque el `<select>` mostrara vacío.
 desplegable y el filtro real vuelvan a coincidir. Mismo criterio que la restauración de
 `currentOption` en `renderExportOptions()` (ADR 0073).
 
+## Actualización 2026-09-21 — misma auditoría, un sitio más
+
+Yako pidió revisar si el mismo comportamiento se repetía en otros selectores. Revisados
+los cuatro ficheros que reconstruyen `<option>` dinámicamente (`screen-export.js`,
+`screen-tarifas.js`, `screen-rules.js`, `screen-compare.js`):
+
+- **Tarifas** (`renderFormatFilter()`, `screen-tarifas.js`): **mismo bug real**, sin
+  arreglar hasta ahora. Se llama desde tres sitios que NO deberían resetear el filtro
+  (editar los litros a mano en la propia tabla, validar o descartar una referencia en el
+  panel de validación) — corregido con el mismo criterio que Exportación. Los otros
+  cuatro sitios que la llaman (`renderBrandSelect`, `switchGama`, `jumpToLoaded`, el
+  listener de cambio de marca) sí representan un cambio real de marca/gama, donde
+  resetear el filtro es lo esperado — no se tocan.
+- **Reglas** (`renderGamaSelect()`): ya restauraba `sel.value = currentGama`
+  explícitamente — sin bug.
+- **Comparación** (`renderBrandSelect`/`renderGamaSelect`/`renderRefOptions`): se
+  reconstruyen en cada visita a la pantalla (`screen:changed`), pero el estado
+  (`currentBrandId`/`currentGama`) se resetea EN el mismo sitio, a la vez que el
+  `<select>` — no hay desajuste entre lo que se ve y lo que de verdad filtra, así que no
+  es este bug (como mucho, una pérdida de comodidad al volver a la pantalla, no un dato
+  "atascado" invisible) — no se toca en este cambio.
+
 ## Verificación
 
-- `node --check` sobre `screen-export.js`.
+- `node --check` sobre `screen-export.js` y `screen-tarifas.js`.
 - Revisados los otros dos filtros de Exportación (`exportStatusFilter`,
   `exportSearchInput`) — ninguno reconstruye sus opciones dinámicamente, así que no
   tenían este mismo problema.
@@ -39,4 +61,4 @@ desplegable y el filtro real vuelvan a coincidir. Mismo criterio que la restaura
 ## Referencias
 
 - ADR 0073 (mismo bug, en el desplegable de Tipo de exportación).
-- `js/screens/screen-export.js`.
+- `js/screens/screen-export.js`, `js/screens/screen-tarifas.js`.

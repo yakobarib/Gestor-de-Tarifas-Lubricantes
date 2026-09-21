@@ -2,6 +2,15 @@
 
 Formato inspirado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [v1.0.34] — 2026-09-21
+
+### Corregido
+- Mismo fallo que en Exportación (v1.0.33), encontrado también en
+  Tarifas: al editar los litros a mano o validar/descartar una
+  referencia con un formato filtrado, el filtro se quedaba activo en
+  la tabla pero el desplegable mostraba "Todos los formatos" sin
+  poder quitarlo.
+
 ## [v1.0.33] — 2026-09-21
 
 ### Corregido

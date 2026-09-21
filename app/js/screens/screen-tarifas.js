@@ -161,6 +161,13 @@ const ScreenTarifas = (() => {
           const l = k === '?' ? null : parseFloat(k);
           return `<option value="${escapeHtml(k)}">${Parser.formatLabel(l)}</option>`;
         }).join('');
+    // Reconstruir el <select> lo deja sin selección visual aunque `filter.format` siga
+    // activo — mismo bug que ADR 0079 (Exportación), aquí también sin arreglar hasta
+    // ahora: se llama desde validar/descartar una referencia y desde editar los litros a
+    // mano en la propia tabla, ninguno de los cuales debería resetear el filtro. Si el
+    // formato ya no existe entre las filas actuales, se limpia también `filter.format`.
+    if (filter.format && !keys.includes(filter.format)) filter.format = '';
+    sel.value = filter.format || '';
   }
 
   /* ----- render: tabla preview ----- */
