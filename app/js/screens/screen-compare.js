@@ -232,7 +232,22 @@ const ScreenCompare = (() => {
       else $('compareResult').innerHTML = '';
     });
     Store.on('rules:changed', () => { if (lastShown) renderGroupFor(lastShown.brand, lastShown.gama, lastShown.ref); });
-    Store.on('screen:changed', (screen) => { if (screen === 'compare') renderBrandSelect(); });
+    // Reinicio completo al volver a Comparación (pedido por Yako): antes la marca
+    // sobrevivía entre visitas pero gama/referencia se reseteaban y las tarjetas de la
+    // búsqueda anterior se quedaban en pantalla — daba la impresión de que ese resultado
+    // correspondía a los selects recién reseteados, cuando en realidad era de la
+    // búsqueda de antes. Mejor pedir marca/gama/ref cada vez que dejar un estado a
+    // medias que no coincide con lo que se ve.
+    Store.on('screen:changed', (screen) => {
+      if (screen !== 'compare') return;
+      currentBrandId = null;
+      currentGama = 'default';
+      currentRef = null;
+      lastShown = null;
+      $('compareRefInput').value = '';
+      $('compareResult').innerHTML = '';
+      renderBrandSelect();
+    });
   }
 
   function init() {

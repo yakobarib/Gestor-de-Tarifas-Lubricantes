@@ -2,6 +2,15 @@
 
 Formato inspirado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [v1.0.35] — 2026-09-21
+
+### Cambiado
+- Comparación: al volver a la pantalla, ahora se reinicia por completo
+  (marca, gama, referencia y las tarjetas de resultado) en vez de una
+  mezcla — antes la marca se conservaba, gama/referencia se
+  reseteaban, pero el resultado de la búsqueda anterior se quedaba en
+  pantalla dando pie a confusión.
+
 ## [v1.0.34] — 2026-09-21
 
 ### Corregido

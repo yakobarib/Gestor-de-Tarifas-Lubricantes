@@ -49,11 +49,27 @@ los cuatro ficheros que reconstruyen `<option>` dinámicamente (`screen-export.j
   (`currentBrandId`/`currentGama`) se resetea EN el mismo sitio, a la vez que el
   `<select>` — no hay desajuste entre lo que se ve y lo que de verdad filtra, así que no
   es este bug (como mucho, una pérdida de comodidad al volver a la pantalla, no un dato
-  "atascado" invisible) — no se toca en este cambio.
+  "atascado" invisible).
+
+## Actualización 2026-09-21 (2) — Comparación, inconsistencia relacionada
+
+Yako probó Comparación y encontró un problema hermano de este, aunque no idéntico: al
+volver a la pantalla, la Marca se conservaba, la Gama y la Referencia se reseteaban
+(`currentGama` volvía a la primera gama de la marca, `compareRefSelect` a "Elige una
+referencia…"), **pero las tarjetas de resultado de la búsqueda anterior se quedaban en
+pantalla** — dando la impresión de que ese resultado correspondía a los selects recién
+reseteados, cuando en realidad era de la búsqueda de antes de irse a otra pantalla.
+
+Decisión de Yako, explícita: mejor pedir Marca/Gama/Referencia cada vez (aunque suponga
+un clic de más) que dejar un estado a medias que no coincide con lo que se ve. Cambio en
+`screen-compare.js`: el listener de `screen:changed` para `'compare'` ahora resetea
+`currentBrandId`/`currentGama`/`currentRef`/`lastShown`, vacía `compareRefInput` y limpia
+`compareResult`, antes de volver a pintar el selector de marca — reinicio completo, sin
+memoria parcial.
 
 ## Verificación
 
-- `node --check` sobre `screen-export.js` y `screen-tarifas.js`.
+- `node --check` sobre `screen-export.js`, `screen-tarifas.js` y `screen-compare.js`.
 - Revisados los otros dos filtros de Exportación (`exportStatusFilter`,
   `exportSearchInput`) — ninguno reconstruye sus opciones dinámicamente, así que no
   tenían este mismo problema.
@@ -61,4 +77,4 @@ los cuatro ficheros que reconstruyen `<option>` dinámicamente (`screen-export.j
 ## Referencias
 
 - ADR 0073 (mismo bug, en el desplegable de Tipo de exportación).
-- `js/screens/screen-export.js`, `js/screens/screen-tarifas.js`.
+- `js/screens/screen-export.js`, `js/screens/screen-tarifas.js`, `js/screens/screen-compare.js`.
