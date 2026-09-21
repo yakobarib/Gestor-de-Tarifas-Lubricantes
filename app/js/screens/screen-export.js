@@ -376,8 +376,16 @@ const ScreenExport = (() => {
           const l = k === '?' ? null : parseFloat(k);
           return `<option value="${escapeHtml(k)}">${Parser.formatLabel(l)}</option>`;
         }).join('');
-    // Reconstruir las opciones deja el select sin selección — el resaltado verde debe
-    // reflejar eso, no un filtro anterior que ya no aplica (ver ADR 0034).
+    // Reconstruir el <select> lo deja sin selección visual aunque `filter.format` siga
+    // activo — mismo bug que ADR 0073 (Tipo de exportación), aquí sin arreglar hasta
+    // ahora: se llama desde `renderPreview()` en cada `rules:changed` (ej. cambiar un
+    // margen en Reglas), y sin restaurar el valor, el desplegable mostraba "Todos los
+    // formatos" mientras la tabla seguía filtrada — y no había forma de quitar el
+    // filtro, porque volver a elegir "Todos los formatos" no cambia nada si el <select>
+    // ya lo tiene seleccionado (no dispara "change"). Si el formato ya no existe entre
+    // las filas actuales, se limpia también `filter.format` para que ambos coincidan.
+    if (filter.format && !keys.includes(filter.format)) filter.format = '';
+    sel.value = filter.format || '';
     sel.classList.toggle('filter-active', !!sel.value);
   }
 

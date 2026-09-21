@@ -2,6 +2,15 @@
 
 Formato inspirado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [v1.0.33] — 2026-09-21
+
+### Corregido
+- Exportación: al editar algo en Reglas y volver, el filtro de
+  formato (ej. "208L") se quedaba activo en la tabla pero el
+  desplegable mostraba "Todos los formatos" sin poder quitarlo.
+
+Ver [ADR 0079](docs/decisiones/0079-filtro-de-formato-no-perdia-su-seleccion.md).
+
 ## [v1.0.32] — 2026-09-11
 
 ### Añadido
