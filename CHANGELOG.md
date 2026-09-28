@@ -2,6 +2,17 @@
 
 Formato inspirado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [v1.0.43] — 2026-09-28
+
+### Corregido
+- Comparación (Ranking completo): la pantalla necesitaba scroll de
+  página ADEMÁS del scroll propio de la tabla — ahora solo hace
+  scroll la tabla, igual que en Exportación.
+- Cuando ninguna de las 5 marcas tiene la referencia importada, la
+  fila ya no se titula "categoría — ref" a secas: usa la ficha
+  técnica del propio grupo de equivalencia (viscosidad, ACEA/ILSAC,
+  litros) cuando está disponible, ej. "75W GL-4 5 L (15E98B)".
+
 ## [v1.0.42] — 2026-09-28
 
 ### Corregido

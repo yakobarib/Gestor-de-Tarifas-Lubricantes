@@ -128,6 +128,20 @@ const ScreenCompare = (() => {
     `;
   }
 
+  /** El fichero "spec" (aceites) no trae descripción por marca, solo columnas de spec
+   *  técnica compartidas (VISCO/ACEA/ILSAC/LITROS, ver EquivalenceReader) — cuando ninguna
+   *  marca del ranking tiene esa ref en el maestro, es la única pista real que queda para
+   *  titular la fila con algo mejor que "categoría — ref". "SIN ACEA"/"SIN ILSAC" se
+   *  descarta (no aporta nada, es la forma de marcar "no aplica" en el Excel). */
+  function specLabelFor(specs) {
+    if (!specs) return null;
+    const visco = specs.VISCO || specs.SAE || null;
+    const grade = [...new Set([specs.ACEA, specs.ILSAC, specs.API, specs.NLGI, specs.DIN].filter(v => v && !/^SIN\b/i.test(String(v))))].join(' / ');
+    const size = specs.LITROS != null ? `${specs.LITROS} L` : (specs.KG != null ? `${specs.KG} kg` : null);
+    const parts = [visco, grade || null, size].filter(Boolean);
+    return parts.length ? parts.join(' ') : null;
+  }
+
   /** A qué columna del ranking corresponde un brandKey de los ficheros de equivalencias
    *  (ej. "AD STANDARD" → misma columna que "AD PARTS") — -1 si es una marca que no
    *  entra en el ranking (Racing Oil, o una marca sin mapear). */
@@ -202,8 +216,12 @@ const ScreenCompare = (() => {
 
       let description = cols.map(c => c.description).find(Boolean) || null;
       if (!description) {
+        const specLabel = specLabelFor(group.specs);
         const anyRef = cols.map(c => c.ref).find(Boolean);
-        description = anyRef ? `${RANK_CATEGORY_LABELS[group.category] || group.category} — ${anyRef}` : (RANK_CATEGORY_LABELS[group.category] || group.category);
+        if (specLabel && anyRef) description = `${specLabel} (${anyRef})`;
+        else if (specLabel) description = specLabel;
+        else if (anyRef) description = `${RANK_CATEGORY_LABELS[group.category] || group.category} — ${anyRef}`;
+        else description = RANK_CATEGORY_LABELS[group.category] || group.category;
       }
       rows.push({ groupId: group.groupId, category: group.category, description, cols, cheapestIdx, priciestIdx });
     }

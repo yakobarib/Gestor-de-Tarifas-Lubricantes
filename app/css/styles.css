@@ -689,6 +689,17 @@ input[type="number"].manual-pvp-input.is-manual { background-color: #fde68a; fon
 .ranking-cell.priciest .pvp { color: #b04040; }
 .ranking-cell .no-tarifa { color: var(--pico-muted-color); font-style: italic; font-size: 0.78rem; }
 
+/* Ranking completo: mismo patrón que Exportación (ver más arriba, "la pantalla entera
+   debe caber en el viewport") — Yako pidió que no hiciera falta el scroll de la página
+   ADEMÁS del scroll de la propia tabla. Se aplica a toda la sección/artículo (no solo al
+   ranking) porque comparten un único <article> con la vista individual — esa vista no le
+   pide `flex:1` a nada suyo, así que sigue con su alto natural de siempre y su scroll de
+   página normal si hiciera falta (grupos con muchas marcas equivalentes). */
+#screen-compare:not(.hidden) { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+#screen-compare > article { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+#compareRankingView:not(.hidden) { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+#compareRankingView .table-wrap { flex: 1; min-height: 0; max-height: none; }
+
 .hidden { display: none !important; }
 .muted { color: var(--pico-muted-color); }
 .footnote { font-size: 0.76rem; color: var(--pico-muted-color); margin-top: 0.5rem; }
