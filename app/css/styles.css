@@ -217,11 +217,38 @@ article h4 { font-size: 0.88rem; }
 .rules-marca-gama, .rules-policy-export { display: flex; flex-direction: column; gap: 0.9rem; flex: 1 1 260px; min-width: 220px; }
 .rules-marca-gama .field, .rules-policy-export .field { flex: 0 0 auto; }
 
-/* Exportación: Marca/Gama/Tipo/Fecha + el botón Exportar en la misma fila, los 5
-   repartiendo el ancho a partes iguales — con 5 campos, el `flex-basis` de 190px de
-   `.filter-row .field` ya no cabe en un viewport de portátil típico (~1280px) sin
+/* Exportación: Marca/Gama/Tipo/Fecha/Formatos + el botón Exportar en la misma fila, los
+   6 repartiendo el ancho a partes iguales — con tantos campos, el `flex-basis` de 190px
+   de `.filter-row .field` ya no cabe en un viewport de portátil típico (~1280px) sin
    pasar el botón a una línea aparte; aquí se reduce solo para esta fila. */
 .export-toolbar .field { flex-basis: 150px; min-width: 130px; }
+
+/* Checklist de formatos a exportar (ver ADR 0082) — botón que abre un panel flotante
+   con una casilla por formato, en vez de un <select multiple> nativo (mal soporte táctil
+   y nada intuitivo sin ctrl/cmd-click). Mismo criterio WYSIWYG del resto de la pantalla:
+   desmarcar un formato aquí también lo oculta de la tabla de previsualización. */
+.format-checklist-field { position: relative; }
+.format-checklist-panel {
+  position: absolute; top: calc(100% + 0.3rem); left: 0; z-index: 20;
+  background: var(--pico-card-background-color); border: 1px solid var(--pico-card-border-color);
+  border-radius: var(--radius-md); box-shadow: var(--shadow-card-hover);
+  padding: 0.5rem; min-width: 220px; max-width: 280px;
+}
+.format-checklist-actions { display: flex; gap: 0.4rem; margin-bottom: 0.4rem; }
+.format-checklist-actions button {
+  flex: 1; padding: 0.25rem 0.4rem; font-size: 0.76rem;
+  background: var(--surface-muted); color: var(--text-strong);
+  border: 1px solid var(--border-muted); border-radius: var(--radius-sm); cursor: pointer;
+}
+.format-checklist-actions button:hover { background: var(--surface-muted-hover); }
+.format-checklist-list { max-height: 220px; overflow-y: auto; display: flex; flex-direction: column; gap: 0.15rem; }
+.format-checklist-list label {
+  display: flex; align-items: center; gap: 0.4rem; font-size: 0.82rem;
+  padding: 0.2rem 0.3rem; border-radius: var(--radius-sm); cursor: pointer; margin: 0;
+  text-transform: none; letter-spacing: normal; color: var(--text-strong);
+}
+.format-checklist-list label:hover { background: var(--surface-muted); }
+.format-checklist-list input[type="checkbox"] { margin: 0; }
 
 /* Exportación: la pantalla entera debe caber en el viewport sin scroll de página — lo
    único que crece de verdad es el listado (cientos de filas), así que es lo único que

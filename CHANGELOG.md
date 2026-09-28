@@ -2,6 +2,21 @@
 
 Formato inspirado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [v1.0.38] — 2026-09-28
+
+### Añadido
+- Exportación: nuevo checklist "Formatos a exportar" en la barra de
+  filtros — un botón con panel flotante para marcar/desmarcar qué
+  formatos entran en la vista previa y en el fichero exportado.
+  "Todos los formatos" marcado por defecto, con atajos "Todos"/
+  "Ninguno". Independiente del filtro de "Formato" ya existente (ese
+  sigue sirviendo solo para ver/imprimir uno o todos en pantalla).
+  Se reinicia a "todo marcado" solo cuando cambia de verdad el
+  conjunto de formatos disponibles (cambio de marca/gama/tipo), no en
+  cada refresco por edición de márgenes en Reglas.
+
+Ver [ADR 0082](docs/decisiones/0082-checklist-formatos-a-exportar.md).
+
 ## [v1.0.37] — 2026-09-21
 
 ### Añadido

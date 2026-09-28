@@ -23,6 +23,13 @@ const ScreenExport = (() => {
   let currentOption = ''; // 'level:<id>' | 'skrit:pvp' | 'print:pvp' | 'list:neto_factura' | 'list:neto_neto'
   let rows = [];
   let filter = { text: '', format: '', status: '' };
+  // Checklist de "Formatos a exportar" (ver ADR 0082) — aparte del filtro de "Formato"
+  // de un solo valor (`filter.format`, para MIRAR uno concreto): esto decide qué entra
+  // en el fichero exportado, y también en la vista previa (WYSIWYG). `null` = sin
+  // inicializar todavía (recién entrado en la pantalla); un `Set` con TODOS los formatos
+  // actuales de `rows` es el estado "todo marcado" por defecto.
+  let checklistFormats = null;
+  let checklistKeysSignature = null; // detecta si el conjunto de formatos cambió de verdad
 
   const GAMA_LABELS = { normal: 'Normal', standard: 'Standard', sportcar: 'Sport Car', quimico: 'Químicos', default: 'General', automocion: 'Automoción', industria: 'Industria', 'productos-de-mantenimiento': 'Productos de Mantenimiento', marinos: 'Marinos', grasas: 'Grasas', alimentarios: 'Alimentarios', 'v-ligero': 'V. Ligero', 'v-pesado': 'V. Pesado', agricola: 'Agrícola', transmision: 'Transmisión', hidraulicos: 'Hidráulicos', grasa: 'Grasa', moto: 'Moto', classic: 'Classic', marina: 'Marina', anticogelante: 'Anticongelante', aditivos: 'Aditivos', advance: 'Advance', 'air-tool': 'Air Tool', corena: 'Corena', diala: 'Diala', gadinia: 'Gadinia', gadus: 'Gadus', 'heat-transfer': 'Heat Transfer', helix: 'Helix', hydraulic: 'Hydraulic', morlina: 'Morlina', omala: 'Omala', ondina: 'Ondina', 'paper-mach': 'Paper Mach', refrigeration: 'Refrigeration', rimula: 'Rimula', sirius: 'Sirius', spirax: 'Spirax', tegula: 'Tegula', tellus: 'Tellus', tonna: 'Tonna', transmission: 'Transmission', turbo: 'Turbo', 'vacuum-pump': 'Vacuum Pump', other: 'Other', crb: 'CRB', edge: 'EDGE', gtx: 'GTX', 'gtx-5w': 'GTX 5W', magnatec: 'Magnatec', 'castrol-on': 'Castrol ON', transmax: 'Transmax', vecton: 'Vecton' };
 
@@ -361,6 +368,7 @@ const ScreenExport = (() => {
       if (filter.format && r.formatKey !== filter.format) return false;
       if (filter.status === 'new'    && r._status !== 'new')    return false;
       if (filter.status === 'stable' && r._status !== 'stable') return false;
+      if (checklistFormats && !checklistFormats.has(r.formatKey)) return false;
       return true;
     });
   }
@@ -389,6 +397,43 @@ const ScreenExport = (() => {
     sel.classList.toggle('filter-active', !!sel.value);
   }
 
+  /** Checklist de "Formatos a exportar" (ver ADR 0082) — decide qué entra en el fichero
+   *  Y en la vista previa (`checklistFormats`, usado en `visibleRows()`). Solo se
+   *  reinicia a "todo marcado" cuando el conjunto de formatos disponibles cambia de
+   *  verdad (cambio de marca/gama/tipo) — no en cada `renderPreview()` (ej. un
+   *  `rules:changed` al tocar un margen no debería tirar la selección que ya tenías). */
+  function renderFormatChecklist() {
+    const counts = {};
+    for (const r of rows) counts[r.formatKey] = (counts[r.formatKey] || 0) + 1;
+    const keys = Object.keys(counts).sort((a, b) => {
+      if (a === '?') return 1; if (b === '?') return -1;
+      return parseFloat(a) - parseFloat(b);
+    });
+    const signature = keys.join(',');
+    if (signature !== checklistKeysSignature) {
+      checklistKeysSignature = signature;
+      checklistFormats = new Set(keys);
+    } else if (!checklistFormats) {
+      checklistFormats = new Set(keys);
+    }
+    const list = $('exportFormatChecklistList');
+    list.innerHTML = keys.map(k => {
+      const l = k === '?' ? null : parseFloat(k);
+      const checked = checklistFormats.has(k);
+      return `<label><input type="checkbox" value="${escapeHtml(k)}" ${checked ? 'checked' : ''}>${Parser.formatLabel(l)} <span class="muted">(${counts[k]})</span></label>`;
+    }).join('');
+    updateFormatChecklistButton(keys.length);
+  }
+
+  function updateFormatChecklistButton(totalFormats) {
+    const btn = $('exportFormatChecklistBtn');
+    if (!btn) return;
+    const n = checklistFormats ? checklistFormats.size : totalFormats;
+    if (n === totalFormats) btn.textContent = 'Todos los formatos';
+    else if (n === 0) btn.textContent = 'Ningún formato';
+    else btn.textContent = `${n} de ${totalFormats} formatos`;
+  }
+
   /** Carga las filas de la marca/gama/tipo elegidos y las deja listas en `rows` para
    *  pintar la tabla Y para exportar (WYSIWYG: se exporta exactamente lo que se ve aquí). */
   async function renderPreview() {
@@ -396,6 +441,8 @@ const ScreenExport = (() => {
     const wrap = $('exportPreviewWrap');
     if (!brand || !currentOption) {
       rows = [];
+      checklistFormats = null;
+      checklistKeysSignature = null;
       wrap.classList.add('hidden');
       $('exportPreviewEmpty').classList.remove('hidden');
       $('exportPreviewEmpty').textContent = !brand ? 'Elige una marca para ver el listado.' : 'Elige un tipo de exportación.';
@@ -403,6 +450,8 @@ const ScreenExport = (() => {
     }
     rows = await loadRowsWithStatus(brand, currentGama);
     if (!rows.length) {
+      checklistFormats = null;
+      checklistKeysSignature = null;
       wrap.classList.add('hidden');
       $('exportPreviewEmpty').classList.remove('hidden');
       $('exportPreviewEmpty').textContent = 'No hay tarifa importada para esta marca/gama en el maestro.';
@@ -411,6 +460,7 @@ const ScreenExport = (() => {
     $('exportPreviewEmpty').classList.add('hidden');
     wrap.classList.remove('hidden');
     renderFormatFilter();
+    renderFormatChecklist();
     renderPreviewTable();
   }
 
@@ -647,8 +697,9 @@ const ScreenExport = (() => {
     if (!rows.length) { alert('No hay tarifa importada para esta marca/gama en el maestro.'); return; }
     const tariffDate = $('exportTariffDate').value || new Date().toISOString().slice(0, 10);
     const [kind, key] = currentOption.split(':');
-    // Se exporta lo mismo que se ve filtrado en pantalla (búsqueda/formato/estado) — no
-    // el maestro completo de esa marca/gama. Ver ADR 0031.
+    // Se exporta lo mismo que se ve filtrado en pantalla (búsqueda/formato/estado/
+    // checklist de formatos, ver ADR 0082) — no el maestro completo de esa marca/gama.
+    // Ver ADR 0031.
     const filtered = visibleRows();
     if (!filtered.length) { alert('No hay filas visibles con los filtros actuales.'); return; }
 
@@ -757,6 +808,39 @@ const ScreenExport = (() => {
     $('btnDoExport').addEventListener('click', doExport);
     Store.on('rules:changed', ({ brandId }) => { if (brandId === currentBrandId) renderExportOptions(); });
     Store.on('screen:changed', (screen) => { if (screen === 'export') renderBrandSelect(); });
+
+    // Checklist de "Formatos a exportar" (ver ADR 0082) — botón que abre/cierra un panel
+    // flotante; se cierra solo si se hace clic fuera de él (mismo patrón que cualquier
+    // desplegable con panel propio, no hay uno igual todavía en esta app).
+    const checklistBtn = $('exportFormatChecklistBtn');
+    const checklistPanel = $('exportFormatChecklistPanel');
+    checklistBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const willOpen = checklistPanel.classList.contains('hidden');
+      checklistPanel.classList.toggle('hidden');
+      checklistBtn.setAttribute('aria-expanded', String(willOpen));
+    });
+    checklistPanel.addEventListener('click', (e) => {
+      const actionBtn = e.target.closest('button[data-action]');
+      if (!actionBtn) return;
+      const keys = [...checklistPanel.querySelectorAll('input[type="checkbox"]')].map(i => i.value);
+      checklistFormats = actionBtn.dataset.action === 'all' ? new Set(keys) : new Set();
+      renderFormatChecklist();
+      renderPreviewTable();
+    });
+    checklistPanel.addEventListener('change', (e) => {
+      const cb = e.target.closest('input[type="checkbox"]');
+      if (!cb) return;
+      if (cb.checked) checklistFormats.add(cb.value); else checklistFormats.delete(cb.value);
+      updateFormatChecklistButton(new Set(rows.map(r => r.formatKey)).size);
+      renderPreviewTable();
+    });
+    document.addEventListener('click', (e) => {
+      if (checklistPanel.classList.contains('hidden')) return;
+      if (checklistPanel.contains(e.target) || e.target === checklistBtn) return;
+      checklistPanel.classList.add('hidden');
+      checklistBtn.setAttribute('aria-expanded', 'false');
+    });
   }
 
   function init() {

@@ -59,7 +59,7 @@
     <div class="sidebar-footer">
       <p>Diseñado por <strong>Yakoba Moreno</strong></p>
       <p>Desarrollado en <strong>Claude Code</strong></p>
-      <span class="sidebar-version">v1.0.37</span>
+      <span class="sidebar-version">v1.0.38</span>
     </div>
   </aside>
 
@@ -359,6 +359,17 @@
       <div class="field">
         <label for="exportTariffDate">Fecha tarifa</label>
         <input type="date" id="exportTariffDate">
+      </div>
+      <div class="field format-checklist-field">
+        <label for="exportFormatChecklistBtn">Formatos a exportar</label>
+        <button type="button" id="exportFormatChecklistBtn" class="secondary-btn" aria-haspopup="true" aria-expanded="false">Todos los formatos</button>
+        <div id="exportFormatChecklistPanel" class="format-checklist-panel hidden">
+          <div class="format-checklist-actions">
+            <button type="button" data-action="all">Todos</button>
+            <button type="button" data-action="none">Ninguno</button>
+          </div>
+          <div id="exportFormatChecklistList" class="format-checklist-list"></div>
+        </div>
       </div>
       <div class="field">
         <label>&nbsp;</label>
