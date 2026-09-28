@@ -675,6 +675,20 @@ input[type="number"].manual-pvp-input.is-manual { background-color: #fde68a; fon
 /* Beneficio en € según la regla vigente (ver ADR 0066) — verde, distinto del PVP. */
 .chip.gain { font-weight: 700; color: #2d7a2d; background: color-mix(in srgb, #2d7a2d 12%, transparent); border-color: transparent; }
 
+/* Ranking completo (Comparación) — una fila por grupo de equivalencia, una celda
+   PVP+Factura por marca. Verde/rojo marcan el PVP más barato/caro DE ESA FILA (no un
+   valor absoluto), para dar de un vistazo la pauta de negociación (ver conversación con
+   Yako, petición de su jefe). */
+.ranking-table td, .ranking-table th { white-space: normal; }
+.ranking-cell { min-width: 108px; }
+.ranking-cell .pvp { font-weight: 650; }
+.ranking-cell .cost { font-size: 0.74rem; }
+.ranking-cell.cheapest { background: rgba(45, 122, 45, 0.10); }
+.ranking-cell.cheapest .pvp { color: #2d7a2d; }
+.ranking-cell.priciest { background: rgba(176, 64, 64, 0.10); }
+.ranking-cell.priciest .pvp { color: #b04040; }
+.ranking-cell .no-tarifa { color: var(--pico-muted-color); font-style: italic; font-size: 0.78rem; }
+
 .hidden { display: none !important; }
 .muted { color: var(--pico-muted-color); }
 .footnote { font-size: 0.76rem; color: var(--pico-muted-color); margin-top: 0.5rem; }

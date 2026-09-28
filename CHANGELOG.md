@@ -2,6 +2,19 @@
 
 Formato inspirado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [v1.0.41] — 2026-09-28
+
+### Añadido
+- Comparación: nueva pestaña "Ranking completo" — una tabla con TODAS las
+  equivalencias conocidas entre AD Parts, Repsol, Castrol, Eni Live y
+  Shell (Racing Oil no entra), una fila por producto y PVP + coste de
+  factura por marca. Resalta en verde/rojo el PVP más barato/caro de
+  cada fila. Con buscador de texto y filtro por categoría (aceites,
+  grasas, hidráulicos, motor industrial, transmisión y ejes). La vista
+  individual de siempre sigue igual, en su propia pestaña.
+
+Ver [ADR 0083](docs/decisiones/0083-ranking-completo-de-equivalencias.md).
+
 ## [v1.0.40] — 2026-09-28
 
 ### Corregido

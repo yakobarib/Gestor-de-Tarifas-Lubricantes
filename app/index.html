@@ -59,7 +59,7 @@
     <div class="sidebar-footer">
       <p>Diseñado por <strong>Yakoba Moreno</strong></p>
       <p>Desarrollado en <strong>Claude Code</strong></p>
-      <span class="sidebar-version">v1.0.40</span>
+      <span class="sidebar-version">v1.0.41</span>
     </div>
   </aside>
 
@@ -304,32 +304,73 @@
      ========================================================================== -->
 <section id="screen-compare" class="screen-section hidden">
   <article>
-    <h3>Comparar una referencia entre marcas</h3>
-    <div class="filter-row">
-      <div class="field" style="flex: 2 1 260px;">
-        <label for="compareRefInput">Referencia directa</label>
-        <input type="text" id="compareRefInput" placeholder="Ej. ADP32005 o 32005…">
+    <h3>Comparación entre marcas</h3>
+    <div class="mode-toggle">
+      <button type="button" class="mode-btn active" data-compare-mode="individual">Individual</button>
+      <button type="button" class="mode-btn" data-compare-mode="ranking">Ranking completo</button>
+    </div>
+
+    <div id="compareIndividualView">
+      <h4>Comparar una referencia entre marcas</h4>
+      <div class="filter-row">
+        <div class="field" style="flex: 2 1 260px;">
+          <label for="compareRefInput">Referencia directa</label>
+          <input type="text" id="compareRefInput" placeholder="Ej. ADP32005 o 32005…">
+        </div>
+        <div class="field" style="align-self:end;">
+          <button id="btnCompareSearch">Buscar</button>
+        </div>
       </div>
-      <div class="field" style="align-self:end;">
-        <button id="btnCompareSearch">Buscar</button>
+      <p class="hint">Busca en todo el maestro, con o sin el prefijo de la marca. O elige a mano:</p>
+      <div class="filter-row">
+        <div class="field">
+          <label for="compareBrandSelect">Marca</label>
+          <select id="compareBrandSelect"></select>
+        </div>
+        <div class="field">
+          <label for="compareGamaSelect">Gama</label>
+          <select id="compareGamaSelect"></select>
+        </div>
+        <div class="field" style="flex: 2 1 260px;">
+          <label for="compareRefSelect">Referencia</label>
+          <select id="compareRefSelect"></select>
+        </div>
+      </div>
+      <div id="compareResult" class="compare-result"></div>
+    </div>
+
+    <div id="compareRankingView" class="hidden">
+      <h4>Ranking completo de equivalencias (ADP · Repsol · Castrol · Eni Live · Shell)</h4>
+      <p class="hint">Cada fila es un producto con equivalencia conocida — PVP arriba, coste de factura debajo. Verde = más barato de la fila, rojo = más caro. Racing Oil no entra en este ranking (pendiente).</p>
+      <div class="filter-row">
+        <div class="field" style="flex: 2 1 260px;">
+          <label for="compareRankingSearch">Buscar</label>
+          <input type="text" id="compareRankingSearch" placeholder="Descripción o referencia…">
+        </div>
+        <div class="field">
+          <label for="compareRankingCategory">Categoría</label>
+          <select id="compareRankingCategory"></select>
+        </div>
+        <div class="field" style="align-self:end;">
+          <span id="compareRankingCount" class="muted"></span>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table class="preview ranking-table">
+          <thead>
+            <tr>
+              <th class="prod">Producto</th>
+              <th>AD Parts</th>
+              <th>Repsol</th>
+              <th>Castrol</th>
+              <th>Eni Live</th>
+              <th>Shell</th>
+            </tr>
+          </thead>
+          <tbody id="compareRankingBody"></tbody>
+        </table>
       </div>
     </div>
-    <p class="hint">Busca en todo el maestro, con o sin el prefijo de la marca. O elige a mano:</p>
-    <div class="filter-row">
-      <div class="field">
-        <label for="compareBrandSelect">Marca</label>
-        <select id="compareBrandSelect"></select>
-      </div>
-      <div class="field">
-        <label for="compareGamaSelect">Gama</label>
-        <select id="compareGamaSelect"></select>
-      </div>
-      <div class="field" style="flex: 2 1 260px;">
-        <label for="compareRefSelect">Referencia</label>
-        <select id="compareRefSelect"></select>
-      </div>
-    </div>
-    <div id="compareResult" class="compare-result"></div>
   </article>
 </section>
 

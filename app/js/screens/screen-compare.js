@@ -9,6 +9,12 @@
    ver ADR 0056) en TODO el maestro, o el cascada Marca/Gama/Referencia de
    siempre. Reacciona en vivo a cambios de márgenes en la pantalla REGLAS vía
    Store. Ver ADR 0024.
+
+   Segundo modo, "Ranking completo" (ver ADR 0083): en vez de una equivalencia
+   a la vez, recorre TODOS los grupos de `EquivalenceIndex` y pinta una tabla
+   con una fila por producto y una columna por marca (PVP + coste de factura),
+   resaltando el más barato/caro de cada fila. Solo 5 marcas (ADP, Repsol,
+   Castrol, Eni Live, Shell) — Racing Oil queda fuera a petición de Yako.
 */
 const ScreenCompare = (() => {
   const $ = (id) => document.getElementById(id);
@@ -16,6 +22,23 @@ const ScreenCompare = (() => {
   let currentGama = 'default';
   let currentRef = null;
   let lastShown = null; // { brand, gama, ref } — para refrescar en vivo con Store.on('rules:changed')
+
+  let compareMode = 'individual';
+  let rankingRows = null; // null = aún no calculado en esta visita a la pantalla
+  let rankingFilter = { text: '', category: '' };
+
+  const RANK_BRAND_COLUMNS = [
+    { id: 'ad_parts_aceite', label: 'AD Parts' },
+    { id: 'repsol', label: 'Repsol' },
+    { id: 'castrol', label: 'Castrol' },
+    { id: 'eni', label: 'Eni Live' },
+    { id: 'shell', label: 'Shell' }
+  ];
+  const RANK_CATEGORY_LABELS = {
+    aceites: 'Aceites', grasas: 'Grasas', hidraulicos: 'Hidráulicos',
+    motor_industrial: 'Motor Industrial', transmision_ejes: 'Transmisión y Ejes',
+    desconocida: 'Otros'
+  };
 
   function escapeHtml(s) {
     return String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -103,6 +126,147 @@ const ScreenCompare = (() => {
         ${bodyHtml}
       </div>
     `;
+  }
+
+  /** A qué columna del ranking corresponde un brandKey de los ficheros de equivalencias
+   *  (ej. "AD STANDARD" → misma columna que "AD PARTS") — -1 si es una marca que no
+   *  entra en el ranking (Racing Oil, o una marca sin mapear). */
+  function rankColumnIndexForBrandKey(brandKey) {
+    const idKey = EQUIV_BRAND_ALIASES[(brandKey || '').toUpperCase()];
+    if (!idKey) return -1;
+    const brandId = idKey.split(':')[0];
+    return RANK_BRAND_COLUMNS.findIndex(c => c.id === brandId);
+  }
+
+  /** Recorre TODOS los grupos de equivalencia y calcula, por marca del ranking, el PVP y
+   *  el coste de factura — una sola pasada por marca (`MasterDB.getByBrand` + `Map` por
+   *  ref) en vez de repetir el escaneo completo por cada miembro de cada grupo, que es
+   *  lo que hace `findMemberRow` (pensado para una comparación a la vez, no para cientos
+   *  de grupos de golpe). */
+  async function buildRankingRows() {
+    if (!EquivalenceIndex.isLoaded()) return null;
+    const { groups } = EquivalenceIndex.load();
+
+    const rowsByBrand = {};
+    for (const col of RANK_BRAND_COLUMNS) {
+      const all = await MasterDB.getByBrand(col.id, null);
+      const map = new Map();
+      for (const r of all) map.set(String(r.ref).toUpperCase(), r);
+      rowsByBrand[col.id] = map;
+    }
+
+    const levelCache = {}; // `${brandId}:${gama}` → nivel PVP (o null si esa gama no tiene)
+    function pvpLevelFor(brandId, gama) {
+      const key = `${brandId}:${gama}`;
+      if (key in levelCache) return levelCache[key];
+      const level = loadLevelsFor(brandId, gama).find(l => l.id === 'pvp') || null;
+      levelCache[key] = level;
+      return level;
+    }
+
+    const rows = [];
+    for (const group of groups) {
+      const cols = RANK_BRAND_COLUMNS.map(() => ({ state: 'sin_equivalencia' }));
+      for (const m of group.members) {
+        const colIdx = rankColumnIndexForBrandKey(m.brandKey);
+        if (colIdx < 0 || cols[colIdx].state !== 'sin_equivalencia') continue; // fuera del ranking, o columna ya resuelta
+        if (m.note === 'otros_formatos') { cols[colIdx] = { state: 'otros_formatos' }; continue; }
+        const brandId = RANK_BRAND_COLUMNS[colIdx].id;
+        const row = rowsByBrand[brandId].get(String(m.ref).toUpperCase());
+        if (!row) { cols[colIdx] = { state: 'sin_tarifa', ref: m.ref }; continue; }
+        const level = pvpLevelFor(brandId, row.gama);
+        const computed = level ? Pricing.compute(row, level) : null;
+        if (!computed || computed.pvp == null) { cols[colIdx] = { state: 'sin_nivel', ref: m.ref, description: row.description }; continue; }
+        cols[colIdx] = { state: 'ok', ref: m.ref, description: row.description, pvp: computed.pvp, costFactura: row.costFactura };
+      }
+
+      const anyMatched = cols.some(c => c.state !== 'sin_equivalencia');
+      if (!anyMatched) continue; // grupo solo con marcas fuera del ranking (ej. únicamente Racing Oil)
+
+      const withData = cols.filter(c => c.state === 'ok');
+      let cheapestIdx = -1, priciestIdx = -1;
+      if (withData.length >= 2) {
+        let min = Infinity, max = -Infinity;
+        cols.forEach((c, i) => {
+          if (c.state !== 'ok') return;
+          if (c.pvp < min) { min = c.pvp; cheapestIdx = i; }
+          if (c.pvp > max) { max = c.pvp; priciestIdx = i; }
+        });
+        if (cheapestIdx === priciestIdx) { cheapestIdx = -1; priciestIdx = -1; } // todos iguales, nada que resaltar
+      }
+
+      let description = (withData[0] && withData[0].description) || null;
+      if (!description) {
+        const anyRef = cols.map(c => c.ref).find(Boolean);
+        description = anyRef ? `${RANK_CATEGORY_LABELS[group.category] || group.category} — ${anyRef}` : (RANK_CATEGORY_LABELS[group.category] || group.category);
+      }
+      rows.push({ groupId: group.groupId, category: group.category, description, cols, cheapestIdx, priciestIdx });
+    }
+    return rows;
+  }
+
+  function rankingRowMatchesFilter(row) {
+    if (rankingFilter.category && row.category !== rankingFilter.category) return false;
+    if (!rankingFilter.text) return true;
+    const needle = rankingFilter.text.toLowerCase();
+    if (row.description && row.description.toLowerCase().includes(needle)) return true;
+    return row.cols.some(c => c.ref && String(c.ref).toLowerCase().includes(needle));
+  }
+
+  function rankingCellHtml(cell, cls) {
+    if (cell.state === 'ok') {
+      return `<td class="ranking-cell ${cls}"><div class="pvp">${formatEur(cell.pvp)}</div><div class="cost muted">${formatEur(cell.costFactura)}</div></td>`;
+    }
+    if (cell.state === 'otros_formatos') return `<td class="ranking-cell"><span class="no-tarifa" title="Esta marca tiene el producto, pero no en este tamaño">otro formato</span></td>`;
+    if (cell.state === 'sin_tarifa') return `<td class="ranking-cell"><span class="no-tarifa" title="Ref ${escapeHtml(cell.ref)} sin tarifa importada">sin tarifa</span></td>`;
+    if (cell.state === 'sin_nivel') return `<td class="ranking-cell"><span class="no-tarifa" title="Sin nivel PVP configurado en Reglas">sin PVP</span></td>`;
+    return `<td class="ranking-cell"><span class="muted">—</span></td>`;
+  }
+
+  function renderRankingCategorySelect(rows) {
+    const sel = $('compareRankingCategory');
+    const cats = [...new Set(rows.map(r => r.category))];
+    const keep = cats.includes(rankingFilter.category) ? rankingFilter.category : '';
+    sel.innerHTML = '<option value="">Todas las categorías</option>'
+      + cats.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(RANK_CATEGORY_LABELS[c] || c)}</option>`).join('');
+    sel.value = keep;
+    rankingFilter.category = keep;
+  }
+
+  function renderRankingTable() {
+    if (!rankingRows) return;
+    const visible = rankingRows.filter(rankingRowMatchesFilter);
+    $('compareRankingBody').innerHTML = visible.map(row => `
+      <tr>
+        <td class="prod" title="${escapeHtml(row.description || '')}">${escapeHtml(row.description || '(sin descripción)')}</td>
+        ${row.cols.map((c, i) => rankingCellHtml(c, i === row.cheapestIdx ? 'cheapest' : i === row.priciestIdx ? 'priciest' : '')).join('')}
+      </tr>
+    `).join('');
+    $('compareRankingCount').textContent = `Mostrando ${visible.length} de ${rankingRows.length} productos`;
+  }
+
+  async function renderRankingView(forceRebuild) {
+    if (!EquivalenceIndex.isLoaded()) {
+      $('compareRankingBody').innerHTML = '<tr><td colspan="6" class="muted">Carga primero los Excel de cruces de referencias entre marcas, desde Importación.</td></tr>';
+      $('compareRankingCount').textContent = '';
+      return;
+    }
+    if (!rankingRows || forceRebuild) {
+      $('compareRankingCount').textContent = 'Calculando…';
+      rankingRows = await buildRankingRows();
+      renderRankingCategorySelect(rankingRows || []);
+    }
+    renderRankingTable();
+  }
+
+  function setCompareMode(mode) {
+    compareMode = mode;
+    document.querySelectorAll('.mode-btn[data-compare-mode]').forEach(b => {
+      b.classList.toggle('active', b.dataset.compareMode === mode);
+    });
+    $('compareIndividualView').classList.toggle('hidden', mode !== 'individual');
+    $('compareRankingView').classList.toggle('hidden', mode !== 'ranking');
+    if (mode === 'ranking') renderRankingView();
   }
 
   function renderBrandSelect() {
@@ -240,7 +404,15 @@ const ScreenCompare = (() => {
       if (currentRef) renderGroupFor(findBrand(currentBrandId), currentGama, currentRef);
       else $('compareResult').innerHTML = '';
     });
-    Store.on('rules:changed', () => { if (lastShown) renderGroupFor(lastShown.brand, lastShown.gama, lastShown.ref); });
+    document.querySelectorAll('.mode-btn[data-compare-mode]').forEach(b => {
+      b.addEventListener('click', () => setCompareMode(b.dataset.compareMode));
+    });
+    $('compareRankingSearch').addEventListener('input', (e) => { rankingFilter.text = e.target.value.trim(); renderRankingTable(); });
+    $('compareRankingCategory').addEventListener('change', (e) => { rankingFilter.category = e.target.value; renderRankingTable(); });
+    Store.on('rules:changed', () => {
+      if (lastShown) renderGroupFor(lastShown.brand, lastShown.gama, lastShown.ref);
+      if (compareMode === 'ranking') renderRankingView(true);
+    });
     // Reinicio completo al volver a Comparación (pedido por Yako): antes la marca
     // sobrevivía entre visitas pero gama/referencia se reseteaban y las tarjetas de la
     // búsqueda anterior se quedaban en pantalla — daba la impresión de que ese resultado
@@ -256,6 +428,14 @@ const ScreenCompare = (() => {
       $('compareRefInput').value = '';
       $('compareResult').innerHTML = '';
       renderBrandSelect();
+      // El ranking también se recalcula desde cero en cada visita — es una tabla
+      // completa, no un filtro de sesión, y así nunca muestra datos de una maestro/
+      // reglas que hayan cambiado mientras tanto en otra pestaña (mismo motivo que el
+      // reinicio completo de arriba).
+      rankingRows = null;
+      rankingFilter = { text: '', category: '' };
+      $('compareRankingSearch').value = '';
+      setCompareMode('individual');
     });
   }
 
