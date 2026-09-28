@@ -2,6 +2,14 @@
 
 Formato inspirado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [v1.0.40] — 2026-09-28
+
+### Corregido
+- Exportación: en el checklist "Formatos a exportar", cada casilla
+  salía de un tamaño distinto (una regla general de `.filter-row`
+  ponía `width: 100%` a cualquier `<input>`, incluidos los checkbox).
+  Ahora todas miden lo mismo.
+
 ## [v1.0.39] — 2026-09-28
 
 ### Corregido

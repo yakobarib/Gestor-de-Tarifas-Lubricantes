@@ -249,7 +249,11 @@ article h4 { font-size: 0.88rem; }
   white-space: nowrap;
 }
 .format-checklist-list label:hover { background: var(--surface-muted); }
-.format-checklist-list input[type="checkbox"] { margin: 0; flex-shrink: 0; }
+/* `.filter-row .field input` (arriba) fuerza width:100% a cualquier <input>, incluido
+   este checkbox — sin este reset, cada casilla ocupaba el ancho sobrante tras el texto
+   de su fila, así que salían todas de tamaño distinto según lo largo de la etiqueta
+   ("5 L" vs "1000 L"). */
+.format-checklist-list input[type="checkbox"] { margin: 0; flex-shrink: 0; width: 1.25em; height: 1.25em; padding: 0; }
 
 /* Exportación: la pantalla entera debe caber en el viewport sin scroll de página — lo
    único que crece de verdad es el listado (cientos de filas), así que es lo único que
