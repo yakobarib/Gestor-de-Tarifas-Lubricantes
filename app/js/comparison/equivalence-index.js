@@ -16,19 +16,35 @@ const EquivalenceIndex = (() => {
   const KEY = 'equivalence_index_v1';
   let cached = null;
 
+  function indexGroup(refToGroup, groupRef) {
+    for (const m of groupRef.members) {
+      if (m.ref == null) continue; // "en otros formatos" (ver EquivalenceReader) — no es buscable por ref
+      const key = (m.brandKey || '').toUpperCase();
+      refToGroup[key] = refToGroup[key] || {};
+      refToGroup[key][m.ref] = groupRef;
+    }
+  }
+
+  /** `categories` no tiene por qué traer las 5 categorías de golpe — desde Importación se
+   *  puede volver a soltar UN solo Excel suelto (ej. tras corregir algo en él) en vez de
+   *  los 5 a la vez. Antes `build()` sustituía el índice ENTERO por lo recibido, así que
+   *  reimportar uno solo borraba en silencio las otras 4 categorías (bug real, visto por
+   *  Yako: tras reimportar los 5 uno a uno, el ranking solo mostraba la última). Ahora
+   *  solo se reemplazan las categorías que vienen en `categories`; el resto se conserva
+   *  del índice cacheado anterior. */
   function build(categories) {
-    const groups = [];
+    const prev = load();
+    const incomingCats = new Set(categories.map(c => c.category));
+    const keptGroups = prev ? prev.groups.filter(g => !incomingCats.has(g.category)) : [];
+
+    const groups = [...keptGroups];
     const refToGroup = {};
+    for (const g of keptGroups) indexGroup(refToGroup, g);
     for (const cat of categories) {
       for (const g of cat.groups) {
         const groupRef = { category: cat.category, groupId: g.groupId, specs: g.specs, members: g.members };
         groups.push(groupRef);
-        for (const m of g.members) {
-          if (m.ref == null) continue; // "en otros formatos" (ver EquivalenceReader) — no es buscable por ref
-          const key = (m.brandKey || '').toUpperCase();
-          refToGroup[key] = refToGroup[key] || {};
-          refToGroup[key][m.ref] = groupRef;
-        }
+        indexGroup(refToGroup, groupRef);
       }
     }
     cached = { groups, refToGroup, builtAt: new Date().toISOString().slice(0, 10) };

@@ -2,6 +2,21 @@
 
 Formato inspirado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [v1.0.44] — 2026-09-28
+
+### Corregido
+- Reimportar los 5 Excel de equivalencias de uno en uno (en vez de
+  seleccionarlos todos a la vez) borraba en silencio las categorías
+  de los ficheros anteriores — solo sobrevivía la última reimportada.
+  `EquivalenceIndex.build()` ahora combina por categoría: reimportar
+  un fichero suelto solo actualiza esa categoría y conserva las demás
+  tal como estaban.
+
+**Importante para Yako**: tras esta actualización hace falta volver a
+reimportar los 4 ficheros de equivalencias que se perdieron (todos
+menos Transmisión y Ejes) — ya sea uno a uno o todos a la vez,
+ahora es seguro de cualquiera de las dos formas.
+
 ## [v1.0.43] — 2026-09-28
 
 ### Corregido
