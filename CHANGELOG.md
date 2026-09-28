@@ -2,6 +2,13 @@
 
 Formato inspirado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [v1.0.39] — 2026-09-28
+
+### Corregido
+- Exportación: en el panel del checklist "Formatos a exportar", cada
+  formato ocupaba dos líneas (el texto partía entre el número y la
+  "L") en vez de una sola fila.
+
 ## [v1.0.38] — 2026-09-28
 
 ### Añadido

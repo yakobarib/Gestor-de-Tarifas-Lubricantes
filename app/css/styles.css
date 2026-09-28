@@ -246,9 +246,10 @@ article h4 { font-size: 0.88rem; }
   display: flex; align-items: center; gap: 0.4rem; font-size: 0.82rem;
   padding: 0.2rem 0.3rem; border-radius: var(--radius-sm); cursor: pointer; margin: 0;
   text-transform: none; letter-spacing: normal; color: var(--text-strong);
+  white-space: nowrap;
 }
 .format-checklist-list label:hover { background: var(--surface-muted); }
-.format-checklist-list input[type="checkbox"] { margin: 0; }
+.format-checklist-list input[type="checkbox"] { margin: 0; flex-shrink: 0; }
 
 /* Exportación: la pantalla entera debe caber en el viewport sin scroll de página — lo
    único que crece de verdad es el listado (cientos de filas), así que es lo único que
