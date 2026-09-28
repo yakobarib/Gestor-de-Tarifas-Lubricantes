@@ -2,6 +2,22 @@
 
 Formato inspirado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [v1.0.42] — 2026-09-28
+
+### Corregido
+- Comparación (Ranking completo): algunas filas salían tituladas como
+  "categoría — REF" en vez del nombre real del producto — el código
+  solo miraba la descripción de la marca con tarifa importada y PVP
+  calculado, ignorando la descripción que ya trae el propio fichero de
+  equivalencias para las demás marcas.
+- El lector de equivalencias no reconocía "FUERA DE TARIFA" (usado por
+  Eni Live) como marcador de "sin equivalencia" — se colaba como si
+  fuera una referencia real (ej. "Aceites — FUERA DE TARIFA"). Ahora
+  se trata igual que "SIN EQUIVALENCIA"/"SIN ACTUALIZAR". Para que
+  este segundo arreglo llegue a Neon hace falta volver a soltar los 5
+  Excel de equivalencias en Importación (el índice no se recalcula
+  solo).
+
 ## [v1.0.41] — 2026-09-28
 
 ### Añadido

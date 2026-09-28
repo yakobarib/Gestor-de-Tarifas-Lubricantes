@@ -170,14 +170,19 @@ const ScreenCompare = (() => {
       for (const m of group.members) {
         const colIdx = rankColumnIndexForBrandKey(m.brandKey);
         if (colIdx < 0 || cols[colIdx].state !== 'sin_equivalencia') continue; // fuera del ranking, o columna ya resuelta
-        if (m.note === 'otros_formatos') { cols[colIdx] = { state: 'otros_formatos' }; continue; }
+        if (m.note === 'otros_formatos') { cols[colIdx] = { state: 'otros_formatos', description: m.description || null }; continue; }
         const brandId = RANK_BRAND_COLUMNS[colIdx].id;
         const row = rowsByBrand[brandId].get(String(m.ref).toUpperCase());
-        if (!row) { cols[colIdx] = { state: 'sin_tarifa', ref: m.ref }; continue; }
+        // El fichero "block" (Grasas/Hidráulicos/Motor VI/Transmisión, ver EquivalenceReader)
+        // trae su propia descripción por miembro — se conserva aquí en TODOS los estados,
+        // no solo "ok", para poder titular la fila aunque ninguna marca tenga tarifa
+        // importada todavía (antes solo se miraba `row.description`, y una fila sin
+        // ninguna marca resuelta salía con "categoría — ref" en vez del producto real).
+        if (!row) { cols[colIdx] = { state: 'sin_tarifa', ref: m.ref, description: m.description || null }; continue; }
         const level = pvpLevelFor(brandId, row.gama);
         const computed = level ? Pricing.compute(row, level) : null;
-        if (!computed || computed.pvp == null) { cols[colIdx] = { state: 'sin_nivel', ref: m.ref, description: row.description }; continue; }
-        cols[colIdx] = { state: 'ok', ref: m.ref, description: row.description, pvp: computed.pvp, costFactura: row.costFactura };
+        if (!computed || computed.pvp == null) { cols[colIdx] = { state: 'sin_nivel', ref: m.ref, description: row.description || m.description || null }; continue; }
+        cols[colIdx] = { state: 'ok', ref: m.ref, description: row.description || m.description || null, pvp: computed.pvp, costFactura: row.costFactura };
       }
 
       const anyMatched = cols.some(c => c.state !== 'sin_equivalencia');
@@ -195,7 +200,7 @@ const ScreenCompare = (() => {
         if (cheapestIdx === priciestIdx) { cheapestIdx = -1; priciestIdx = -1; } // todos iguales, nada que resaltar
       }
 
-      let description = (withData[0] && withData[0].description) || null;
+      let description = cols.map(c => c.description).find(Boolean) || null;
       if (!description) {
         const anyRef = cols.map(c => c.ref).find(Boolean);
         description = anyRef ? `${RANK_CATEGORY_LABELS[group.category] || group.category} — ${anyRef}` : (RANK_CATEGORY_LABELS[group.category] || group.category);

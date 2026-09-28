@@ -25,7 +25,11 @@ const EquivalenceReader = (() => {
   // tiene el producto, pero no en este tamaño/formato concreto. Se conserva como
   // miembro sin ref (con nota), en vez de descartarlo — así Comparación puede avisar
   // "en otros formatos" en vez de dar la falsa impresión de que no hay nada.
-  const NO_EQUIVALENCE_VALUES = new Set(['SIN EQUIVALENCIA', 'SIN ACTUALIZAR', '']);
+  // "FUERA DE TARIFA" (visto en Eni Live, Equivalencias Aceites por Marcas.xlsx) es un
+  // tercer texto real con el mismo significado que SIN EQUIVALENCIA/SIN ACTUALIZAR — sin
+  // esto, se colaba como si fuera una ref literal (Comparación → Ranking completo lo
+  // mostraba como "aceites — FUERA DE TARIFA", ver ADR 0083).
+  const NO_EQUIVALENCE_VALUES = new Set(['SIN EQUIVALENCIA', 'SIN ACTUALIZAR', 'FUERA DE TARIFA', '']);
   const OTHER_FORMATS_VALUE = 'EN OTROS FORMATOS';
 
   function sheetRows(workbook, sheetName) {
