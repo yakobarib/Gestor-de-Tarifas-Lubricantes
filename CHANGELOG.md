@@ -2,6 +2,26 @@
 
 Formato inspirado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [v1.0.45] — 2026-09-29
+
+### Corregido
+- Bug real detrás de "casi no hay equivalencias de AD Parts" en
+  Grasas, Hidráulicos, Motor Vehículo Industrial y Transmisión: esos
+  4 Excel usan "ADP"/"ADS" como nombre de columna de AD Parts, pero
+  `EQUIV_BRAND_ALIASES` solo reconocía "AD PARTS"/"AD STANDARD" (el
+  nombre que usa el Excel de Aceites) — todas las equivalencias de AD
+  Parts en esas 4 categorías se perdían en silencio, tanto en
+  Comparación individual como en el Ranking completo.
+- Comparación individual: buscar desde el lado de AD Parts un
+  producto de esas 4 categorías tampoco lo habría encontrado aunque
+  se arreglara el alias — solo se probaba un nombre de columna por
+  marca/gama. Ahora se prueban todos los alias declarados para esa
+  marca/gama antes de dar "sin equivalencia".
+
+### Cambiado
+- Ranking completo: la categoría "Aceites" del filtro pasa a
+  llamarse "Motor Ligero" (a petición de Yako).
+
 ## [v1.0.44] — 2026-09-28
 
 ### Corregido

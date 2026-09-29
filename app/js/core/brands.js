@@ -37,6 +37,13 @@ function findBrand(brandId) {
 const EQUIV_BRAND_ALIASES = {
   'AD PARTS': 'ad_parts_aceite:normal',
   'AD STANDARD': 'ad_parts_aceite:standard',
+  // Los 4 ficheros "block" (Grasas/Hidráulicos/Motor Vehículo Industrial/Transmisión, ver
+  // EquivalenceReader) usan "ADP"/"ADS" como nombre de columna, no "AD PARTS"/"AD
+  // STANDARD" (solo el fichero "spec" de Aceites usa el nombre completo) — sin estos dos
+  // alias, todas las equivalencias de AD Parts en esas 4 categorías se perdían en
+  // silencio (ni Comparación individual ni el Ranking encontraban nada, ver ADR 0083).
+  'ADP': 'ad_parts_aceite:normal',
+  'ADS': 'ad_parts_aceite:standard',
   'REPSOL': 'repsol:automocion',
   'CASTROL': 'castrol:edge',
   'ENI': 'eni:i-sint',

@@ -35,7 +35,7 @@ const ScreenCompare = (() => {
     { id: 'shell', label: 'Shell' }
   ];
   const RANK_CATEGORY_LABELS = {
-    aceites: 'Aceites', grasas: 'Grasas', hidraulicos: 'Hidráulicos',
+    aceites: 'Motor Ligero', grasas: 'Grasas', hidraulicos: 'Hidráulicos',
     motor_industrial: 'Motor Industrial', transmision_ejes: 'Transmisión y Ejes',
     desconocida: 'Otros'
   };
@@ -82,6 +82,22 @@ const ScreenCompare = (() => {
     if (!candidates.length) return null;
     const exact = candidates.find(c => c.declaredGama === gama);
     return (exact || candidates[0]).brandKey;
+  }
+
+  /** AD Parts tiene DOS alias por gama (ej. normal → "AD PARTS" en el fichero de Aceites,
+   *  "ADP" en los 4 ficheros "block") — `brandKeyForRow` solo probaba uno (el primero
+   *  declarado), así que buscar desde el lado de AD Parts un producto de Grasas/
+   *  Hidráulicos/Motor VI/Transmisión no encontraba nada aunque el grupo existiera. Se
+   *  prueban TODOS los alias de esa marca/gama (la gama exacta primero) hasta que uno
+   *  encuentre grupo. */
+  function findEquivalentsForRow(brandId, gama, ref) {
+    const candidates = brandKeysFor(brandId);
+    const ordered = [...candidates].sort((a, b) => (a.declaredGama === gama ? 0 : 1) - (b.declaredGama === gama ? 0 : 1));
+    for (const c of ordered) {
+      const group = EquivalenceIndex.findEquivalents(c.brandKey, ref);
+      if (group) return group;
+    }
+    return null;
   }
 
   /** Busca una ref en TODO el maestro (todas las marcas, todas las gamas) — ninguna marca
@@ -358,7 +374,7 @@ const ScreenCompare = (() => {
       el.innerHTML = `<p class="muted">Esta marca todavía no está mapeada en los ficheros de equivalencias (ver EQUIV_BRAND_ALIASES).</p>`;
       return;
     }
-    const group = EquivalenceIndex.findEquivalents(brandKey, ref);
+    const group = findEquivalentsForRow(brand.id, gama, ref);
     if (!group) {
       el.innerHTML = `<p class="muted">Sin equivalencia encontrada para <strong>${escapeHtml(ref)}</strong> en la base de conocimiento.</p>`;
       return;
