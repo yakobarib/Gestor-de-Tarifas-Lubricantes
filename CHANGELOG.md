@@ -2,6 +2,29 @@
 
 Formato inspirado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [v1.0.46] — 2026-09-29
+
+### Cambiado
+- Reestructurados los 5 ficheros de equivalencias entre marcas: "Aceites
+  por Marcas" pasa a llamarse "Motor Vehículo Ligero" (mismo contenido,
+  sin las ~165 referencias que ya vivían duplicadas — y a veces
+  desincronizadas — en Motor Industrial, Hidráulicos y Transmisión), y
+  Transmisión Manual/Ejes se fusiona con la transmisión automática
+  (antes mezclada dentro de Aceites) en un solo fichero. Los dos
+  ficheros convertidos, además, pasan al formato con descripción por
+  producto (antes solo tenían la referencia), rellenada automáticamente
+  desde el maestro de Neon.
+
+### Corregido
+- El lector de equivalencias no reconocía "SOLO EN 1 LITRO" (Repsol)
+  como variante de "EN OTROS FORMATOS" — se colaba como si fuera una
+  referencia real, igual que pasó antes con "FUERA DE TARIFA". Ahora
+  es una expresión regular en vez de una lista cerrada de textos.
+- Ranking completo: el desplegable de categoría ya sale ordenado
+  alfabéticamente (antes seguía el orden interno del código).
+
+Ver [ADR 0084](docs/decisiones/0084-reestructuracion-equivalencias-sin-duplicados.md).
+
 ## [v1.0.45] — 2026-09-29
 
 ### Corregido

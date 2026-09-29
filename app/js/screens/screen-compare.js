@@ -264,7 +264,8 @@ const ScreenCompare = (() => {
 
   function renderRankingCategorySelect(rows) {
     const sel = $('compareRankingCategory');
-    const cats = [...new Set(rows.map(r => r.category))];
+    const cats = [...new Set(rows.map(r => r.category))]
+      .sort((a, b) => (RANK_CATEGORY_LABELS[a] || a).localeCompare(RANK_CATEGORY_LABELS[b] || b, 'es'));
     const keep = cats.includes(rankingFilter.category) ? rankingFilter.category : '';
     sel.innerHTML = '<option value="">Todas las categorías</option>'
       + cats.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(RANK_CATEGORY_LABELS[c] || c)}</option>`).join('');

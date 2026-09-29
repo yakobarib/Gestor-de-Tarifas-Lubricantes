@@ -30,7 +30,12 @@ const EquivalenceReader = (() => {
   // esto, se colaba como si fuera una ref literal (Comparación → Ranking completo lo
   // mostraba como "aceites — FUERA DE TARIFA", ver ADR 0083).
   const NO_EQUIVALENCE_VALUES = new Set(['SIN EQUIVALENCIA', 'SIN ACTUALIZAR', 'FUERA DE TARIFA', '']);
-  const OTHER_FORMATS_VALUE = 'EN OTROS FORMATOS';
+  // "SOLO EN 1 LITRO" (visto en Repsol, Equivalencias Aceites por Marcas.xlsx) es una
+  // variante real de "EN OTROS FORMATOS" — mismo significado (la marca SÍ tiene el
+  // producto, pero no en este tamaño), solo que con texto libre en vez de la frase fija.
+  // Regex en vez de Set exacto para no tener que perseguir cada variante nueva a mano.
+  const OTHER_FORMATS_RE = /^(EN OTROS FORMATOS|SOLO EN .*LITROS?)$/i;
+  function isOtherFormatsMarker(s) { return OTHER_FORMATS_RE.test(s); }
 
   function sheetRows(workbook, sheetName) {
     const sheet = workbook.Sheets[sheetName];
@@ -66,7 +71,7 @@ const EquivalenceReader = (() => {
         const s = String(val).trim();
         const upper = s.toUpperCase();
         if (NO_EQUIVALENCE_VALUES.has(upper)) continue;
-        if (upper === OTHER_FORMATS_VALUE) { members.push({ brandKey: bc.name, ref: null, note: 'otros_formatos' }); continue; }
+        if (isOtherFormatsMarker(upper)) { members.push({ brandKey: bc.name, ref: null, note: 'otros_formatos' }); continue; }
         members.push({ brandKey: bc.name, ref: s });
       }
       if (members.length) groups.push({ groupId: `${categoryPrefix}_spec_${r}`, specs, members });
@@ -123,7 +128,7 @@ const EquivalenceReader = (() => {
         if (refVal == null || refVal === '') continue;
         const refUpper = String(refVal).trim().toUpperCase();
         if (NO_EQUIVALENCE_VALUES.has(refUpper)) continue;
-        if (refUpper === OTHER_FORMATS_VALUE) { members.push({ brandKey: b.label, ref: null, note: 'otros_formatos' }); continue; }
+        if (isOtherFormatsMarker(refUpper)) { members.push({ brandKey: b.label, ref: null, note: 'otros_formatos' }); continue; }
         members.push({
           brandKey: b.label,
           ref: String(refVal).trim(),
@@ -142,6 +147,14 @@ const EquivalenceReader = (() => {
    */
   function readKnownFile(filename, workbook) {
     const f = (filename || '').toLowerCase();
+    // "Vehículo Ligero" sustituye al antiguo "Aceites por Marcas" (ver ADR 0084): mismo
+    // hueco de categoría ('aceites', ya etiquetada "Motor Ligero" en el Ranking), pero
+    // ahora en formato "block" con descripción por producto — el spec-only original se
+    // quedó sin refs pesadas duplicadas en otras categorías y pasó a llamarse "Aceites
+    // General por Marcas.xlsx" (copia de archivo, ya no se reimporta).
+    if (f.includes('vehiculo ligero') || f.includes('vehículo ligero')) {
+      return { category: 'aceites', ...readBlockFormat(workbook, workbook.SheetNames[0], 'aceites') };
+    }
     if (f.includes('aceites por marcas')) {
       return { category: 'aceites', ...readSpecFormat(workbook, 'EQUIVALENCIAS', 'aceites') };
     }
