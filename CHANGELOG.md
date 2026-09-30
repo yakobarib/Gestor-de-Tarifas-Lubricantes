@@ -2,6 +2,29 @@
 
 Formato inspirado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [v1.0.47] — 2026-09-30
+
+### Cambiado
+- Segunda reestructuración de los ficheros de equivalencias (sustituye a
+  la del ADR 0084/v1.0.46): ahora son 8 ficheros organizados por tipo de
+  uso final — Vehículo Ligero, Vehículo Pesado, Vehículo Agrícola y
+  Vehículo Eléctrico (las dos últimas, categorías nuevas), Transmisión
+  Automática y Transmisión Manual y Ejes (dos ficheros separados a
+  propósito, para que sea más fácil mantenerlos limpios — la app los
+  junta en un único filtro de categoría sin hacer falta fusionarlos),
+  Industria Hidráulicos y Grasas. Formato más simple y uniforme (una
+  columna GAMA + especificaciones + una referencia por marca, sin
+  descripción — decisión de Yako, más fácil de revisar a mano).
+
+### Añadido
+- Nuevo estado "pendiente de cruce" (distinto de "sin equivalencia"):
+  para referencias que puede que sí tengan equivalente en otra marca,
+  pero que aún no se han buscado/confirmado. Se muestra en ámbar tanto
+  en Comparación individual como en el Ranking completo, en vez de
+  mezclarlo con "sin equivalencia" o "en otros formatos".
+
+Ver [ADR 0085](docs/decisiones/0085-equivalencias-por-tipo-de-uso-final.md).
+
 ## [v1.0.46] — 2026-09-29
 
 ### Cambiado

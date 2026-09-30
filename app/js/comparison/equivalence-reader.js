@@ -1,41 +1,51 @@
 /* ============================================================================
    MÓDULO: EquivalenceReader  (lectura de los Excel de equivalencias entre
-   marcas — BASE DE CONOCIMIENTO/Equivalencias *.xlsx, ver ADR 0008)
+   marcas — BASE DE CONOCIMIENTO/Equivalencias *.xlsx, ver ADR 0008, ADR 0085)
    ============================================================================
    Dos formatos reales distintos:
-   - "spec": 1 fila = 1 grupo de equivalencia directo. Columnas de spec técnica
-     (VISCO/ACEA/ILSAC/AD/LITROS) + 1 columna de referencia por marca. Valores
-     especiales SIN EQUIVALENCIA / SIN ACTUALIZAR se ignoran (esa marca no tiene
-     nada). EN OTROS FORMATOS se conserva como miembro sin ref, con
-     `note: 'otros_formatos'` — la marca sí tiene el producto, solo que no en
-     este tamaño (ver Comparación, que lo muestra como aviso en vez de omitirlo).
-     (Fichero real: "Equivalencias Aceites por Marcas.xlsx".)
+   - "gama-spec": 1 fila = 1 grupo de equivalencia directo. Columna GAMA (nombre
+     de la categoría, informativa — la categoría real la decide el nombre de
+     fichero) + columnas de spec técnica (VISCO/ACEA/ILSAC/AD/LITROS) + 1
+     columna de referencia por marca, sin descripción. Es el formato que usa
+     Yako desde el ADR 0085 para los 7 ficheros de vehículos/hidráulicos —
+     mismo espíritu que el antiguo formato "spec" (ADR 0008), con GAMA añadida.
    - "block": fila 1 = nombre de marca cada bloque de columnas (con huecos de
      separador), fila 2 = REFERENCIA/DESCRIPCCIÓN/LITROS|KG por bloque, filas
      de datos con carry-forward en las columnas de spec compartida cuando
-     vienen vacías (confirmado en los ficheros reales: SAE/DIN/COMP/NLGI se
-     mantienen a través de varias filas de tamaños distintos del mismo
-     producto). (Ficheros reales: Grasas, Hidraulicos, Motor Vehículo
-     Industrial, Transmisión Manual y Ejes.)
+     vienen vacías. (Fichero real: Grasas — el único que se queda en este
+     formato tras el ADR 0085; antes también lo usaban Hidráulicos/Motor
+     Vehículo Industrial/Transmisión, sustituidos por el formato gama-spec.)
    Ambos devuelven el mismo shape: { groups: [{ groupId, specs, members }] }
    con members: [{ brandKey, ref, description?, size?, note? }].
+
+   Tres marcadores de texto libre en las celdas de referencia, ninguno es una
+   ref real:
+   - "sin equivalencia" (SIN EQUIVALENCIA / SIN ACTUALIZAR / FUERA DE TARIFA):
+     esa marca no tiene el producto, punto. Se descarta sin más.
+   - "en otros formatos" (EN OTROS FORMATOS / SOLO EN ... LITRO(S)): la marca
+     SÍ tiene el producto, pero no en este tamaño — se conserva como miembro
+     sin ref, `note: 'otros_formatos'` (Comparación avisa en vez de omitirlo).
+   - "pendiente de cruce" (PENDIENTE DE CRUCE): a diferencia de "sin
+     equivalencia", NO significa que no exista — significa que Yako todavía no
+     ha buscado/confirmado el cruce para esa marca. Se conserva como miembro
+     sin ref, `note: 'pendiente_de_cruce'`, para que la UI lo distinga de un
+     "no hay nada" real (ver conversación 2026-09-30).
 */
 const EquivalenceReader = (() => {
-  // "EN OTROS FORMATOS" no significa "sin equivalencia" — significa que esa marca SÍ
-  // tiene el producto, pero no en este tamaño/formato concreto. Se conserva como
-  // miembro sin ref (con nota), en vez de descartarlo — así Comparación puede avisar
-  // "en otros formatos" en vez de dar la falsa impresión de que no hay nada.
-  // "FUERA DE TARIFA" (visto en Eni Live, Equivalencias Aceites por Marcas.xlsx) es un
-  // tercer texto real con el mismo significado que SIN EQUIVALENCIA/SIN ACTUALIZAR — sin
-  // esto, se colaba como si fuera una ref literal (Comparación → Ranking completo lo
-  // mostraba como "aceites — FUERA DE TARIFA", ver ADR 0083).
   const NO_EQUIVALENCE_VALUES = new Set(['SIN EQUIVALENCIA', 'SIN ACTUALIZAR', 'FUERA DE TARIFA', '']);
-  // "SOLO EN 1 LITRO" (visto en Repsol, Equivalencias Aceites por Marcas.xlsx) es una
-  // variante real de "EN OTROS FORMATOS" — mismo significado (la marca SÍ tiene el
-  // producto, pero no en este tamaño), solo que con texto libre en vez de la frase fija.
-  // Regex en vez de Set exacto para no tener que perseguir cada variante nueva a mano.
+  // Regex en vez de Set exacto para "en otros formatos" — ya han aparecido variantes de
+  // texto libre ("SOLO EN 1 LITRO") con el mismo significado que la frase fija.
   const OTHER_FORMATS_RE = /^(EN OTROS FORMATOS|SOLO EN .*LITROS?)$/i;
-  function isOtherFormatsMarker(s) { return OTHER_FORMATS_RE.test(s); }
+  const PENDING_CROSS_RE = /^PENDIENTE DE CRUCE$/i;
+
+  /** Clasifica el texto de una celda de referencia: 'ref' (referencia real, se procesa
+   *  fuera de esta función), o uno de los tres marcadores sin ref real. */
+  function markerFor(upperTrimmed) {
+    if (NO_EQUIVALENCE_VALUES.has(upperTrimmed)) return 'sin_equivalencia';
+    if (OTHER_FORMATS_RE.test(upperTrimmed)) return 'otros_formatos';
+    if (PENDING_CROSS_RE.test(upperTrimmed)) return 'pendiente_de_cruce';
+    return null;
+  }
 
   function sheetRows(workbook, sheetName) {
     const sheet = workbook.Sheets[sheetName];
@@ -43,16 +53,20 @@ const EquivalenceReader = (() => {
     return XLSX.utils.sheet_to_json(sheet, { header: 1, defval: null, blankrows: false });
   }
 
-  /** Formato "spec" — ej. Equivalencias Aceites por Marcas.xlsx. */
-  function readSpecFormat(workbook, sheetName, categoryPrefix) {
+  /** Formato "gama-spec" — los 7 ficheros de vehículos/hidráulicos (ver ADR 0085). La
+   *  columna GAMA es solo informativa (para que Yako filtre a mano en el propio Excel);
+   *  la categoría real de cada grupo la decide `readKnownFile` por nombre de fichero. */
+  function readGamaSpecFormat(workbook, sheetName, categoryPrefix) {
     const raw = sheetRows(workbook, sheetName);
     if (!raw || !raw.length) return { groups: [] };
     const header = raw[0].map(h => (h == null ? null : String(h).trim()));
 
-    let specEnd = header.findIndex(h => h == null);
+    const gamaCol = header.findIndex(h => h && h.toUpperCase() === 'GAMA');
+    const specStart = gamaCol >= 0 ? gamaCol + 1 : 0;
+    let specEnd = header.findIndex((h, i) => i > specStart - 1 && h == null);
     if (specEnd < 0) specEnd = header.length;
     const specCols = [];
-    for (let c = 0; c < specEnd; c++) specCols.push({ idx: c, name: header[c] });
+    for (let c = specStart; c < specEnd; c++) specCols.push({ idx: c, name: header[c] });
     const brandCols = [];
     for (let c = specEnd; c < header.length; c++) {
       if (header[c]) brandCols.push({ idx: c, name: header[c] });
@@ -69,9 +83,9 @@ const EquivalenceReader = (() => {
         const val = row[bc.idx];
         if (val == null) continue;
         const s = String(val).trim();
-        const upper = s.toUpperCase();
-        if (NO_EQUIVALENCE_VALUES.has(upper)) continue;
-        if (isOtherFormatsMarker(upper)) { members.push({ brandKey: bc.name, ref: null, note: 'otros_formatos' }); continue; }
+        const marker = markerFor(s.toUpperCase());
+        if (marker === 'sin_equivalencia') continue;
+        if (marker) { members.push({ brandKey: bc.name, ref: null, note: marker }); continue; }
         members.push({ brandKey: bc.name, ref: s });
       }
       if (members.length) groups.push({ groupId: `${categoryPrefix}_spec_${r}`, specs, members });
@@ -79,7 +93,7 @@ const EquivalenceReader = (() => {
     return { groups };
   }
 
-  /** Formato "block" — ej. Equivalencias Grasas/Hidraulicos/Motor VI/Transmisión. */
+  /** Formato "block" — ej. Equivalencias Grasas.xlsx. */
   function readBlockFormat(workbook, sheetName, categoryPrefix) {
     const raw = sheetRows(workbook, sheetName);
     if (!raw || raw.length < 3) return { groups: [] };
@@ -127,8 +141,9 @@ const EquivalenceReader = (() => {
         const refVal = row[cols.ref];
         if (refVal == null || refVal === '') continue;
         const refUpper = String(refVal).trim().toUpperCase();
-        if (NO_EQUIVALENCE_VALUES.has(refUpper)) continue;
-        if (isOtherFormatsMarker(refUpper)) { members.push({ brandKey: b.label, ref: null, note: 'otros_formatos' }); continue; }
+        const marker = markerFor(refUpper);
+        if (marker === 'sin_equivalencia') continue;
+        if (marker) { members.push({ brandKey: b.label, ref: null, note: marker }); continue; }
         members.push({
           brandKey: b.label,
           ref: String(refVal).trim(),
@@ -142,40 +157,43 @@ const EquivalenceReader = (() => {
   }
 
   /**
-   * Lee uno de los 5 ficheros conocidos de BASE DE CONOCIMIENTO por su nombre
-   * de fichero, detectando cuál de los dos formatos usa.
+   * Lee uno de los ficheros conocidos de BASE DE CONOCIMIENTO/Equivalencias por su
+   * nombre de fichero. Transmisión Automática y Transmisión Manual y Ejes son dos
+   * ficheros a propósito (Yako: "mantenerlos separados ayuda a mantenerlos actualizados
+   * y limpios") pero comparten la misma categoría ('transmision') — la app los junta
+   * sola, sin que haga falta fusionar los ficheros.
    */
   function readKnownFile(filename, workbook) {
     const f = (filename || '').toLowerCase();
-    // "Vehículo Ligero" sustituye al antiguo "Aceites por Marcas" (ver ADR 0084): mismo
-    // hueco de categoría ('aceites', ya etiquetada "Motor Ligero" en el Ranking), pero
-    // ahora en formato "block" con descripción por producto — el spec-only original se
-    // quedó sin refs pesadas duplicadas en otras categorías y pasó a llamarse "Aceites
-    // General por Marcas.xlsx" (copia de archivo, ya no se reimporta).
     if (f.includes('vehiculo ligero') || f.includes('vehículo ligero')) {
-      return { category: 'aceites', ...readBlockFormat(workbook, workbook.SheetNames[0], 'aceites') };
+      return { category: 'vehiculo_ligero', ...readGamaSpecFormat(workbook, workbook.SheetNames[0], 'vehiculo_ligero') };
     }
-    if (f.includes('aceites por marcas')) {
-      return { category: 'aceites', ...readSpecFormat(workbook, 'EQUIVALENCIAS', 'aceites') };
+    if (f.includes('vehiculo pesado') || f.includes('vehículo pesado')) {
+      return { category: 'vehiculo_pesado', ...readGamaSpecFormat(workbook, workbook.SheetNames[0], 'vehiculo_pesado') };
+    }
+    if (f.includes('vehiculo agricola') || f.includes('vehículo agrícola')) {
+      return { category: 'vehiculo_agricola', ...readGamaSpecFormat(workbook, workbook.SheetNames[0], 'vehiculo_agricola') };
+    }
+    if (f.includes('vehiculo electrico') || f.includes('vehículo eléctrico')) {
+      return { category: 'vehiculo_electrico', ...readGamaSpecFormat(workbook, workbook.SheetNames[0], 'vehiculo_electrico') };
+    }
+    if (f.includes('transmision') || f.includes('transmisión')) {
+      return { category: 'transmision', ...readGamaSpecFormat(workbook, workbook.SheetNames[0], 'transmision') };
+    }
+    if (f.includes('hidraulicos') || f.includes('hidráulicos')) {
+      return { category: 'hidraulicos', ...readGamaSpecFormat(workbook, workbook.SheetNames[0], 'hidraulicos') };
     }
     if (f.includes('grasas')) {
       return { category: 'grasas', ...readBlockFormat(workbook, workbook.SheetNames[0], 'grasas') };
     }
-    if (f.includes('hidraulicos') || f.includes('hidráulicos')) {
-      return { category: 'hidraulicos', ...readBlockFormat(workbook, workbook.SheetNames[0], 'hidraulicos') };
-    }
-    if (f.includes('vehiculo industrial') || f.includes('vehículo industrial')) {
-      return { category: 'motor_industrial', ...readBlockFormat(workbook, workbook.SheetNames[0], 'motor_industrial') };
-    }
-    if (f.includes('transmisi')) {
-      return { category: 'transmision_ejes', ...readBlockFormat(workbook, workbook.SheetNames[0], 'transmision_ejes') };
-    }
-    // Fallback: intenta formato spec si tiene una hoja EQUIVALENCIAS, si no, block sobre la primera hoja.
-    if (workbook.SheetNames.includes('EQUIVALENCIAS')) {
-      return { category: 'desconocida', ...readSpecFormat(workbook, 'EQUIVALENCIAS', 'desconocida') };
+    // Fallback: intenta formato gama-spec si tiene una hoja EQUIVALENCIAS ENTRE MARCAS o
+    // EQUIVALENCIAS, si no, block sobre la primera hoja.
+    if (workbook.SheetNames.some(s => /EQUIVALENCIAS/i.test(s))) {
+      const sheetName = workbook.SheetNames.find(s => /EQUIVALENCIAS/i.test(s));
+      return { category: 'desconocida', ...readGamaSpecFormat(workbook, sheetName, 'desconocida') };
     }
     return { category: 'desconocida', ...readBlockFormat(workbook, workbook.SheetNames[0], 'desconocida') };
   }
 
-  return { readSpecFormat, readBlockFormat, readKnownFile };
+  return { readGamaSpecFormat, readBlockFormat, readKnownFile };
 })();

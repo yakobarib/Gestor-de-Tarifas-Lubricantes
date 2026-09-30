@@ -671,6 +671,13 @@ input[type="number"].manual-pvp-input.is-manual { background-color: #fde68a; fon
 .compare-member-head strong { font-size: 0.9rem; }
 .compare-member-costs, .compare-member-pvps, .compare-member-gains { display: flex; gap: 0.4rem; flex-wrap: wrap; margin-top: 0.3rem; }
 .compare-member .no-tarifa { color: var(--pico-muted-color); font-style: italic; }
+/* "Pendiente de cruce" (ver ADR 0085) es DISTINTO de "sin equivalencia" — no significa
+   que no exista, significa que Yako todavía no lo ha buscado. Ámbar en vez del gris
+   apagado de "no-tarifa"/"en otros formatos", para que se note que hay algo pendiente de
+   revisar, no un simple "no hay nada". */
+.pendiente-cruce { color: #9a6b00; font-style: italic; font-weight: 600; }
+:root[data-theme="dark"] .pendiente-cruce { color: #e0b64a; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .pendiente-cruce { color: #e0b64a; } }
 .chip.pvp { font-weight: 700; color: var(--pico-primary); background: color-mix(in srgb, var(--pico-primary) 12%, transparent); border-color: transparent; }
 /* Beneficio en € según la regla vigente (ver ADR 0066) — verde, distinto del PVP. */
 .chip.gain { font-weight: 700; color: #2d7a2d; background: color-mix(in srgb, #2d7a2d 12%, transparent); border-color: transparent; }

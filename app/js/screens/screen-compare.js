@@ -1,14 +1,16 @@
 /* ============================================================================
    PANTALLA: COMPARACIÓN
    ============================================================================
-   Carga (una vez, se cachea) los 5 Excel de equivalencias de
-   BASE DE CONOCIMIENTO/ y permite, dada una ref importada de una marca,
-   encontrar su grupo de equivalencia y comparar coste(s) y PVP(s) calculados
-   de cada marca miembro que ya tenga tarifa en el maestro. Dos formas de
-   buscar: una casilla libre (busca la ref tal cual, sin prefijo de marca —
-   ver ADR 0056) en TODO el maestro, o el cascada Marca/Gama/Referencia de
-   siempre. Reacciona en vivo a cambios de márgenes en la pantalla REGLAS vía
-   Store. Ver ADR 0024.
+   Carga (una vez, se cachea) los Excel de equivalencias de BASE DE
+   CONOCIMIENTO/Equivalencias/Sistema actual de equivalencias (ver ADR 0085 —
+   8 ficheros por tipo de uso final: Vehículo Ligero/Pesado/Agrícola/Eléctrico,
+   Transmisión Automática + Manual y Ejes, Hidráulicos, Grasas) y permite, dada
+   una ref importada de una marca, encontrar su grupo de equivalencia y
+   comparar coste(s) y PVP(s) calculados de cada marca miembro que ya tenga
+   tarifa en el maestro. Dos formas de buscar: una casilla libre (busca la ref
+   tal cual, sin prefijo de marca — ver ADR 0056) en TODO el maestro, o el
+   cascada Marca/Gama/Referencia de siempre. Reacciona en vivo a cambios de
+   márgenes en la pantalla REGLAS vía Store. Ver ADR 0024.
 
    Segundo modo, "Ranking completo" (ver ADR 0083): en vez de una equivalencia
    a la vez, recorre TODOS los grupos de `EquivalenceIndex` y pinta una tabla
@@ -35,8 +37,9 @@ const ScreenCompare = (() => {
     { id: 'shell', label: 'Shell' }
   ];
   const RANK_CATEGORY_LABELS = {
-    aceites: 'Motor Ligero', grasas: 'Grasas', hidraulicos: 'Hidráulicos',
-    motor_industrial: 'Motor Industrial', transmision_ejes: 'Transmisión y Ejes',
+    vehiculo_ligero: 'Vehículo Ligero', vehiculo_pesado: 'Vehículo Pesado',
+    vehiculo_agricola: 'Vehículo Agrícola', vehiculo_electrico: 'Vehículo Eléctrico',
+    transmision: 'Transmisión', hidraulicos: 'Hidráulicos', grasas: 'Grasas',
     desconocida: 'Otros'
   };
 
@@ -201,6 +204,7 @@ const ScreenCompare = (() => {
         const colIdx = rankColumnIndexForBrandKey(m.brandKey);
         if (colIdx < 0 || cols[colIdx].state !== 'sin_equivalencia') continue; // fuera del ranking, o columna ya resuelta
         if (m.note === 'otros_formatos') { cols[colIdx] = { state: 'otros_formatos', description: m.description || null }; continue; }
+        if (m.note === 'pendiente_de_cruce') { cols[colIdx] = { state: 'pendiente_de_cruce', description: m.description || null }; continue; }
         const brandId = RANK_BRAND_COLUMNS[colIdx].id;
         const row = rowsByBrand[brandId].get(String(m.ref).toUpperCase());
         // El fichero "block" (Grasas/Hidráulicos/Motor VI/Transmisión, ver EquivalenceReader)
@@ -257,6 +261,7 @@ const ScreenCompare = (() => {
       return `<td class="ranking-cell ${cls}"><div class="pvp">${formatEur(cell.pvp)}</div><div class="cost muted">${formatEur(cell.costFactura)}</div></td>`;
     }
     if (cell.state === 'otros_formatos') return `<td class="ranking-cell"><span class="no-tarifa" title="Esta marca tiene el producto, pero no en este tamaño">otro formato</span></td>`;
+    if (cell.state === 'pendiente_de_cruce') return `<td class="ranking-cell"><span class="pendiente-cruce" title="Puede que esta marca sí tenga el producto — todavía no se ha buscado/confirmado el cruce">pendiente</span></td>`;
     if (cell.state === 'sin_tarifa') return `<td class="ranking-cell"><span class="no-tarifa" title="Ref ${escapeHtml(cell.ref)} sin tarifa importada">sin tarifa</span></td>`;
     if (cell.state === 'sin_nivel') return `<td class="ranking-cell"><span class="no-tarifa" title="Sin nivel PVP configurado en Reglas">sin PVP</span></td>`;
     return `<td class="ranking-cell"><span class="muted">—</span></td>`;
@@ -385,6 +390,10 @@ const ScreenCompare = (() => {
     for (const m of group.members) {
       if (m.note === 'otros_formatos') {
         rowsHtml.push(memberRowHtml(m.brandKey, null, '<span class="no-tarifa">en otros formatos</span>'));
+        continue;
+      }
+      if (m.note === 'pendiente_de_cruce') {
+        rowsHtml.push(memberRowHtml(m.brandKey, null, '<span class="pendiente-cruce">pendiente de cruzar</span>'));
         continue;
       }
       const memberIdKey = EQUIV_BRAND_ALIASES[(m.brandKey || '').toUpperCase()];
