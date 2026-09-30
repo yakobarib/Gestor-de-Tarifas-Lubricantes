@@ -274,9 +274,28 @@ const ScreenImport = (() => {
     }
   }
 
+  /** Vía de escape para cuando se renombra/reestructura la categorización de los
+   *  ficheros de equivalencias (ver ADR 0085) — `build()` fusiona por categoría a
+   *  propósito para no borrar otras categorías al reimportar un fichero suelto, pero eso
+   *  deja huérfana para siempre una categoría que ya no menciona ningún fichero. */
+  async function handleEquivReset(e) {
+    e.preventDefault();
+    if (!confirm('¿Vaciar por completo la base de conocimiento de equivalencias? Hace falta volver a soltar todos los Excel después.')) return;
+    $('equivStatus').innerHTML = '<small class="muted">Vaciando…</small>';
+    try {
+      await EquivalenceIndex.resetAll();
+      renderEquivStatus();
+    } catch (err) {
+      console.error(err);
+      $('equivStatus').innerHTML = `<small style="color: var(--pico-del-color);">❌ ${escapeHtml(err.message)}</small>`;
+    }
+  }
+
   function setupEquivDropZone() {
     const dz = $('equivDropZone');
     const input = $('equivFileInput');
+    const resetBtn = $('btnEquivReset');
+    if (resetBtn) resetBtn.addEventListener('click', handleEquivReset);
     if (!dz || !input) return;
     dz.addEventListener('click', () => input.click());
     input.addEventListener('change', (e) => { handleEquivFiles(e.target.files); input.value = ''; });

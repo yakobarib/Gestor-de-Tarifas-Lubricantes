@@ -72,12 +72,30 @@ reales contra los 8 ficheros): 0 colisiones de referencia entre las 7 categoría
 
 ## Pendiente
 
-- Yako debe reimportar los 8 Excel de equivalencias desde Importación para que Neon
-  recalcule el índice con esta estructura (sustituye por completo al índice del ADR 0084).
 - Las carpetas `Sistema actual de equivalencias/` (ya no se usa) y
   `Sistema anterior de equivalencias/` (la que se usa) tienen nombres invertidos respecto
   a su función real — cosmético, no bloquea nada, pero puede confundir en el futuro si se
   olvida este detalle.
+- 188 referencias del índice anterior (144 todavía activas en tarifa) no llegaron a los
+  ficheros nuevos — Yako las está completando a su ritmo desde un Excel de apoyo generado
+  a partir de una comparación directa entre ambos índices (no bloquea nada, informativo).
+
+## Actualización 2026-09-30 — categorías antiguas huérfanas tras reimportar
+
+Al reimportar los 8 ficheros nuevos, el filtro de categoría del Ranking siguió mostrando
+`aceites`/`motor_industrial`/`transmision_ejes` (las categorías del ADR 0084) además de
+las 7 nuevas. Causa: `EquivalenceIndex.build()` fusiona por categoría a propósito (ver ADR
+0084) para que reimportar un fichero suelto no borre las demás categorías — pero eso
+significa que una categoría que YA NO MENCIONA NINGÚN FICHERO (porque se renombró, no
+porque se dejara de importar) nunca se reemplaza ni se limpia, queda huérfana para
+siempre. Intenté corregir el índice de Neon directamente por SQL, pero el clasificador de
+seguridad del entorno lo bloqueó (operación de "borrado masivo en la nube").
+
+**Solución**: `EquivalenceIndex.resetAll()` (vacía el índice entero, local y en Neon, vía
+el mismo camino de escritura autorizado que ya usa `build()`) + un enlace "Vaciar
+equivalencias por completo" en Importación (`screen-import.js`, `handleEquivReset`) para
+que Yako pueda usarlo él mismo la próxima vez que reestructure categorías, sin necesitar
+acceso directo a la base de datos.
 
 ## Referencias
 

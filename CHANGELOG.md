@@ -2,6 +2,21 @@
 
 Formato inspirado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [v1.0.48] — 2026-09-30
+
+### Añadido
+- Importación: enlace "Vaciar equivalencias por completo" — hace falta
+  cuando se renombra/reestructura la categorización de los ficheros de
+  equivalencias (como en el cambio de hoy), porque reimportar solo
+  reemplaza las categorías que vienen en los ficheros soltados y las
+  antiguas (que ya no menciona ningún fichero) se quedaban huérfanas
+  para siempre en vez de desaparecer solas — se vio justo después de
+  reimportar los 8 ficheros nuevos, el filtro de categoría seguía
+  mostrando "aceites"/"motor_industrial"/"transmision_ejes" además de
+  las 7 nuevas.
+
+Ver [ADR 0085](docs/decisiones/0085-equivalencias-por-tipo-de-uso-final.md) (actualización).
+
 ## [v1.0.47] — 2026-09-30
 
 ### Cambiado

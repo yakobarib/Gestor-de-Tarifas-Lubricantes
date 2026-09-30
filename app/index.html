@@ -59,7 +59,7 @@
     <div class="sidebar-footer">
       <p>Diseñado por <strong>Yakoba Moreno</strong></p>
       <p>Desarrollado en <strong>Claude Code</strong></p>
-      <span class="sidebar-version">v1.0.47</span>
+      <span class="sidebar-version">v1.0.48</span>
     </div>
   </aside>
 
@@ -144,10 +144,16 @@
        que se actualiza o se abre la app en otro ordenador (ver ADR 0025). -->
   <section id="equivDropZone" style="margin-top:0.8rem;">
     <p><strong>Arrastra aquí los Excel de cruces de referencias entre marcas</strong> o pulsa para elegirlos</p>
-    <p class="hint">Los 5 Excel de "Equivalencias" (Aceites por Marcas, Grasas, Hidráulicos, Motor Vehículo Industrial, Transmisión Manual y Ejes) que dicen qué referencia de una marca es el mismo producto que en otra marca — los usa la pestaña Comparación para cruzar precios entre marcas. Se comparten con todo el equipo al cargarlos aquí; vuelve a cargarlos solo si se actualizan.</p>
+    <p class="hint">Los Excel de "Equivalencias" (Vehículo Ligero, Vehículo Pesado, Vehículo Agrícola, Vehículo Eléctrico, Transmisión Automática, Transmisión Manual y Ejes, Industria Hidráulicos, Grasas) que dicen qué referencia de una marca es el mismo producto que en otra marca — los usa la pestaña Comparación para cruzar precios entre marcas. Se comparten con todo el equipo al cargarlos aquí; vuelve a cargarlos solo si se actualizan. Puedes soltar uno solo o varios a la vez, sin que afecte a los demás.</p>
     <input type="file" id="equivFileInput" accept=".xlsx,.xls" multiple class="hidden">
   </section>
   <div id="equivStatus" style="margin-top:0.4rem;"></div>
+  <p class="hint" style="margin-top:0.3rem;">
+    <a href="#" id="btnEquivReset">Vaciar equivalencias por completo</a> — solo hace falta si
+    has renombrado o reestructurado las categorías (como al pasar a este sistema de
+    ficheros): al fusionar por categoría, una categoría que ya no menciona ningún fichero
+    se queda huérfana para siempre en vez de desaparecer sola.
+  </p>
 </section>
 
 <!-- ==========================================================================

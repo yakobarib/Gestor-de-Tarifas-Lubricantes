@@ -98,5 +98,18 @@ const EquivalenceIndex = (() => {
     Storage.delete(KEY);
   }
 
-  return { build, load, isLoaded, findEquivalents, clear, refresh };
+  /** Vacía TAMBIÉN lo que hay en Neon (no solo este navegador) — `build()` fusiona por
+   *  categoría a propósito (ver arriba) para que reimportar un fichero suelto no borre
+   *  los demás, pero eso significa que renombrar/reestructurar las categorías (ej. ADR
+   *  0085: "aceites"/"motor_industrial"/"transmision_ejes" → "vehiculo_ligero"/
+   *  "vehiculo_pesado"/"transmision") deja las categorías viejas huérfanas para siempre,
+   *  porque ningún fichero nuevo las vuelve a mencionar. `resetAll()` es la vía de escape:
+   *  vacía todo para que la siguiente `build()` parta de cero. */
+  async function resetAll() {
+    cached = { groups: [], refToGroup: {}, builtAt: new Date().toISOString().slice(0, 10) };
+    Storage.set(KEY, cached);
+    if (typeof NeonEquivalences !== 'undefined') await NeonEquivalences.upsert(cached);
+  }
+
+  return { build, load, isLoaded, findEquivalents, clear, refresh, resetAll };
 })();
