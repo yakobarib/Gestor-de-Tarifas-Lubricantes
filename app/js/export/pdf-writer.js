@@ -258,7 +258,22 @@ const PdfWriter = (() => {
         styles: tableStyles, headStyles, alternateRowStyles: altStyles,
         margin: { left: 14, right: 14 }
       });
-      y = doc.lastAutoTable.finalY + 8;
+      y = doc.lastAutoTable.finalY + 6;
+
+      // "Beneficio" es el margen real final sobre el PVP de lista, no un importe en € —
+      // se aclara bajo las tablas (pedido de Yako, ADR 0086) para que quien lea el
+      // documento no lo confunda con el "Margen" configurado.
+      const noteText = 'Nota sobre «Beneficio»: es el margen real final sobre el PVP de lista, antes de descuentos a cliente. '
+        + 'Supera al «Margen» porque el PVP incluye el hueco previsto para descuentos (×2, o ×3 con 1+2); '
+        + 'en PVP Neto y Netos Bonus no hay hueco y ambos coinciden. '
+        + 'Si al facturar se aplican descuentos, el margen real se reducirá.';
+      doc.setFont('helvetica', 'italic');
+      doc.setFontSize(8);
+      doc.setTextColor(100, 100, 100);
+      const noteWrapped = doc.splitTextToSize(noteText, pageWidth - 28);
+      if (y + noteWrapped.length * 3.8 > doc.internal.pageSize.getHeight() - 14) { doc.addPage(); y = 18; }
+      doc.text(noteWrapped, 14, y);
+      y += noteWrapped.length * 3.8 + 5;
     }
 
     const diff = computeTemplateDiff(template, cfg);

@@ -2,6 +2,18 @@
 
 Formato inspirado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [v1.0.49] — 2026-10-22
+
+### Añadido
+- PDF de políticas de precio: nota de 3 líneas bajo las tablas que aclara
+  qué es la columna "Beneficio" — el margen real final sobre el PVP de
+  lista, antes de descuentos a cliente (por eso supera al "Margen"
+  configurado), y que si al facturar se aplican descuentos el margen real
+  se reducirá. Cabe en la misma hoja A4 (verificado con el caso de 11
+  formatos).
+
+Ver [ADR 0086](docs/decisiones/0086-nota-columna-beneficio-en-pdf-de-politicas.md).
+
 ## [v1.0.48] — 2026-09-30
 
 ### Añadido
