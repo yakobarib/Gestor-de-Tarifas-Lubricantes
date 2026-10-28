@@ -60,32 +60,43 @@ const ScreenImport = (() => {
       if (b.pending) {
         return `<div class="brand-card pending"><div class="brand-card-head">${icon}<h4>${escapeHtml(b.label)}</h4></div><div class="line">Próximamente</div></div>`;
       }
-      const gamaLines = b.separateFiles
-        ? b.gamas.map(g => {
-            const meta = Storage.get(importMetaKey(b.id, g), null);
-            const label = GAMA_LABELS[g] || (g.charAt(0).toUpperCase() + g.slice(1));
-            const status = meta
-              ? `<span class="status-ok">${meta.rowCount} refs · ${escapeHtml(formatShortDate(meta.tariffDate || meta.importedAt))}</span>`
-              : `<span class="status-none">sin importar</span>`;
-            return `<div class="line">${escapeHtml(label)}: ${status}</div>`;
-          }).join('')
-        : (() => {
-            // Todas las gamas llegan juntas en el mismo Excel (una pestaña por
-            // gama) — una sola línea resumen en vez de una por gama.
-            let totalRows = 0, latestDate = null, anyImported = false;
-            for (const g of b.gamas) {
-              const meta = Storage.get(importMetaKey(b.id, g), null);
-              if (!meta) continue;
-              anyImported = true;
-              totalRows += meta.rowCount || 0;
-              const d = meta.tariffDate || meta.importedAt;
-              if (d && (!latestDate || d > latestDate)) latestDate = d;
-            }
-            const status = anyImported
-              ? `<span class="status-ok">${totalRows} refs · ${escapeHtml(formatShortDate(latestDate))}</span>`
-              : `<span class="status-none">sin importar</span>`;
-            return `<div class="line">Tarifa general: ${status}</div>`;
-          })();
+      // Cada gama es una fila de mini-tabla alineada: Tarifa | Refs | Fecha. Cabecera
+      // común arriba para que las tres columnas se lean de un vistazo en todas las tarjetas.
+      const row = (label, meta, importedTitle) => {
+        if (!meta) {
+          return `<div class="tariff-row none"><span class="t-name">${escapeHtml(label)}</span><span class="t-empty">sin importar</span></div>`;
+        }
+        const date = formatShortDate(meta.tariffDate || meta.importedAt);
+        return `<div class="tariff-row" title="${escapeHtml(importedTitle)}">`
+          + `<span class="t-name">${escapeHtml(label)}</span>`
+          + `<span class="t-refs">${Number(meta.rowCount || 0).toLocaleString('es-ES')}</span>`
+          + `<span class="t-date">${escapeHtml(date || '—')}</span></div>`;
+      };
+      const importedTip = (m) => m && m.importedAt ? `Importada el ${formatShortDate(m.importedAt)}` : '';
+      let rows;
+      if (b.separateFiles) {
+        rows = b.gamas.map(g => {
+          const meta = Storage.get(importMetaKey(b.id, g), null);
+          const label = GAMA_LABELS[g] || (g.charAt(0).toUpperCase() + g.slice(1));
+          return row(label, meta, importedTip(meta));
+        }).join('');
+      } else {
+        // Todas las gamas llegan juntas en el mismo Excel (una pestaña por gama) — una
+        // sola fila resumen en vez de una por gama.
+        let totalRows = 0, latestDate = null, importedAt = null, anyImported = false;
+        for (const g of b.gamas) {
+          const meta = Storage.get(importMetaKey(b.id, g), null);
+          if (!meta) continue;
+          anyImported = true;
+          totalRows += meta.rowCount || 0;
+          const d = meta.tariffDate || meta.importedAt;
+          if (d && (!latestDate || d > latestDate)) latestDate = d;
+          if (meta.importedAt && (!importedAt || meta.importedAt > importedAt)) importedAt = meta.importedAt;
+        }
+        rows = row('General', anyImported ? { rowCount: totalRows, tariffDate: latestDate } : null,
+          importedTip({ importedAt }));
+      }
+      const gamaLines = `<div class="tariff-table"><div class="tariff-row head"><span class="t-name">Tarifa</span><span class="t-refs">Refs</span><span class="t-date">Fecha</span></div>${rows}</div>`;
       const dropZone = `
         <div class="brand-drop" data-brand-drop="${escapeHtml(b.id)}" title="Arrastra o elige la tarifa de ${escapeHtml(b.label)}">
           Arrastra tarifa o pulsa

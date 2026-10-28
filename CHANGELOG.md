@@ -2,6 +2,18 @@
 
 Formato inspirado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [v1.0.50] — 2026-10-28
+
+### Cambiado
+- Importación: las tarjetas de marca muestran ahora cada tarifa como una
+  fila de mini-tabla (Tarifa | Refs | Fecha), con cabecera común y
+  columnas alineadas. Antes, salvo en AD Parts, la línea de texto se
+  cortaba y no se veía la fecha de la última tarifa. "Tarifa general" pasa
+  a "General". Las 6 tarjetas siguen del mismo alto aunque una tenga más
+  gamas que el resto.
+
+Ver [ADR 0087](docs/decisiones/0087-tarjetas-de-importacion-mini-tabla.md).
+
 ## [v1.0.49] — 2026-10-22
 
 ### Añadido

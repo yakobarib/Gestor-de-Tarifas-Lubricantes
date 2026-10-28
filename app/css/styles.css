@@ -292,6 +292,28 @@ article h4 { font-size: 0.88rem; }
 .brand-card .status-ok { color: #2d7a2d; }
 .brand-card .status-none { color: var(--pico-muted-color); font-style: italic; }
 
+/* Mini-tabla de tarifas dentro de la tarjeta: Tarifa | Refs | Fecha. La rejilla de tarjetas
+   estira todas al alto de la más alta (align-items: stretch por defecto), así que si una
+   marca tiene más gamas el resto ganan aire pero conservan el mismo alto. */
+.tariff-table { margin-bottom: 0.7rem; }
+.tariff-row {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto 4.2rem; column-gap: 0.5rem; align-items: baseline;
+  padding: 0.28rem 0; border-bottom: 1px solid color-mix(in srgb, var(--pico-muted-border-color) 60%, transparent);
+  font-size: 0.8rem; line-height: 1.3;
+}
+.tariff-row:last-child { border-bottom: 0; }
+.tariff-row.head {
+  font-size: 0.64rem; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 650;
+  color: var(--pico-muted-color); padding-top: 0; border-bottom-color: var(--pico-muted-border-color);
+}
+.tariff-row .t-name { font-weight: 600; color: var(--pico-color); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tariff-row .t-refs, .tariff-row .t-date { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.tariff-row .t-refs { color: var(--pico-color); }
+.tariff-row .t-date { color: #2d7a2d; font-weight: 600; }
+.tariff-row.head .t-refs, .tariff-row.head .t-date { color: var(--pico-muted-color); font-weight: 650; }
+.tariff-row .t-empty { grid-column: 2 / -1; text-align: right; color: var(--pico-muted-color); font-style: italic; font-size: 0.74rem; }
+.tariff-row.none .t-name { font-weight: 500; color: var(--pico-muted-color); }
+
 /* Zona de carga por tarjeta de marca — arrastra o elige la tarifa de ESA marca directamente.
    margin-top: auto la ancla siempre al borde inferior de la tarjeta (la tarjeta es un flex
    column), así todas quedan a la misma altura sin importar cuántas líneas de gama tenga
