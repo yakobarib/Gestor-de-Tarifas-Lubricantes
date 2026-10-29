@@ -35,7 +35,13 @@ const EquivalenceIndex = (() => {
   function build(categories) {
     const prev = load();
     const incomingCats = new Set(categories.map(c => c.category));
-    const keptGroups = prev ? prev.groups.filter(g => !incomingCats.has(g.category)) : [];
+    // Además de las categorías que se reemplazan, se descartan las que ya no existen
+    // (renombradas/retiradas): `build()` fusiona por categoría, así que sin esto quedaban
+    // huérfanas para siempre y duplicaban grupos (ADR 0085/0089).
+    const known = (typeof EquivalenceReader !== 'undefined' && EquivalenceReader.KNOWN_CATEGORIES) || null;
+    const keptGroups = prev
+      ? prev.groups.filter(g => !incomingCats.has(g.category) && (!known || known.has(g.category)))
+      : [];
 
     const groups = [...keptGroups];
     const refToGroup = {};

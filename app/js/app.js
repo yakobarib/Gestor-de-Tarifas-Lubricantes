@@ -46,6 +46,10 @@ function setupHeaderActions() {
 document.addEventListener('DOMContentLoaded', async () => {
   Theme.init();
   FontSize.init();
+  // Las tarjetas de Importación solo leen metadatos locales (localStorage) — se pintan ya,
+  // sin esperar a la sesión ni a las ~6 llamadas de red del arranque; antes aparecían al
+  // final, mucho después de las zonas estáticas de rebranding y equivalencias (ADR 0089).
+  ScreenImport.renderBrandCards();
   const loggedIn = await Auth.init();
   if (!loggedIn) { Auth.showLoginOverlay(finishBoot); return; }
   await finishBoot();

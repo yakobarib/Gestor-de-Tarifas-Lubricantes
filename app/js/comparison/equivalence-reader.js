@@ -195,5 +195,15 @@ const EquivalenceReader = (() => {
     return { category: 'desconocida', ...readBlockFormat(workbook, workbook.SheetNames[0], 'desconocida') };
   }
 
-  return { readGamaSpecFormat, readBlockFormat, readKnownFile };
+  // Categorías que `readKnownFile` puede devolver hoy. `EquivalenceIndex.build()` descarta
+  // del índice cacheado cualquier categoría que NO esté aquí — así, tras reestructurar los
+  // ficheros (ADR 0085), basta con reimportar para que las categorías retiradas
+  // (`aceites`, `motor_industrial`, `transmision_ejes`) desaparezcan solas (ADR 0089).
+  // Al añadir una categoría nueva a `readKnownFile`, añadirla también aquí.
+  const KNOWN_CATEGORIES = new Set([
+    'vehiculo_ligero', 'vehiculo_pesado', 'vehiculo_agricola', 'vehiculo_electrico',
+    'transmision', 'hidraulicos', 'grasas', 'desconocida'
+  ]);
+
+  return { readGamaSpecFormat, readBlockFormat, readKnownFile, KNOWN_CATEGORIES };
 })();

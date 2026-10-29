@@ -29,7 +29,11 @@ const Router = (() => {
 
   function init() {
     window.addEventListener('hashchange', () => show(current()));
-    show(current());
+    // Siempre se arranca en Importación, aunque la URL traiga el hash de la última pantalla
+    // (al recargar estando en Comparación, la app arrancaba en Importación mientras
+    // esperaba a la red y luego saltaba sola a Comparación — ver ADR 0089). La navegación
+    // dentro de la sesión (menú, atrás/adelante) sigue usando el hash con normalidad.
+    show('import');
   }
 
   return { show, init, current, SCREENS };

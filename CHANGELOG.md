@@ -2,6 +2,23 @@
 
 Formato inspirado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [v1.0.52] — 2026-10-29
+
+### Corregido
+- Al recargar la app estando en otra pantalla (p. ej. Comparación), arrancaba
+  en Importación y saltaba sola a esa pantalla al terminar de cargar. Ahora
+  siempre arranca en Importación.
+- Las tarjetas de marca de Importación tardaban en aparecer (salían mucho
+  después de las zonas de rebranding y equivalencias) porque esperaban a todas
+  las llamadas de red del arranque, aunque solo leen datos locales. Ahora se
+  pintan al instante.
+- Equivalencias: las categorías retiradas (`aceites`, `motor_industrial`,
+  `transmision_ejes`) seguían en el índice compartido junto a las nuevas,
+  duplicando grupos en el Ranking. Ahora reimportar cualquier fichero las
+  elimina solas.
+
+Ver [ADR 0089](docs/decisiones/0089-arranque-en-importacion-y-limpieza-de-categorias.md).
+
 ## [v1.0.51] — 2026-10-29
 
 ### Corregido
