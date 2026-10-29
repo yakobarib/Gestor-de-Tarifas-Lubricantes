@@ -2,6 +2,15 @@
 
 Formato inspirado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [v1.0.53] — 2026-10-29
+
+### Corregido
+- Comparación individual: las tarjetas de equivalencias se salían por debajo
+  de su cuadro (efecto colateral del ajuste de altura del Ranking en v1.0.43).
+  Ahora ese ajuste solo se aplica en el modo Ranking.
+
+Ver [ADR 0090](docs/decisiones/0090-comparacion-individual-tarjetas-dentro-del-cuadro.md).
+
 ## [v1.0.52] — 2026-10-29
 
 ### Corregido

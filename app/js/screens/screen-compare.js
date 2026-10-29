@@ -311,6 +311,7 @@ const ScreenCompare = (() => {
     });
     $('compareIndividualView').classList.toggle('hidden', mode !== 'individual');
     $('compareRankingView').classList.toggle('hidden', mode !== 'ranking');
+    $('screen-compare').classList.toggle('ranking-mode', mode === 'ranking');
     if (mode === 'ranking') renderRankingView();
   }
 
