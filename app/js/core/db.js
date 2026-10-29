@@ -246,6 +246,20 @@ const MasterDB = (() => {
     });
   }
 
+  /** Como `getByBrand(brandId, null)` pero SOLO con las filas de las gamas vigentes de la
+   *  marca (`BRANDS[].gamas`). Repsol conserva 941 filas en una gama `default` de antes de
+   *  partirla en 6 gamas (ver ADR 0088): la misma ref existía dos veces (una en `default`,
+   *  con reglas viejas, y otra en su gama real) y las pantallas que mezclan gamas
+   *  (Comparación, Ranking, "Todas las gamas" de Reglas) cogían una u otra al azar o
+   *  contaban las dos. Esas filas no se pueden elegir en ningún selector de la app. */
+  async function getByBrandCurrentGamas(brandId) {
+    const rows = await getByBrand(brandId, null);
+    const brand = typeof findBrand === 'function' ? findBrand(brandId) : null;
+    if (!brand || !brand.gamas || !brand.gamas.length) return rows;
+    const valid = new Set(brand.gamas);
+    return rows.filter(r => valid.has(r.gama));
+  }
+
   async function getByRef(brandId, gama, ref) {
     const db = await open();
     return new Promise((resolve, reject) => {
@@ -280,5 +294,5 @@ const MasterDB = (() => {
 
   // `openDb`/`SNAPSHOT_STORE` expuestos para que `MasterCache` reutilice esta misma
   // conexión/promesa en vez de abrir una segunda a la misma IndexedDB (ver ADR 0054).
-  return { putRows, hydrateFromNeon, getByBrand, getByRef, getAll, deleteRow, rowId, openDb: open, SNAPSHOT_STORE };
+  return { putRows, hydrateFromNeon, getByBrand, getByBrandCurrentGamas, getByRef, getAll, deleteRow, rowId, openDb: open, SNAPSHOT_STORE };
 })();

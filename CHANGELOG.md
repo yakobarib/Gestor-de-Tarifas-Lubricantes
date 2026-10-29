@@ -2,6 +2,21 @@
 
 Formato inspirado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [v1.0.51] — 2026-10-29
+
+### Corregido
+- Comparación/Ranking: un producto de Repsol salía con un PVP muy superior
+  al que marcan sus reglas (ej. RPP6008HAB: 6.704,50 € en vez de 2.760,68 €)
+  porque el maestro conserva 941 filas de Repsol en una gama `default` de
+  antes de partir la marca en 6 gamas, con reglas antiguas (30 % sin
+  márgenes por formato), y esas filas se cogían antes que las de la gama
+  real. Ahora solo se consideran las gamas vigentes de cada marca.
+- Reglas, "Todas las gamas": los recuentos de refs por formato contaban
+  esas filas antiguas además de las reales (≈1.800 en vez de 864 en
+  Repsol). Ya coinciden con la tarjeta de Importación.
+
+Ver [ADR 0088](docs/decisiones/0088-gamas-vigentes-filas-huerfanas-repsol.md).
+
 ## [v1.0.50] — 2026-10-28
 
 ### Cambiado

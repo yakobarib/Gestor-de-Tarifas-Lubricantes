@@ -265,7 +265,7 @@ const ScreenRules = (() => {
    *  (Racing Oil, Eni Live…) y que darían "sin coste" en todas las filas si se eligieran. */
   async function availableCostFields(brandId, gama) {
     const rows = gama === '__all__'
-      ? await MasterDB.getByBrand(brandId, null)
+      ? await MasterDB.getByBrandCurrentGamas(brandId)
       : await MasterDB.getByBrand(brandId, gama);
     const has = (field) => rows.some(r => typeof r[field] === 'number' && isFinite(r[field]));
     return { factura: has('costFactura'), netoNeto: has('costNetoNeto'), tripleNeto: has('costTripleNeto') };
@@ -276,7 +276,7 @@ const ScreenRules = (() => {
    *  verdad existan en esta tarifa, no una lista genérica. */
   async function availableFormats(brandId, gama) {
     const rows = gama === '__all__'
-      ? await MasterDB.getByBrand(brandId, null)
+      ? await MasterDB.getByBrandCurrentGamas(brandId)
       : await MasterDB.getByBrand(brandId, gama);
     const counts = {};
     for (const r of rows) {

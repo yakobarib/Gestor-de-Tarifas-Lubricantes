@@ -111,7 +111,7 @@ const ScreenCompare = (() => {
     const upper = clean.toUpperCase();
     const brands = BRANDS.filter(b => !b.pending);
     for (const b of brands) {
-      const rows = await MasterDB.getByBrand(b.id, null);
+      const rows = await MasterDB.getByBrandCurrentGamas(b.id);
       const hit = rows.find(r => r.ref.toUpperCase() === upper);
       if (hit) return { brand: b, row: hit };
     }
@@ -126,7 +126,7 @@ const ScreenCompare = (() => {
   async function findMemberRow(mBrandId, declaredGama, prefixedRef) {
     const direct = await MasterDB.getByRef(mBrandId, declaredGama, prefixedRef);
     if (direct) return direct;
-    const all = await MasterDB.getByBrand(mBrandId, null);
+    const all = await MasterDB.getByBrandCurrentGamas(mBrandId);
     return all.find(r => r.ref === prefixedRef) || null;
   }
 
@@ -182,7 +182,7 @@ const ScreenCompare = (() => {
 
     const rowsByBrand = {};
     for (const col of RANK_BRAND_COLUMNS) {
-      const all = await MasterDB.getByBrand(col.id, null);
+      const all = await MasterDB.getByBrandCurrentGamas(col.id);
       const map = new Map();
       for (const r of all) map.set(String(r.ref).toUpperCase(), r);
       rowsByBrand[col.id] = map;
