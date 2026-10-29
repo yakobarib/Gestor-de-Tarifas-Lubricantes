@@ -8,7 +8,14 @@ const Router = (() => {
   const SCREENS = ['import', 'tarifas', 'rules', 'compare', 'export'];
   const TITLES = { import: 'Importación', tarifas: 'Tarifas', rules: 'Reglas', compare: 'Comparación', export: 'Exportación' };
 
+  let shownScreen = null;
+
   function show(screen) {
+    // Se anota ANTES de tocar el hash: asignar `location.hash` dispara `hashchange`, que
+    // vuelve a llamar a `show()` — sin esta marca, cada navegación programática emitía
+    // `screen:changed` dos veces y las pantallas se reiniciaban/recargaban por duplicado
+    // (ADR 0091).
+    shownScreen = screen;
     for (const s of SCREENS) {
       const el = document.getElementById('screen-' + s);
       if (el) el.classList.toggle('hidden', s !== screen);
@@ -28,7 +35,7 @@ const Router = (() => {
   }
 
   function init() {
-    window.addEventListener('hashchange', () => show(current()));
+    window.addEventListener('hashchange', () => { if (current() !== shownScreen) show(current()); });
     // Siempre se arranca en Importación, aunque la URL traiga el hash de la última pantalla
     // (al recargar estando en Comparación, la app arrancaba en Importación mientras
     // esperaba a la red y luego saltaba sola a Comparación — ver ADR 0089). La navegación

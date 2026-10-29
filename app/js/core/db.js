@@ -58,7 +58,7 @@ const MasterDB = (() => {
   /** Inserta/actualiza una tanda de filas de una gama, fusionando por ref. */
   async function putRows(brandId, gama, rows, tariffType) {
     const db = await open();
-    const now = new Date().toISOString().slice(0, 10);
+    const now = todayLocalISO();
     const tx = db.transaction(STORE, 'readwrite');
     const store = tx.objectStore(STORE);
     const pendingNeonPush = [];
@@ -117,7 +117,10 @@ const MasterDB = (() => {
           formatKey: verified ? Parser.formatKey(verified.liters)
             : ((r.formatKey && r.formatKey !== '?') ? r.formatKey : (existing ? existing.formatKey : '?')),
           fam: r.fam != null ? r.fam : (existing ? existing.fam : null),
-          litersDetected: verified ? verified.liters != null : !!r.litersDetected,
+          // Filas esqueleto (`{ref}`, ver `applyMasterDescriptions`) no traen `litersDetected`:
+          // antes `!!undefined` lo ponía a false en cada arranque para toda ref sin validar.
+          litersDetected: verified ? verified.liters != null
+            : (r.litersDetected != null ? !!r.litersDetected : !!(existing && existing.litersDetected)),
           descVerified: !!verified,
           // Unidades por caja (ver ADR 0078 — "Valor Regalo 1+1") — mismo criterio
           // null-aware que `liters`: una reimportación que no la traiga no borra la ya
@@ -161,8 +164,12 @@ const MasterDB = (() => {
       if (r.description != null) neonFields.descriptionRaw = r.description;
       if (r.descriptionExport != null) neonFields.descriptionExport = r.descriptionExport;
       if (r.liters != null) neonFields.liters = r.liters;
-      if (r.formatKey != null) neonFields.formatKey = r.formatKey;
-      if (r.litersDetected != null) neonFields.litersDetected = !!r.litersDetected;
+      // Mismas guardias que en local (ver `formatKey` de `merged` arriba): '?' no es un
+      // formato, es "no detectado" — empujarlo a Neon pisaba un formato bueno con '?' y el
+      // otro PC lo heredaba (liters correctos + formatKey '?'). Y "litros detectados = no"
+      // solo es información cuando de verdad no hay litros (ADR 0091).
+      if (r.formatKey != null && r.formatKey !== '?') neonFields.formatKey = r.formatKey;
+      if (r.litersDetected != null && r.liters != null) neonFields.litersDetected = !!r.litersDetected;
       if (r.fam != null) neonFields.fam = r.fam;
       if (r.unitsPerBox != null) neonFields.unitsPerBox = r.unitsPerBox;
       if (hasCost) {

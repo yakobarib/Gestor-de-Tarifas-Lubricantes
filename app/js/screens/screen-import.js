@@ -115,7 +115,7 @@ const ScreenImport = (() => {
       MasterDB.putRows(supplierId, gama, gamaRows, 'factura')
         .then(() => {
           Storage.set(importMetaKey(supplierId, gama), {
-            importedAt: new Date().toISOString().slice(0, 10),
+            importedAt: todayLocalISO(),
             tariffDate,
             rowCount: gamaRows.length
           });
@@ -192,7 +192,7 @@ const ScreenImport = (() => {
           }
         }
         const gamas = (result.gamas && result.gamas.length) ? result.gamas : ['default'];
-        const tariffDate = new Date().toISOString().slice(0, 10);
+        const tariffDate = todayLocalISO();
         $('loadStatus').innerHTML = `<small class="muted">✓ <strong>${result.rows.length}</strong> referencias cargadas de <strong>${escapeHtml(result.supplier)}</strong> (hoja <code>${escapeHtml(result.sheetUsed)}</code>). Abriendo en Tarifas…</small>`;
         persistToMaster(result.id, gamas, result.rows, tariffDate);
         LoadedTariff.set({

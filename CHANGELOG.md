@@ -2,6 +2,40 @@
 
 Formato inspirado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [v1.0.54] — 2026-10-29
+
+Auditoría de código (4 revisiones independientes + verificación con datos reales).
+
+### Corregido
+- Un coste 0, negativo o no numérico producía un PVP "válido" (0,00 €, o precios
+  inventados en Netos Bonus). Afectaba a 7 referencias de AD Parts con coste 0 en la
+  tarifa del 31/08. Ahora salen "sin coste".
+- Exportación "Valor Regalo 1+1": el Excel salía truncado a 500 filas.
+- Reimportar un solo fichero de Transmisión (Automática o Manual y Ejes) borraba los
+  grupos del otro.
+- Ranking: cuando un grupo traía AD Parts y AD Standard, el primero tapaba al segundo
+  (se perdía el precio de AD Standard).
+- Equivalencias: si una referencia estaba en dos grupos, ganaba el último aunque fuera
+  de una sola marca; ahora gana el grupo con más marcas cruzadas.
+- Envío a la nube: se mandaba formato "?" y "litros detectados = no" pisando datos buenos
+  (otros PCs heredaban "?"); y la marca de litros detectados se reescribía en cada arranque.
+- Exportación: un cambio rápido de marca podía mezclar filas de una marca con los márgenes
+  de otra; el checklist de formatos heredaba desmarcados entre marcas; el botón Exportar
+  permitía doble descarga y no mostraba errores.
+- PDF de políticas: las líneas de "Diferencia con la plantilla" salían ilegibles ("→").
+- Fechas de importación/exportación: entre las 00:00 y las 02:00 salían un día antes.
+- Lectura de tarifas/maestro/reglas desde la nube sin orden estable (podía saltar filas).
+- Cada cambio de pantalla se procesaba dos veces; el botón Guardar de la validación de
+  descripciones se quedaba bloqueado tras un error de red; un fallo en una migración dejaba
+  la app muerta; el login fallaba con ciertos tokens; redondeo `psy99` (no usado hoy).
+- Etiquetas de las gamas de Eni Live en Reglas, Comparación y Exportación; textos obsoletos
+  del manual integrado.
+
+Ver [ADR 0091](docs/decisiones/0091-auditoria-de-codigo-correcciones.md), con la lista de lo
+que queda pendiente de decisión (sobre todo la sincronización de reglas entre varios PCs).
+
+**Tras actualizar:** reimportar los 8 Excel de equivalencias una vez.
+
 ## [v1.0.53] — 2026-10-29
 
 ### Corregido

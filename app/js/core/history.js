@@ -17,7 +17,7 @@ const History = (() => {
 
   function save(supplierId, rows, tariffDate) {
     const payload = {
-      savedAt: new Date().toISOString().slice(0, 10),
+      savedAt: todayLocalISO(),
       tariffDate: tariffDate || null,
       refs: rows.map(r => ({
         ref: r.ref,

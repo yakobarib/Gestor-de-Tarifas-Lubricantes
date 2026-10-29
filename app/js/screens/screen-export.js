@@ -30,8 +30,9 @@ const ScreenExport = (() => {
   // actuales de `rows` es el estado "todo marcado" por defecto.
   let checklistFormats = null;
   let checklistKeysSignature = null; // detecta si el conjunto de formatos cambió de verdad
+  let checklistContext = null;       // marca|gama de la última vez que se reinició el checklist
 
-  const GAMA_LABELS = { normal: 'Normal', standard: 'Standard', sportcar: 'Sport Car', quimico: 'Químicos', default: 'General', automocion: 'Automoción', industria: 'Industria', 'productos-de-mantenimiento': 'Productos de Mantenimiento', marinos: 'Marinos', grasas: 'Grasas', alimentarios: 'Alimentarios', 'v-ligero': 'V. Ligero', 'v-pesado': 'V. Pesado', agricola: 'Agrícola', transmision: 'Transmisión', hidraulicos: 'Hidráulicos', grasa: 'Grasa', moto: 'Moto', classic: 'Classic', marina: 'Marina', anticogelante: 'Anticongelante', aditivos: 'Aditivos', advance: 'Advance', 'air-tool': 'Air Tool', corena: 'Corena', diala: 'Diala', gadinia: 'Gadinia', gadus: 'Gadus', 'heat-transfer': 'Heat Transfer', helix: 'Helix', hydraulic: 'Hydraulic', morlina: 'Morlina', omala: 'Omala', ondina: 'Ondina', 'paper-mach': 'Paper Mach', refrigeration: 'Refrigeration', rimula: 'Rimula', sirius: 'Sirius', spirax: 'Spirax', tegula: 'Tegula', tellus: 'Tellus', tonna: 'Tonna', transmission: 'Transmission', turbo: 'Turbo', 'vacuum-pump': 'Vacuum Pump', other: 'Other', crb: 'CRB', edge: 'EDGE', gtx: 'GTX', 'gtx-5w': 'GTX 5W', magnatec: 'Magnatec', 'castrol-on': 'Castrol ON', transmax: 'Transmax', vecton: 'Vecton' };
+  const GAMA_LABELS = { normal: 'Normal', standard: 'Standard', sportcar: 'Sport Car', quimico: 'Químicos', default: 'General', automocion: 'Automoción', industria: 'Industria', 'productos-de-mantenimiento': 'Productos de Mantenimiento', marinos: 'Marinos', grasas: 'Grasas', alimentarios: 'Alimentarios', 'v-ligero': 'V. Ligero', 'v-pesado': 'V. Pesado', agricola: 'Agrícola', transmision: 'Transmisión', hidraulicos: 'Hidráulicos', grasa: 'Grasa', moto: 'Moto', classic: 'Classic', marina: 'Marina', anticogelante: 'Anticongelante', aditivos: 'Aditivos', advance: 'Advance', 'air-tool': 'Air Tool', corena: 'Corena', diala: 'Diala', gadinia: 'Gadinia', gadus: 'Gadus', 'heat-transfer': 'Heat Transfer', helix: 'Helix', hydraulic: 'Hydraulic', morlina: 'Morlina', omala: 'Omala', ondina: 'Ondina', 'paper-mach': 'Paper Mach', refrigeration: 'Refrigeration', rimula: 'Rimula', sirius: 'Sirius', spirax: 'Spirax', tegula: 'Tegula', tellus: 'Tellus', tonna: 'Tonna', transmission: 'Transmission', turbo: 'Turbo', 'vacuum-pump': 'Vacuum Pump', other: 'Other', crb: 'CRB', edge: 'EDGE', gtx: 'GTX', 'gtx-5w': 'GTX 5W', magnatec: 'Magnatec', 'castrol-on': 'Castrol ON', transmax: 'Transmax', vecton: 'Vecton', 'i-sint': 'i-Sint', 'i-sigma': 'i-Sigma', rotra: 'Rotra', 'i-ride': 'i-Ride', 'food-line': 'Food-Line', forestal: 'Forestal', anticongelantes: 'Anticongelantes' };
 
   // "Neto Factura" / "Neto-Neto" son listados simples (sin cálculo de margen, ver
   // conversación con Yako 2026-07-31) — no usan `priceLevels`, solo el coste tal cual.
@@ -410,7 +411,12 @@ const ScreenExport = (() => {
       return parseFloat(a) - parseFloat(b);
     });
     const signature = keys.join(',');
-    if (signature !== checklistKeysSignature) {
+    // Además de la firma de formatos, el contexto marca/gama: dos marcas o gamas distintas
+    // pueden tener EXACTAMENTE el mismo conjunto de formatos, y entonces los formatos
+    // desmarcados en la anterior se heredaban en silencio y salían fuera del fichero (ADR 0091).
+    const context = `${currentBrandId}|${currentGama}`;
+    if (context !== checklistContext || signature !== checklistKeysSignature) {
+      checklistContext = context;
       checklistKeysSignature = signature;
       checklistFormats = new Set(keys);
     } else if (!checklistFormats) {
@@ -436,7 +442,14 @@ const ScreenExport = (() => {
 
   /** Carga las filas de la marca/gama/tipo elegidos y las deja listas en `rows` para
    *  pintar la tabla Y para exportar (WYSIWYG: se exporta exactamente lo que se ve aquí). */
+  let previewSeq = 0;
   async function renderPreview() {
+    // Cada llamada se numera y, al volver de la carga asíncrona, solo la ÚLTIMA aplica su
+    // resultado: si se cambia de marca/gama mientras una carga está en curso ("Todas" lanza
+    // hasta 23 a la vez), la vieja podía terminar la última y dejar en `rows` filas de la
+    // marca A con `currentBrandId` = B — y `doExport` las exportaba con los márgenes y la
+    // abreviatura de B (ADR 0091).
+    const seq = ++previewSeq;
     const brand = findBrand(currentBrandId);
     const wrap = $('exportPreviewWrap');
     if (!brand || !currentOption) {
@@ -448,7 +461,9 @@ const ScreenExport = (() => {
       $('exportPreviewEmpty').textContent = !brand ? 'Elige una marca para ver el listado.' : 'Elige un tipo de exportación.';
       return;
     }
-    rows = await loadRowsWithStatus(brand, currentGama);
+    const loaded = await loadRowsWithStatus(brand, currentGama);
+    if (seq !== previewSeq) return; // llegó tarde: ya se pidió otra marca/gama/tipo
+    rows = loaded;
     if (!rows.length) {
       checklistFormats = null;
       checklistKeysSignature = null;
@@ -480,10 +495,15 @@ const ScreenExport = (() => {
       const levelFor = (gama) => (gama in levelCache) ? levelCache[gama] : (levelCache[gama] = pvpLevelFor(currentBrandId, gama));
       const tally = newErrorTally();
       const frag = document.createDocumentFragment();
-      for (const r of visible.slice(0, 500)) {
+      // El valor se calcula para TODAS las filas visibles, no solo para las 500 que se pintan:
+      // `doExport` descarta las filas sin `_regaloValue`, así que antes el Excel salía
+      // truncado a 500 filas en silencio con marcas de más de 500 refs visibles (ADR 0091).
+      for (const r of visible) {
         const level = levelFor(currentGama === '__all__' ? r.gama : currentGama);
-        const value = regaloValueFor(r, level, currentBrandId);
-        r._regaloValue = value; // se reutiliza tal cual al exportar (WYSIWYG)
+        r._regaloValue = regaloValueFor(r, level, currentBrandId); // se reutiliza tal cual al exportar (WYSIWYG)
+      }
+      for (const r of visible.slice(0, 500)) {
+        const value = r._regaloValue;
         trackRowErrors(tally, r, value == null);
         const tr = document.createElement('tr');
         tr.innerHTML = `
@@ -690,12 +710,32 @@ const ScreenExport = (() => {
     renderErrorsBox(tally);
   }
 
+  /** Envoltorio de `doExportInner`: bloquea el botón mientras se genera el fichero (un doble
+   *  clic descargaba el Excel dos veces) y muestra el error si el generador falla en vez de
+   *  dejar el estado anterior en pantalla sin ningún aviso (ADR 0091). */
+  let exporting = false;
   async function doExport() {
+    if (exporting) return;
+    exporting = true;
+    const btn = $('btnDoExport');
+    btn.disabled = true;
+    try {
+      await doExportInner();
+    } catch (err) {
+      console.error('doExport error', err);
+      $('exportStatus').innerHTML = `<small style="color: var(--pico-del-color);">❌ No se pudo exportar: ${escapeHtml((err && err.message) || String(err))}</small>`;
+    } finally {
+      exporting = false;
+      btn.disabled = false;
+    }
+  }
+
+  async function doExportInner() {
     const brand = findBrand(currentBrandId);
     if (!brand) { alert('Elige una marca antes de exportar.'); return; }
     if (!currentOption) { alert('Elige un tipo de exportación.'); return; }
     if (!rows.length) { alert('No hay tarifa importada para esta marca/gama en el maestro.'); return; }
-    const tariffDate = $('exportTariffDate').value || new Date().toISOString().slice(0, 10);
+    const tariffDate = $('exportTariffDate').value || todayLocalISO();
     const [kind, key] = currentOption.split(':');
     // Se exporta lo mismo que se ve filtrado en pantalla (búsqueda/formato/estado/
     // checklist de formatos, ver ADR 0082) — no el maestro completo de esa marca/gama.
@@ -844,7 +884,7 @@ const ScreenExport = (() => {
   }
 
   function init() {
-    $('exportTariffDate').value = new Date().toISOString().slice(0, 10);
+    $('exportTariffDate').value = todayLocalISO();
     renderBrandSelect();
     setupListeners();
   }

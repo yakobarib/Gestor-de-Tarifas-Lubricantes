@@ -55,6 +55,18 @@ document.addEventListener('DOMContentLoaded', async () => {
   await finishBoot();
 });
 
+/** Un paso de arranque que falla (IndexedDB bloqueado, migración rota…) no debe dejar la app
+ *  muerta sin pantallas ni mensaje: se avisa y se sigue con lo que ya hay (ADR 0091). */
+async function safeBootStep(label, fn) {
+  try {
+    return await fn();
+  } catch (err) {
+    console.error(`Arranque: fallo en "${label}"`, err);
+    showToast(`Aviso al arrancar (${label}): ${(err && err.message) || err}`);
+    return null;
+  }
+}
+
 async function finishBoot() {
   const cacheStatus = await MasterCache.refresh();
   if (cacheStatus.offline) {
@@ -66,9 +78,9 @@ async function finishBoot() {
   // que otros compañeros hayan importado desde el suyo — antes de Migration.run() para que
   // su applyMasterDescriptions() ya las recalcule con el maestro recién calentado (ver
   // ADR 0060+, extensión del maestro compartido).
-  await Migration.pushLocalTariffsToNeonOnce();
-  await Migration.pushLocalRulesToNeonOnce();
-  await Migration.pushLocalEquivalencesToNeonOnce();
+  await safeBootStep('subir tarifas locales', () => Migration.pushLocalTariffsToNeonOnce());
+  await safeBootStep('subir reglas locales', () => Migration.pushLocalRulesToNeonOnce());
+  await safeBootStep('subir equivalencias locales', () => Migration.pushLocalEquivalencesToNeonOnce());
   try {
     await MasterDB.hydrateFromNeon(await NeonTariffs.fetchAll());
   } catch (err) {
@@ -83,7 +95,7 @@ async function finishBoot() {
   if (equivStatus.offline) {
     showToast('Sin conexión con las equivalencias compartidas — usando lo que ya había en este ordenador.');
   }
-  await Migration.run();
+  await safeBootStep('migración de datos', () => Migration.run());
   ScreenImport.init();
   ScreenTarifas.init();
   ScreenRules.init();

@@ -73,9 +73,17 @@ const EquivalenceReader = (() => {
     }
 
     const groups = [];
+    // `source`: valor de la columna GAMA de este fichero (p. ej. "TRANSMISION AUTOMATICA" o
+    // "TRANSMISION Y EJES"). Dos ficheros pueden compartir categoría (Transmisión) — con
+    // esto `EquivalenceIndex.build()` sabe qué grupos reemplazar al reimportar solo UNO de
+    // ellos, sin borrar los del otro, y sigue funcionando aunque se renombre el Excel (ADR 0091).
+    let source = null;
     for (let r = 1; r < raw.length; r++) {
       const row = raw[r];
       if (!row) continue;
+      if (source == null && gamaCol >= 0 && row[gamaCol] != null && String(row[gamaCol]).trim()) {
+        source = String(row[gamaCol]).trim().toUpperCase();
+      }
       const specs = {};
       specCols.forEach(sc => { specs[sc.name] = row[sc.idx]; });
       const members = [];
@@ -90,7 +98,7 @@ const EquivalenceReader = (() => {
       }
       if (members.length) groups.push({ groupId: `${categoryPrefix}_spec_${r}`, specs, members });
     }
-    return { groups };
+    return { groups, source };
   }
 
   /** Formato "block" — ej. Equivalencias Grasas.xlsx. */

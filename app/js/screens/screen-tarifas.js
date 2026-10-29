@@ -61,7 +61,7 @@ const ScreenTarifas = (() => {
   }
   function tariffDateFor(brandId, gama) {
     const meta = Storage.get(importMetaKey(brandId, gama), null);
-    return (meta && (meta.tariffDate || meta.importedAt)) || new Date().toISOString().slice(0, 10);
+    return (meta && (meta.tariffDate || meta.importedAt)) || todayLocalISO();
   }
 
   /** Filas del maestro para una marca/gama, con un alias `costPerPack` = `costFactura`
@@ -588,7 +588,14 @@ const ScreenTarifas = (() => {
       const saveBtn = e.target.closest('[data-action="save-desc"]');
       if (saveBtn) {
         saveBtn.disabled = true;
-        await saveDescValidation(saveBtn.closest('.desc-validation-row'));
+        // `finally`: si falla Neon o la descripción está vacía, `saveDescValidation` sale sin
+        // repintar la lista y el botón se quedaba desactivado para siempre en esa fila —
+        // sin red no se podía reintentar sin cerrar y reabrir el modal (ADR 0091).
+        try {
+          await saveDescValidation(saveBtn.closest('.desc-validation-row'));
+        } finally {
+          saveBtn.disabled = false;
+        }
         return;
       }
       const discardBtn = e.target.closest('[data-action="discard-desc"]');

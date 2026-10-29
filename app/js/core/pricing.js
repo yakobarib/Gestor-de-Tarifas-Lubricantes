@@ -53,8 +53,12 @@ const Pricing = (() => {
     switch (mode) {
       case 'none': return value;
       case '2dec': return Math.round(value * 100) / 100;
-      case 'psy99': return Math.floor(value) + 0.99;
-      case 'psy95': return Math.floor(value) + 0.95;
+      // `+ 1e-9`: el resultado de cost/(1-m/100)·k puede ser un entero exacto en
+      // matemáticas pero 2,9999999999999996 en coma flotante, y el `floor` lo bajaba un
+      // euro (el mismo cálculo daba 2,99 o 3,99 según el ruido). Hoy ninguna gama usa
+      // psy99/psy95, pero era un fallo latente (ADR 0091).
+      case 'psy99': return Math.floor(value + 1e-9) + 0.99;
+      case 'psy95': return Math.floor(value + 1e-9) + 0.95;
       case 'step05': return Math.round(value * 20) / 20;
       case 'int': return Math.round(value);
       default: return Math.round(value * 100) / 100;
@@ -87,14 +91,23 @@ const Pricing = (() => {
    * se usa el primero que la fila tenga; si no, el campo único `baseCostField` de
    * siempre.
    */
+  /** Un coste solo vale si es un número finito MAYOR que 0. Un 0 (ej. AD Parts "SHT 0W30 High
+   *  Tech" en la tarifa del 31/08 trae coste factura 0 en sus 7 formatos), un negativo o un
+   *  NaN no son costes reales — antes pasaban como válidos y producían un PVP de 0,00 € (o
+   *  0,99 € con `psy99`) en vez de "sin coste" (ADR 0091). */
+  function validCost(v) {
+    return typeof v === 'number' && isFinite(v) && v > 0;
+  }
+
   function resolveCost(row, cfg) {
     if (cfg.costCascade && cfg.costCascade.length) {
       for (const field of cfg.costCascade) {
-        if (typeof row[field] === 'number' && isFinite(row[field])) return row[field];
+        if (validCost(row[field])) return row[field];
       }
       return null;
     }
-    return row[cfg.baseCostField || 'costPerPack'];
+    const v = row[cfg.baseCostField || 'costPerPack'];
+    return validCost(v) ? v : null;
   }
 
   function compute(row, levelConfig) {

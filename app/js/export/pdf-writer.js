@@ -40,7 +40,7 @@ const PdfWriter = (() => {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF({ unit: 'mm', format: 'a4' });
     const accent = hexToRgb(HEADER_COLOR_BY_BRAND[brand.id] || brand.color);
-    const dateStr = tariffDate || new Date().toISOString().slice(0, 10);
+    const dateStr = tariffDate || todayLocalISO();
 
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(16);
@@ -172,7 +172,7 @@ const PdfWriter = (() => {
     for (const k of [...keys].sort((a, b) => parseFloat(a) - parseFloat(b))) {
       const va = (mapFrom || {})[k];
       const vb = (mapTo || {})[k];
-      if (diffValue(va, vb)) lines.push(`${label} — formato ${k}: ${fmt(va)} → ${fmt(vb)}.`);
+      if (diffValue(va, vb)) lines.push(`${label} — formato ${k}: ${fmt(va)} -> ${fmt(vb)}.`);
     }
     return lines;
   }
@@ -189,15 +189,15 @@ const PdfWriter = (() => {
     const tBonus = (template.priceLevels || []).find(l => l.id === 'netos_bonus') || {};
     const cBonus = (cfg.priceLevels || []).find(l => l.id === 'netos_bonus') || {};
 
-    if (diffValue(tPvp.baseCost, cPvp.baseCost)) lines.push(`PVP — base de coste: ${BASE_COST_LABELS[tPvp.baseCost] || '—'} → ${BASE_COST_LABELS[cPvp.baseCost] || '—'}.`);
-    if (diffValue(tPvp.mode, cPvp.mode)) lines.push(`PVP — modo de margen: ${MODE_LABELS[tPvp.mode] || '—'} → ${MODE_LABELS[cPvp.mode] || '—'}.`);
-    if (diffValue(tPvp.defaultMargin, cPvp.defaultMargin)) lines.push(`PVP — margen por defecto: ${tPvp.defaultMargin}% → ${cPvp.defaultMargin}%.`);
-    if (diffValue(tPvp.rounding, cPvp.rounding)) lines.push(`PVP — redondeo: ${ROUNDING_LABELS[tPvp.rounding] || '—'} → ${ROUNDING_LABELS[cPvp.rounding] || '—'}.`);
+    if (diffValue(tPvp.baseCost, cPvp.baseCost)) lines.push(`PVP — base de coste: ${BASE_COST_LABELS[tPvp.baseCost] || '—'} -> ${BASE_COST_LABELS[cPvp.baseCost] || '—'}.`);
+    if (diffValue(tPvp.mode, cPvp.mode)) lines.push(`PVP — modo de margen: ${MODE_LABELS[tPvp.mode] || '—'} -> ${MODE_LABELS[cPvp.mode] || '—'}.`);
+    if (diffValue(tPvp.defaultMargin, cPvp.defaultMargin)) lines.push(`PVP — margen por defecto: ${tPvp.defaultMargin}% -> ${cPvp.defaultMargin}%.`);
+    if (diffValue(tPvp.rounding, cPvp.rounding)) lines.push(`PVP — redondeo: ${ROUNDING_LABELS[tPvp.rounding] || '—'} -> ${ROUNDING_LABELS[cPvp.rounding] || '—'}.`);
     lines.push(...diffMapLines('PVP — margen', tPvp.byFormat, cPvp.byFormat, v => v != null ? v + '%' : 'por defecto'));
     lines.push(...diffMapLines('PVP — modo especial', tPvp.formatModes, cPvp.formatModes, v => v === '1x2' ? '1+2' : v === 'pvp_neto' ? 'PVP Neto' : 'ninguno'));
 
-    if (diffValue(tBonus.defaultMargin, cBonus.defaultMargin)) lines.push(`Netos Bonus — margen por defecto: ${tBonus.defaultMargin}% → ${cBonus.defaultMargin}%.`);
-    if (diffValue(tBonus.rounding, cBonus.rounding)) lines.push(`Netos Bonus — redondeo: ${ROUNDING_LABELS[tBonus.rounding] || '—'} → ${ROUNDING_LABELS[cBonus.rounding] || '—'}.`);
+    if (diffValue(tBonus.defaultMargin, cBonus.defaultMargin)) lines.push(`Netos Bonus — margen por defecto: ${tBonus.defaultMargin}% -> ${cBonus.defaultMargin}%.`);
+    if (diffValue(tBonus.rounding, cBonus.rounding)) lines.push(`Netos Bonus — redondeo: ${ROUNDING_LABELS[tBonus.rounding] || '—'} -> ${ROUNDING_LABELS[cBonus.rounding] || '—'}.`);
     lines.push(...diffMapLines('Netos Bonus — margen', tBonus.byFormat, cBonus.byFormat, v => v != null ? v + '%' : 'por defecto'));
     lines.push(...diffMapLines('Netos Bonus — obsequio', tBonus.premiumByFormat, cBonus.premiumByFormat, v => v != null ? formatEurPdf(v) : 'sin obsequio'));
     lines.push(...diffMapLines('Netos Bonus — salida impresa', tBonus.printFormats, cBonus.printFormats, v => v ? 'Sí' : 'No'));
@@ -210,7 +210,7 @@ const PdfWriter = (() => {
    *  `exportAllPoliciesPdf` — ver ADR 0064 v2, "una hoja por cada marca"). */
   function renderBrandPolicyPage(doc, policy) {
     const { brand, gamaLabel, formats, pvp, bonus, cfg, template } = policy;
-    const todayStr = new Date().toISOString().slice(0, 10);
+    const todayStr = todayLocalISO();
     const pageWidth = doc.internal.pageSize.getWidth();
     const accent = hexToRgb(HEADER_COLOR_BY_BRAND[brand.id] || brand.color);
 

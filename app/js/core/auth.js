@@ -35,7 +35,8 @@ const Auth = (() => {
    *  `data` que podría no estar siempre presente. */
   function decodeEmailFromJwt(token) {
     try {
-      const payload = JSON.parse(atob(token.split('.')[1]));
+      // Los JWT van en base64URL ('-' y '_'), que `atob` no acepta — se normaliza a base64.
+      const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
       return payload.email || null;
     } catch {
       return null;

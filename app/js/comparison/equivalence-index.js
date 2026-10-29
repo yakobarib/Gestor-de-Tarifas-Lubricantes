@@ -16,11 +16,21 @@ const EquivalenceIndex = (() => {
   const KEY = 'equivalence_index_v1';
   let cached = null;
 
+  function realMemberCount(g) {
+    return g.members.filter(m => m.ref != null).length;
+  }
+
   function indexGroup(refToGroup, groupRef) {
     for (const m of groupRef.members) {
       if (m.ref == null) continue; // "en otros formatos" (ver EquivalenceReader) — no es buscable por ref
       const key = (m.brandKey || '').toUpperCase();
       refToGroup[key] = refToGroup[key] || {};
+      // Una misma ref en dos grupos distintos es una errata del Excel (una ref identifica un
+      // único producto/formato). Antes ganaba el ÚLTIMO grupo — y si era uno de una sola
+      // marca, se perdían los cruces del grupo bueno (ej. SHELL 550046307 en
+      // `vehiculo_ligero`). Ahora gana el grupo con más marcas cruzadas (ADR 0091).
+      const existing = refToGroup[key][m.ref];
+      if (existing && existing !== groupRef && realMemberCount(existing) > realMemberCount(groupRef)) continue;
       refToGroup[key][m.ref] = groupRef;
     }
   }
@@ -39,8 +49,17 @@ const EquivalenceIndex = (() => {
     // (renombradas/retiradas): `build()` fusiona por categoría, así que sin esto quedaban
     // huérfanas para siempre y duplicaban grupos (ADR 0085/0089).
     const known = (typeof EquivalenceReader !== 'undefined' && EquivalenceReader.KNOWN_CATEGORIES) || null;
+    // Una categoría puede venir de más de un fichero (Transmisión: Automática + Manual y
+    // Ejes). Cada grupo lleva `source` (valor de la columna GAMA de su fichero) y reimportar
+    // solo uno de ellos reemplaza SOLO sus grupos — antes borraba también los del otro
+    // fichero de la misma categoría (ADR 0091). Los grupos antiguos sin `source` (índice
+    // guardado antes de este cambio) se descartan al reimportar su categoría, como siempre.
+    const incomingKeys = new Set(categories.map(c => `${c.category}::${c.source || ''}`));
+    const replaced = (g) => g.source
+      ? incomingKeys.has(`${g.category}::${g.source}`)
+      : incomingCats.has(g.category);
     const keptGroups = prev
-      ? prev.groups.filter(g => !incomingCats.has(g.category) && (!known || known.has(g.category)))
+      ? prev.groups.filter(g => !replaced(g) && (!known || known.has(g.category)))
       : [];
 
     const groups = [...keptGroups];
@@ -48,12 +67,12 @@ const EquivalenceIndex = (() => {
     for (const g of keptGroups) indexGroup(refToGroup, g);
     for (const cat of categories) {
       for (const g of cat.groups) {
-        const groupRef = { category: cat.category, groupId: g.groupId, specs: g.specs, members: g.members };
+        const groupRef = { category: cat.category, source: cat.source || null, groupId: g.groupId, specs: g.specs, members: g.members };
         groups.push(groupRef);
         indexGroup(refToGroup, groupRef);
       }
     }
-    cached = { groups, refToGroup, builtAt: new Date().toISOString().slice(0, 10) };
+    cached = { groups, refToGroup, builtAt: todayLocalISO() };
     Storage.set(KEY, cached);
     if (typeof NeonEquivalences !== 'undefined') {
       NeonEquivalences.upsert(cached).catch(err => {
@@ -112,7 +131,7 @@ const EquivalenceIndex = (() => {
    *  porque ningún fichero nuevo las vuelve a mencionar. `resetAll()` es la vía de escape:
    *  vacía todo para que la siguiente `build()` parta de cero. */
   async function resetAll() {
-    cached = { groups: [], refToGroup: {}, builtAt: new Date().toISOString().slice(0, 10) };
+    cached = { groups: [], refToGroup: {}, builtAt: todayLocalISO() };
     Storage.set(KEY, cached);
     if (typeof NeonEquivalences !== 'undefined') await NeonEquivalences.upsert(cached);
   }

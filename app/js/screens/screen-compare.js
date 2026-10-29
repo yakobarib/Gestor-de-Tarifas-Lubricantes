@@ -36,6 +36,9 @@ const ScreenCompare = (() => {
     { id: 'eni', label: 'Eni Live' },
     { id: 'shell', label: 'Shell' }
   ];
+  // Qué tan "resuelta" está una celda del ranking — ver el reparto de miembros por columna en
+  // `buildRankingRows`: un precio calculado pesa más que un marcador sin referencia.
+  const STATE_RANK = { sin_equivalencia: -1, otros_formatos: 0, pendiente_de_cruce: 0, sin_tarifa: 1, sin_nivel: 2, ok: 3 };
   const RANK_CATEGORY_LABELS = {
     vehiculo_ligero: 'Vehículo Ligero', vehiculo_pesado: 'Vehículo Pesado',
     vehiculo_agricola: 'Vehículo Agrícola', vehiculo_electrico: 'Vehículo Eléctrico',
@@ -202,21 +205,30 @@ const ScreenCompare = (() => {
       const cols = RANK_BRAND_COLUMNS.map(() => ({ state: 'sin_equivalencia' }));
       for (const m of group.members) {
         const colIdx = rankColumnIndexForBrandKey(m.brandKey);
-        if (colIdx < 0 || cols[colIdx].state !== 'sin_equivalencia') continue; // fuera del ranking, o columna ya resuelta
-        if (m.note === 'otros_formatos') { cols[colIdx] = { state: 'otros_formatos', description: m.description || null }; continue; }
-        if (m.note === 'pendiente_de_cruce') { cols[colIdx] = { state: 'pendiente_de_cruce', description: m.description || null }; continue; }
-        const brandId = RANK_BRAND_COLUMNS[colIdx].id;
-        const row = rowsByBrand[brandId].get(String(m.ref).toUpperCase());
-        // El fichero "block" (Grasas/Hidráulicos/Motor VI/Transmisión, ver EquivalenceReader)
-        // trae su propia descripción por miembro — se conserva aquí en TODOS los estados,
-        // no solo "ok", para poder titular la fila aunque ninguna marca tenga tarifa
-        // importada todavía (antes solo se miraba `row.description`, y una fila sin
-        // ninguna marca resuelta salía con "categoría — ref" en vez del producto real).
-        if (!row) { cols[colIdx] = { state: 'sin_tarifa', ref: m.ref, description: m.description || null }; continue; }
-        const level = pvpLevelFor(brandId, row.gama);
-        const computed = level ? Pricing.compute(row, level) : null;
-        if (!computed || computed.pvp == null) { cols[colIdx] = { state: 'sin_nivel', ref: m.ref, description: row.description || m.description || null }; continue; }
-        cols[colIdx] = { state: 'ok', ref: m.ref, description: row.description || m.description || null, pvp: computed.pvp, costFactura: row.costFactura };
+        if (colIdx < 0) continue; // marca fuera del ranking (Racing Oil, sin alias…)
+        let cell;
+        if (m.note === 'otros_formatos') cell = { state: 'otros_formatos', description: m.description || null };
+        else if (m.note === 'pendiente_de_cruce') cell = { state: 'pendiente_de_cruce', description: m.description || null };
+        else {
+          const brandId = RANK_BRAND_COLUMNS[colIdx].id;
+          const row = rowsByBrand[brandId].get(String(m.ref).toUpperCase());
+          // El fichero "block" (Grasas, ver EquivalenceReader) trae su propia descripción por
+          // miembro — se conserva aquí en TODOS los estados, no solo "ok", para poder titular
+          // la fila aunque ninguna marca tenga tarifa importada todavía.
+          if (!row) cell = { state: 'sin_tarifa', ref: m.ref, description: m.description || null };
+          else {
+            const level = pvpLevelFor(brandId, row.gama);
+            const computed = level ? Pricing.compute(row, level) : null;
+            cell = (!computed || computed.pvp == null)
+              ? { state: 'sin_nivel', ref: m.ref, description: row.description || m.description || null }
+              : { state: 'ok', ref: m.ref, description: row.description || m.description || null, pvp: computed.pvp, costFactura: row.costFactura };
+          }
+        }
+        // Una columna puede recibir más de un miembro (AD Parts: "AD PARTS" y "AD STANDARD";
+        // 30 grupos reales traen los dos). Antes mandaba el primero en llegar, y si era un
+        // marcador ("otro formato") se perdía el precio del segundo, que sí tenía ref real.
+        // Ahora gana el miembro más resuelto; a igualdad, el primero (ADR 0091).
+        if (STATE_RANK[cell.state] > STATE_RANK[cols[colIdx].state]) cols[colIdx] = cell;
       }
 
       const anyMatched = cols.some(c => c.state !== 'sin_equivalencia');
@@ -341,7 +353,7 @@ const ScreenCompare = (() => {
       currentGama = 'default';
     } else {
       sel.disabled = false;
-      const labels = { normal: 'Normal', standard: 'Standard', sportcar: 'Sport Car', quimico: 'Químicos', default: 'General', automocion: 'Automoción', industria: 'Industria', 'productos-de-mantenimiento': 'Productos de Mantenimiento', marinos: 'Marinos', grasas: 'Grasas', alimentarios: 'Alimentarios', 'v-ligero': 'V. Ligero', 'v-pesado': 'V. Pesado', agricola: 'Agrícola', transmision: 'Transmisión', hidraulicos: 'Hidráulicos', grasa: 'Grasa', moto: 'Moto', classic: 'Classic', marina: 'Marina', anticogelante: 'Anticongelante', aditivos: 'Aditivos', advance: 'Advance', 'air-tool': 'Air Tool', corena: 'Corena', diala: 'Diala', gadinia: 'Gadinia', gadus: 'Gadus', 'heat-transfer': 'Heat Transfer', helix: 'Helix', hydraulic: 'Hydraulic', morlina: 'Morlina', omala: 'Omala', ondina: 'Ondina', 'paper-mach': 'Paper Mach', refrigeration: 'Refrigeration', rimula: 'Rimula', sirius: 'Sirius', spirax: 'Spirax', tegula: 'Tegula', tellus: 'Tellus', tonna: 'Tonna', transmission: 'Transmission', turbo: 'Turbo', 'vacuum-pump': 'Vacuum Pump', other: 'Other', crb: 'CRB', edge: 'EDGE', gtx: 'GTX', 'gtx-5w': 'GTX 5W', magnatec: 'Magnatec', 'castrol-on': 'Castrol ON', transmax: 'Transmax', vecton: 'Vecton' };
+      const labels = { normal: 'Normal', standard: 'Standard', sportcar: 'Sport Car', quimico: 'Químicos', default: 'General', automocion: 'Automoción', industria: 'Industria', 'productos-de-mantenimiento': 'Productos de Mantenimiento', marinos: 'Marinos', grasas: 'Grasas', alimentarios: 'Alimentarios', 'v-ligero': 'V. Ligero', 'v-pesado': 'V. Pesado', agricola: 'Agrícola', transmision: 'Transmisión', hidraulicos: 'Hidráulicos', grasa: 'Grasa', moto: 'Moto', classic: 'Classic', marina: 'Marina', anticogelante: 'Anticongelante', aditivos: 'Aditivos', advance: 'Advance', 'air-tool': 'Air Tool', corena: 'Corena', diala: 'Diala', gadinia: 'Gadinia', gadus: 'Gadus', 'heat-transfer': 'Heat Transfer', helix: 'Helix', hydraulic: 'Hydraulic', morlina: 'Morlina', omala: 'Omala', ondina: 'Ondina', 'paper-mach': 'Paper Mach', refrigeration: 'Refrigeration', rimula: 'Rimula', sirius: 'Sirius', spirax: 'Spirax', tegula: 'Tegula', tellus: 'Tellus', tonna: 'Tonna', transmission: 'Transmission', turbo: 'Turbo', 'vacuum-pump': 'Vacuum Pump', other: 'Other', crb: 'CRB', edge: 'EDGE', gtx: 'GTX', 'gtx-5w': 'GTX 5W', magnatec: 'Magnatec', 'castrol-on': 'Castrol ON', transmax: 'Transmax', vecton: 'Vecton', 'i-sint': 'i-Sint', 'i-sigma': 'i-Sigma', rotra: 'Rotra', 'i-ride': 'i-Ride', 'food-line': 'Food-Line', forestal: 'Forestal', anticongelantes: 'Anticongelantes' };
       sel.innerHTML = brand.gamas.map(g => `<option value="${g}">${escapeHtml(labels[g] || g)}</option>`).join('');
       currentGama = brand.gamas[0];
       sel.value = currentGama;

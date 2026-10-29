@@ -26,7 +26,8 @@ const NeonRules = (() => {
     const rows = [];
     let offset = 0;
     while (true) {
-      const { data, error } = await client.from(TABLE).select('*').range(offset, offset + PAGE_SIZE - 1);
+      // Orden por clave primaria para que la paginación sea estable (ver neon-tariffs.js, ADR 0091).
+      const { data, error } = await client.from(TABLE).select('*').order('brand_id').order('gama').range(offset, offset + PAGE_SIZE - 1);
       if (error) throw new Error(error.message || 'Error leyendo las reglas compartidas.');
       rows.push(...data);
       if (data.length < PAGE_SIZE) break;

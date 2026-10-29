@@ -13,7 +13,7 @@ const ScreenHelp = (() => {
       key: 'import', label: 'Importación', html: `
       <h4>Qué hace esta pantalla</h4>
       <p>Es la única que lee ficheros Excel y los guarda en el maestro (una base de datos
-      local en este navegador). Cada marca tiene su propia tarjeta con una zona de
+      compartida en la nube con el resto del equipo, con copia en este navegador). Cada marca tiene su propia tarjeta con una zona de
       arrastre — suelta ahí el Excel que envía ese proveedor, o pulsa para elegirlo. La
       app detecta sola de qué proveedor es el fichero; si no coincide con la tarjeta
       donde lo soltaste, avisa antes de continuar.</p>
@@ -32,10 +32,12 @@ const ScreenHelp = (() => {
         referencia por un cambio de imagen, este Excel dice "la ref antigua X ahora es la
         Y" — así el histórico de Tarifas no lo trata como un producto nuevo sin
         relación.</li>
-        <li><strong>Cruces de referencias entre marcas</strong>: los 5 Excel de
-        "Equivalencias" que dicen qué producto de una marca es el mismo que en otra.
-        Alimentan la pantalla Comparación — cárgalos aquí una vez (se guardan en el
-        navegador, no hace falta repetirlo cada sesión).</li>
+        <li><strong>Cruces de referencias entre marcas</strong>: los Excel de
+        "Equivalencias" (Vehículo Ligero, Pesado, Agrícola, Eléctrico, Transmisión
+        Automática, Transmisión Manual y Ejes, Industria Hidráulicos y Grasas) que dicen qué
+        producto de una marca es el mismo que en otra. Alimentan la pantalla Comparación —
+        cárgalos aquí (se comparten con el equipo, no hace falta repetirlo cada sesión). Puedes
+        soltar uno solo o varios a la vez.</li>
       </ul>
       <h4>Casos especiales por proveedor</h4>
       <ul>
@@ -51,7 +53,7 @@ const ScreenHelp = (() => {
       <ol>
         <li>Cuando llegue una tarifa nueva de un proveedor, suéltala en su tarjeta.</li>
         <li>Si Repsol trae rebranding ese mes, carga también el Excel de cruce.</li>
-        <li>La primera vez (o si se actualizan) carga los 5 Excel de equivalencias entre
+        <li>La primera vez (o cuando actualices alguno) carga los Excel de equivalencias entre
         marcas.</li>
         <li>Repite por cada proveedor — no hace falta seguir ningún orden entre
         marcas.</li>
@@ -130,7 +132,7 @@ const ScreenHelp = (() => {
       <p>Compara el mismo producto entre las distintas marcas — para ver a qué coste
       compras y a qué PVP vendes ese mismo producto según el proveedor.</p>
       <h4>Antes de usarla</h4>
-      <p>Hace falta haber cargado, desde Importación, los 5 Excel de "Equivalencias" que
+      <p>Hace falta haber cargado, desde Importación, los Excel de "Equivalencias" que
       dicen qué referencia de una marca es el mismo producto que en otra. Sin eso, la
       búsqueda avisa y no puede continuar.</p>
       <h4>Cómo buscar</h4>
@@ -187,8 +189,8 @@ const ScreenHelp = (() => {
       como en PDF.</p>
       <h4>Flujo recomendado</h4>
       <ol>
-        <li>Revisa y ajusta en "PVP (Venta)" si hace falta tocar algún PVP manual.</li>
-        <li>Cambia a "PVP (Skrit)" y exporta el Excel para subir a Skrit.</li>
+        <li>Revisa y ajusta en "PVP (Skrit)" si hace falta tocar algún PVP manual.</li>
+        <li>Exporta desde ahí el Excel para subir a Skrit ("PVP (Datos)" saca los mismos precios en un listado de datos).</li>
         <li>Si hace falta una hoja para un comercial o cliente, usa "PVP (Imprimir)".</li>
       </ol>
     ` }

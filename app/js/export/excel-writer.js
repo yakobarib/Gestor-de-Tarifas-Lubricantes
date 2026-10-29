@@ -110,7 +110,7 @@ const ExcelWriter = (() => {
   /** dd-mm-aaaa a partir de aaaa-mm-dd (input type=date) — reusado por cualquier nombre
    *  de fichero de salida, ver ADR 0035. */
   function dateSlug(tariffDate) {
-    const iso = tariffDate || new Date().toISOString().slice(0, 10);
+    const iso = tariffDate || todayLocalISO();
     const [y, m, d] = iso.split('-');
     return `${d}-${m}-${y}`;
   }

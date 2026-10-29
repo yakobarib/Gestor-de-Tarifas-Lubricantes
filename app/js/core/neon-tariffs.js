@@ -41,7 +41,10 @@ const NeonTariffs = (() => {
     const rows = [];
     let offset = 0;
     while (true) {
-      const { data, error } = await client.from(TABLE).select('*').range(offset, offset + PAGE_SIZE - 1);
+      // Orden por clave primaria: paginar con `range` sin ORDER BY no garantiza un orden
+      // estable entre páginas — una escritura de otro PC durante la carga podía hacer que
+      // se saltaran o duplicaran filas sin ningún error (ADR 0091).
+      const { data, error } = await client.from(TABLE).select('*').order('brand_id').order('gama').order('ref').range(offset, offset + PAGE_SIZE - 1);
       if (error) throw new Error(error.message || 'Error leyendo las tarifas compartidas.');
       rows.push(...data);
       if (data.length < PAGE_SIZE) break;
