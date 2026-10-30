@@ -184,7 +184,7 @@ const ScreenCompare = (() => {
     const size = groupSizeLabel(group);
     if (!size || !description) return description;
     const hasSize = /(^|[^0-9a-z])[0-9]+([.,][0-9]+)?[ ]*(kgs?|kilos?|litros?|lts?|ml|cc|grs?|l|k)([^a-z]|$)/i.test(description);
-    return hasSize ? description : `${description} ${size}`;
+    return hasSize ? description : `${description} ${size.replace(' ', '')}`;
   }
 
   /** A qué columna del ranking corresponde un brandKey de los ficheros de equivalencias
@@ -278,7 +278,7 @@ const ScreenCompare = (() => {
         else if (anyRef) description = `${RANK_CATEGORY_LABELS[group.category] || group.category} — ${anyRef}`;
         else description = RANK_CATEGORY_LABELS[group.category] || group.category;
       }
-      description = withSize(description, group);
+      description = withSize(description, group).toUpperCase();   // todo en mayúsculas (ADR 0095)
       rows.push({ groupId: group.groupId, category: group.category, description, cols, cheapestIdx, priciestIdx });
     }
     return rows;

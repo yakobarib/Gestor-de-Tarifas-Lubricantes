@@ -7,8 +7,10 @@
 Las filas del ranking se titulaban con la descripción de la primera marca con dato; en Grasas esa
 descripción no lleva envase ("GLMO", "GLEP-2"), así que había una fila por envase con el mismo
 nombre. Ahora `withSize` añade el envase del grupo (`specs.LITROS`/`specs.KG` del Excel, o el
-tamaño de algún miembro) **solo si la descripción no trae ya ninguna cantidad** ("GLMO 45 kg").
+tamaño de algún miembro) **solo si la descripción no trae ya ninguna cantidad** ("GLMO 45KG", sin espacio entre cifra y unidad).
 Las descripciones de tarifa que ya dicen "20L" no se tocan, para no contradecirlas.
+
+Por petición de Yako, el título de cada fila del ranking se muestra todo en mayúsculas.
 
 Pendiente: las grasas de AD siguen "sin tarifa" hasta tener su tarifa actual (solo existe la de
 2011, inservible); entonces AD aportará su descripción real.

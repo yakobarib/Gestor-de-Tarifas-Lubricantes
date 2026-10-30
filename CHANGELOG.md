@@ -2,6 +2,11 @@
 
 Formato inspirado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [v1.0.59] — 2026-10-30
+
+### Cambiado
+- Ranking completo: títulos de fila en mayúsculas y envase sin espacio ("GLMO 45KG").
+
 ## [v1.0.58] — 2026-10-30
 
 ### Corregido
