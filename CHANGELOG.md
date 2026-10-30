@@ -6,7 +6,7 @@ Formato inspirado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/)
 
 ### Cambiado
 - Historial de cambios: cuadro más ancho (con letra grande no cabía). Ajustes queda limpio
-  (solo el botón del historial); el nombre actual y "Cambiar nombre" están dentro del historial.
+  (solo el botón del historial); se quita "Cambiar nombre" (el nombre se vuelve a pedir solo tras 60 min sin cambios).
 
 ## [v1.0.55] — 2026-10-30
 

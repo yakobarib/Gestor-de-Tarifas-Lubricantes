@@ -18,7 +18,7 @@ cada marca/gama). Se añade **rastro**: cada cambio de una persona queda anotado
   El envío a Neon y la anotación se hacen **una vez, 1,5 s después de dejar de teclear**.
 - En ese momento `RulesAuthor.ensure()` pide el nombre en un diálogo **sin botón de cerrar**.
   Se recuerda mientras se siga trabajando (caduca a los 60 min sin cambios); se puede corregir
-  en Ajustes → "Cambiar nombre".
+  en pasados 60 min.
 - `RulesAudit.diff` compara contra el último estado conocido en Neon (`baselines`, rellenado en
   `refresh()` y tras cada envío). Ignora los campos heredados del formato antiguo y el orden de
   los niveles. "Todas las gamas" genera una sola línea de rastro.

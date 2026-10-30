@@ -4,8 +4,7 @@
    Cada cambio de reglas deja rastro con un NOMBRE escrito por quien lo hace (el email de
    la sesión puede ser una cuenta compartida). El diálogo es obligatorio: no se puede
    cerrar sin escribir un nombre. Para no interrumpir cada tecla, el nombre se recuerda
-   mientras se siga trabajando (caduca tras 60 min sin cambios) y se puede cambiar desde
-   Ajustes. Aquí también vive el visor del "Historial de cambios".
+   mientras se siga trabajando (caduca tras 60 min sin cambios y se vuelve a preguntar). Aquí también vive el visor del "Historial de cambios".
 */
 const RulesAuthor = (() => {
   const IDLE_MS = 60 * 60 * 1000;
@@ -56,25 +55,11 @@ const RulesAuthor = (() => {
     return ask();
   }
 
-  /** Desde Ajustes: fuerza a escribir (o corregir) el nombre. */
-  async function change() {
-    current = null;
-    const n = await ask('¿Quién hace los cambios?');
-    refreshSettingsRow();
-    return n;
-  }
-
-  function refreshSettingsRow() {
-    const el = document.getElementById('settingsAuthorName');
-    if (el) el.textContent = valid() ? current.name : '(aún sin indicar)';
-  }
-
   async function showHistory() {
     const modal = document.getElementById('modalHistory');
     const body = document.getElementById('historyBody');
     if (!modal || !body) return;
     modal.classList.remove('hidden');
-    refreshSettingsRow();
     body.innerHTML = '<p class="hint">Cargando…</p>';
     try {
       const rows = await RulesAudit.fetchRecent(300);
@@ -93,13 +78,11 @@ const RulesAuthor = (() => {
   }
 
   function init() {
-    const bChange = document.getElementById('btnChangeAuthor');
-    if (bChange) bChange.addEventListener('click', change);
     const bHist = document.getElementById('btnShowHistory');
     if (bHist) bHist.addEventListener('click', showHistory);
     const bClose = document.getElementById('btnHistoryClose');
     if (bClose) bClose.addEventListener('click', () => document.getElementById('modalHistory').classList.add('hidden'));
   }
 
-  return { ensure, change, showHistory, init };
+  return { ensure, showHistory, init };
 })();
