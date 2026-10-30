@@ -164,6 +164,29 @@ const ScreenCompare = (() => {
     return parts.length ? parts.join(' ') : null;
   }
 
+  /** Envase del grupo ("5 kg", "20 L", "500 ml") a partir de las specs del Excel, o del tamaño
+   *  de algún miembro. Las filas de un mismo producto en varios envases (GLMO 5/45/185 kg) se
+   *  titulaban igual y no se distinguían (ADR 0095). */
+  function groupSizeLabel(group) {
+    const specs = group.specs || {};
+    const num = (v) => { const n = parseFloat(String(v).replace(',', '.')); return isFinite(n) && n > 0 ? n : null; };
+    const fmt = (n) => String(n).replace('.', ',');
+    let l = num(specs.LITROS);
+    if (l != null) return l < 1 ? `${Math.round(l * 1000)} ml` : `${fmt(l)} L`;
+    let k = num(specs.KG);
+    if (k == null) { const m = group.members.find(x => num(x.size) != null); if (m) k = num(m.size); }
+    return k != null ? `${fmt(k)} kg` : null;
+  }
+
+  /** Añade el envase a la descripción SOLO si esta no dice ya ninguno (las de tarifa suelen
+   *  traerlo: "… 20L"); así nunca se contradice con lo que ya trae. */
+  function withSize(description, group) {
+    const size = groupSizeLabel(group);
+    if (!size || !description) return description;
+    const hasSize = /(^|[^0-9a-z])[0-9]+([.,][0-9]+)?[ ]*(kgs?|kilos?|litros?|lts?|ml|cc|grs?|l|k)([^a-z]|$)/i.test(description);
+    return hasSize ? description : `${description} ${size}`;
+  }
+
   /** A qué columna del ranking corresponde un brandKey de los ficheros de equivalencias
    *  (ej. "AD STANDARD" → misma columna que "AD PARTS") — -1 si es una marca que no
    *  entra en el ranking (Racing Oil, o una marca sin mapear). */
@@ -255,6 +278,7 @@ const ScreenCompare = (() => {
         else if (anyRef) description = `${RANK_CATEGORY_LABELS[group.category] || group.category} — ${anyRef}`;
         else description = RANK_CATEGORY_LABELS[group.category] || group.category;
       }
+      description = withSize(description, group);
       rows.push({ groupId: group.groupId, category: group.category, description, cols, cheapestIdx, priciestIdx });
     }
     return rows;

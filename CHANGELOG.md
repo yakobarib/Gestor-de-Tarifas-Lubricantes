@@ -2,6 +2,12 @@
 
 Formato inspirado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [v1.0.58] — 2026-10-30
+
+### Corregido
+- Ranking completo: las filas de un mismo producto en varios envases (p. ej. GLMO 5/45/185 kg)
+  ahora muestran el envase y se distinguen. Ver ADR 0095.
+
 ## [v1.0.57] — 2026-10-30
 
 ### Corregido
