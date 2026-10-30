@@ -35,6 +35,6 @@ cada marca/gama). Se añade **rastro**: cada cambio de una persona queda anotado
 - Si el Data API no tiene refrescada su caché de esquema, el historial no se lee ni se escribe
   (el cambio de reglas se guarda igual y se avisa). Refrescar desde la consola de Neon
   (Data API) o `npx neon@latest data-api refresh-schema --project-id silent-field-02039340`.
-- Siguen sin resolverse (ADR 0091): edición simultánea que pisa campos del otro, y cola
+- Edición simultánea y cola sin conexión: resueltas en ADR 0094.
   persistente para ediciones sin conexión. Diseño propuesto: patch por campos + escritura
   condicional + cola en IndexedDB.

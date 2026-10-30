@@ -3,9 +3,8 @@
    ============================================================================
    Mismo patrón que NeonMaster/NeonTariffs — un blob JSON por (marca, gama), espejo
    exacto de lo que hasta ahora vivía solo en `localStorage` (`config_${brandId}
-   [_${gama}]`, ver screen-rules.js). A diferencia de las tarifas importadas, aquí
-   SIEMPRE se manda el blob entero (no hay merge parcial por campo que preservar —
-   guardar una regla ya era, y sigue siendo, "reescribir todo el documento"). Ver
+   [_${gama}]`, ver screen-rules.js). El blob se guarda entero, pero RulesStore
+   lo fusiona antes por campos con lo último de Neon y escribe de forma condicional (ADR 0093). Ver
    ADR 0062 (Fase 2 de "extender lo compartido en Neon").
 */
 const NeonRules = (() => {
@@ -46,5 +45,31 @@ const NeonRules = (() => {
     if (error) throw new Error(error.message || 'No se pudo sincronizar la regla con el equipo.');
   }
 
-  return { fetchAll, upsert };
+  /** Una sola fila (config + marca de tiempo) o null si aún no existe. */
+  async function fetchOne(brandId, gama) {
+    const client = await neonReady();
+    const { data, error } = await client.from(TABLE).select('config, updated_at').eq('brand_id', brandId).eq('gama', gama).maybeSingle();
+    if (error) throw new Error(error.message || 'No se pudo leer la regla compartida.');
+    return data || null;
+  }
+
+  /** Escritura condicional (ADR 0093): solo escribe si la fila sigue como la leímos
+   *  (`expectedUpdatedAt`; null = debe no existir). Devuelve { ok: true } o { ok: false } si
+   *  alguien escribió en medio — quien llama vuelve a leer, fusiona y reintenta. */
+  async function writeIfUnchanged(brandId, gama, config, expectedUpdatedAt) {
+    const client = await neonReady();
+    const email = (typeof Auth !== 'undefined' && Auth.currentUserEmail()) || null;
+    if (expectedUpdatedAt == null) {
+      const { error } = await client.from(TABLE).insert({ brand_id: brandId, gama, config, updated_by: email });
+      if (!error) return { ok: true };
+      if (error.code === '23505' || /duplicate key/i.test(error.message || '')) return { ok: false };
+      throw new Error(error.message || 'No se pudo sincronizar la regla con el equipo.');
+    }
+    const { data, error } = await client.from(TABLE).update({ config, updated_by: email })
+      .eq('brand_id', brandId).eq('gama', gama).eq('updated_at', expectedUpdatedAt).select('gama');
+    if (error) throw new Error(error.message || 'No se pudo sincronizar la regla con el equipo.');
+    return { ok: !!(data && data.length) };
+  }
+
+  return { fetchAll, fetchOne, writeIfUnchanged, upsert };
 })();

@@ -2,6 +2,15 @@
 
 Formato inspirado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [v1.0.57] — 2026-10-30
+
+### Corregido
+- Dos personas editando reglas a la vez ya no se borran el trabajo: se guarda solo lo que cada
+  una cambió, fusionado con lo último de Neon, y la escritura es condicional. Si tocan el mismo
+  campo gana el último y queda anotado en el historial.
+- Un cambio de reglas hecho sin conexión ya no se pierde al reabrir: se guarda en el navegador y
+  se envía al volver la conexión o al arrancar, antes de traer lo de Neon. Ver ADR 0094.
+
 ## [v1.0.56] — 2026-10-30
 
 ### Cambiado
