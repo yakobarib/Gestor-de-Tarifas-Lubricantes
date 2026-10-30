@@ -2,6 +2,13 @@
 
 Formato inspirado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [v1.0.55] — 2026-10-30
+
+### Añadido
+- Cada cambio de reglas pide el nombre de quien lo hace (diálogo obligatorio, se recuerda
+  60 min) y queda anotado con fecha y detalle campo a campo. Ajustes → "Historial de cambios"
+  y "Cambiar nombre". Ver ADR 0092.
+
 ## [v1.0.54] — 2026-10-29
 
 Auditoría de código (4 revisiones independientes + verificación con datos reales).

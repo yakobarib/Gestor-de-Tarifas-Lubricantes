@@ -59,7 +59,7 @@
     <div class="sidebar-footer">
       <p>Diseñado por <strong>Yakoba Moreno</strong></p>
       <p>Desarrollado en <strong>Claude Code</strong></p>
-      <span class="sidebar-version">v1.0.54</span>
+      <span class="sidebar-version">v1.0.55</span>
     </div>
   </aside>
 
@@ -115,8 +115,42 @@
             <button type="button" class="mode-btn" data-size="large">Grande</button>
           </div>
         </div>
+        <div class="field">
+          <label>Cambios de reglas hechos por</label>
+          <div><strong id="settingsAuthorName"></strong></div>
+          <div class="actions" style="justify-content:flex-start">
+            <button class="secondary-btn" id="btnChangeAuthor" type="button">Cambiar nombre</button>
+            <button class="secondary-btn" id="btnShowHistory" type="button">Historial de cambios</button>
+          </div>
+        </div>
         <div class="actions">
           <button class="secondary-btn" id="btnSettingsClose">Cerrar</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Nombre obligatorio al cambiar reglas (ver rules-author.js, ADR 0092) — sin botón de cerrar -->
+    <div id="modalAuthor" class="modal-backdrop hidden">
+      <div class="modal">
+        <h3 id="authorTitle">Antes de guardar el cambio</h3>
+        <p class="hint">Escribe tu nombre: queda registrado con cada cambio de reglas (quién, cuándo y qué cambió).</p>
+        <div class="field">
+          <label for="authorName">Tu nombre</label>
+          <input type="text" id="authorName" maxlength="60" autocomplete="off">
+        </div>
+        <div class="actions">
+          <button class="primary-btn" id="btnAuthorOk" type="button">Continuar</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Historial de cambios de reglas -->
+    <div id="modalHistory" class="modal-backdrop hidden">
+      <div class="modal" style="max-width:900px;width:92vw;max-height:80vh;overflow:auto">
+        <h3>Historial de cambios de reglas</h3>
+        <div id="historyBody"></div>
+        <div class="actions">
+          <button class="secondary-btn" id="btnHistoryClose" type="button">Cerrar</button>
         </div>
       </div>
     </div>
@@ -488,6 +522,8 @@
 <script src="js/core/neon-master.js"></script>
 <script src="js/core/neon-tariffs.js"></script>
 <script src="js/core/neon-rules.js"></script>
+<script src="js/core/rules-audit.js"></script>
+<script src="js/core/rules-author.js"></script>
 <script src="js/core/rules-store.js"></script>
 <script src="js/core/neon-equivalences.js"></script>
 <script src="js/core/db.js"></script>

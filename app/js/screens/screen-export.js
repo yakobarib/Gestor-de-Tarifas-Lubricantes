@@ -160,7 +160,7 @@ const ScreenExport = (() => {
     if (!cfg.priceLevels || !cfg.priceLevels.length) { cfg.priceLevels = [Migration.synthesizePvpLevel(cfg)]; isNew = true; }
     let level = cfg.priceLevels.find(l => l.id === levelId);
     if (!level && levelId === 'pvp') { level = Migration.synthesizePvpLevel(cfg); cfg.priceLevels.unshift(level); isNew = true; }
-    if (isNew) RulesStore.save(brandId, gama, cfg);
+    if (isNew) RulesStore.save(brandId, gama, cfg, { auto: true });
     return level ? { cfg, level } : null;
   }
 

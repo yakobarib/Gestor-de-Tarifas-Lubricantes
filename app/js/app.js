@@ -32,6 +32,8 @@ function setupHeaderActions() {
     });
   }
 
+  if (typeof RulesAuthor !== 'undefined') RulesAuthor.init();
+
   const btnLogin = document.getElementById('btnLogin');
   if (btnLogin) {
     btnLogin.title = Auth.currentUserEmail() || 'Cuenta';
