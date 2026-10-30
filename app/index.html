@@ -59,7 +59,7 @@
     <div class="sidebar-footer">
       <p>Diseñado por <strong>Yakoba Moreno</strong></p>
       <p>Desarrollado en <strong>Claude Code</strong></p>
-      <span class="sidebar-version">v1.0.55</span>
+      <span class="sidebar-version">v1.0.56</span>
     </div>
   </aside>
 
@@ -116,12 +116,7 @@
           </div>
         </div>
         <div class="field">
-          <label>Cambios de reglas hechos por</label>
-          <div><strong id="settingsAuthorName"></strong></div>
-          <div class="actions" style="justify-content:flex-start">
-            <button class="secondary-btn" id="btnChangeAuthor" type="button">Cambiar nombre</button>
-            <button class="secondary-btn" id="btnShowHistory" type="button">Historial de cambios</button>
-          </div>
+          <button class="secondary-btn" id="btnShowHistory" type="button">Historial de cambios</button>
         </div>
         <div class="actions">
           <button class="secondary-btn" id="btnSettingsClose">Cerrar</button>
@@ -146,10 +141,12 @@
 
     <!-- Historial de cambios de reglas -->
     <div id="modalHistory" class="modal-backdrop hidden">
-      <div class="modal" style="max-width:900px;width:92vw;max-height:80vh;overflow:auto">
+      <div class="modal" style="max-width:1100px;width:min(1100px,96vw);max-height:85vh;overflow:auto">
         <h3>Historial de cambios de reglas</h3>
         <div id="historyBody"></div>
         <div class="actions">
+          <span class="hint" style="margin-right:auto">Cambios hechos por: <strong id="settingsAuthorName"></strong></span>
+          <button class="secondary-btn" id="btnChangeAuthor" type="button">Cambiar nombre</button>
           <button class="secondary-btn" id="btnHistoryClose" type="button">Cerrar</button>
         </div>
       </div>

@@ -2,6 +2,12 @@
 
 Formato inspirado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [v1.0.56] — 2026-10-30
+
+### Cambiado
+- Historial de cambios: cuadro más ancho (con letra grande no cabía). Ajustes queda limpio
+  (solo el botón del historial); el nombre actual y "Cambiar nombre" están dentro del historial.
+
 ## [v1.0.55] — 2026-10-30
 
 ### Añadido

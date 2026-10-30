@@ -66,7 +66,7 @@ const RulesAuthor = (() => {
 
   function refreshSettingsRow() {
     const el = document.getElementById('settingsAuthorName');
-    if (el) el.textContent = valid() ? current.name : '(se pedirá al hacer el próximo cambio)';
+    if (el) el.textContent = valid() ? current.name : '(aún sin indicar)';
   }
 
   async function showHistory() {
@@ -74,6 +74,7 @@ const RulesAuthor = (() => {
     const body = document.getElementById('historyBody');
     if (!modal || !body) return;
     modal.classList.remove('hidden');
+    refreshSettingsRow();
     body.innerHTML = '<p class="hint">Cargando…</p>';
     try {
       const rows = await RulesAudit.fetchRecent(300);
@@ -98,8 +99,6 @@ const RulesAuthor = (() => {
     if (bHist) bHist.addEventListener('click', showHistory);
     const bClose = document.getElementById('btnHistoryClose');
     if (bClose) bClose.addEventListener('click', () => document.getElementById('modalHistory').classList.add('hidden'));
-    const bSet = document.getElementById('btnSettings');
-    if (bSet) bSet.addEventListener('click', refreshSettingsRow);
   }
 
   return { ensure, change, showHistory, init };
