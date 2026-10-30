@@ -36,5 +36,3 @@ cada marca/gama). Se añade **rastro**: cada cambio de una persona queda anotado
   (el cambio de reglas se guarda igual y se avisa). Refrescar desde la consola de Neon
   (Data API) o `npx neon@latest data-api refresh-schema --project-id silent-field-02039340`.
 - Edición simultánea y cola sin conexión: resueltas en ADR 0094.
-  persistente para ediciones sin conexión. Diseño propuesto: patch por campos + escritura
-  condicional + cola en IndexedDB.
