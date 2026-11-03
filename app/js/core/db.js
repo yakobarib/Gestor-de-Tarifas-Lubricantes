@@ -28,6 +28,9 @@ const MasterDB = (() => {
 
   const SNAPSHOT_STORE = 'master_cache_snapshot';
 
+  // Marcas cuyo coste del envase = precio por litro × litros (ver profile-castrol / profile-shell).
+  const PER_LITER_COST_BRANDS = new Set(['castrol', 'shell']);
+
   function open() {
     if (dbPromise) return dbPromise;
     dbPromise = new Promise((resolve, reject) => {
@@ -128,6 +131,19 @@ const MasterDB = (() => {
           unitsPerBox: r.unitsPerBox != null ? r.unitsPerBox : (existing ? existing.unitsPerBox : null)
         }
       );
+      // Marcas cuyo coste por envase sale de "precio por litro × litros" (Castrol, Shell): si
+      // el maestro corrige los litros de una fila ya importada, el coste guardado sigue
+      // siendo el calculado con los litros antiguos — hay que reescalarlo (ADR 0097). En el
+      // resto de marcas el coste viene del precio del envase y los litros no lo afectan.
+      const rescaled = {};
+      const oldL = existing ? Number(existing.liters) : NaN, newL = verified ? Number(verified.liters) : NaN;
+      if (PER_LITER_COST_BRANDS.has(brandId) && oldL > 0 && newL > 0 && Math.abs(oldL - newL) > 1e-9) {
+        const k = newL / oldL;
+        for (const f of ['costFactura', 'costNetoNeto', 'costTripleNeto']) {
+          const v = Number(existing[f]);
+          if (existing[f] != null && isFinite(v)) { merged[f] = v * k; rescaled[f] = merged[f]; }
+        }
+      }
       // Guardia: solo tocar el coste del `tariffType` de este import si la fila trae de
       // verdad un `costPerPack` numérico. Sin esto, una importación de "solo triple-neto"
       // (sin costPerPack, ver ADR 0030 — AD Parts manda esos datos en un fichero aparte,
@@ -179,6 +195,13 @@ const MasterDB = (() => {
       }
       if (r.costNetoNeto != null) { neonFields.costNetoNeto = r.costNetoNeto; neonFields.costNetoNetoImportedAt = now; }
       if (r.costTripleNeto != null) { neonFields.costTripleNeto = r.costTripleNeto; neonFields.costTripleNetoImportedAt = now; }
+      // Costes reescalados por un cambio de litros en el maestro: se empujan a Neon salvo
+      // los que esta misma fila ya trae recalculados (mandan los de la tarifa).
+      if (Object.keys(rescaled).length) {
+        for (const f of Object.keys(rescaled)) if (neonFields[f] === undefined) neonFields[f] = rescaled[f];
+        if (neonFields.liters === undefined) neonFields.liters = merged.liters;
+        if (neonFields.formatKey === undefined) neonFields.formatKey = merged.formatKey;
+      }
       if (Object.keys(neonFields).length) pendingNeonPush.push({ brandId, gama, ref: r.ref, fields: neonFields });
     }
 

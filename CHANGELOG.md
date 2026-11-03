@@ -2,6 +2,12 @@
 
 Formato inspirado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [v1.0.60] — 2026-11-03
+
+### Corregido
+- Al corregir los litros de una referencia Castrol o Shell en el maestro, su coste se recalcula
+  solo (antes quedaba el coste calculado con los litros viejos y salía un PVP absurdo). Ver ADR 0097.
+
 ## [v1.0.59] — 2026-10-30
 
 ### Cambiado
