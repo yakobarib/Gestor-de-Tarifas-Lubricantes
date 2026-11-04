@@ -2,6 +2,11 @@
 
 Formato inspirado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [v1.0.62] — 2026-11-04
+
+### Cambiado
+- "Valor Reserva Bidones y Cubas" aparece como (Venta) en el desplegable de exportación.
+
 ## [v1.0.61] — 2026-11-04
 
 ### Añadido

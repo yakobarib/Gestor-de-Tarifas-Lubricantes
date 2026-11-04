@@ -347,7 +347,7 @@ const ScreenExport = (() => {
       entries.push({ value: 'list:regalo_1x1', label: 'Valor Regalo 1+1 (Venta)' });
     }
     // "Valor Reserva Bidones y Cubas": siempre disponible (no depende del modo 1+2).
-    entries.push({ value: 'list:reserva_bidones', label: 'Valor Reserva Bidones y Cubas (Compra)' });
+    entries.push({ value: 'list:reserva_bidones', label: 'Valor Reserva Bidones y Cubas (Venta)' });
     // Orden alfabético por etiqueta (pedido por Yako) — así el desplegable se reordena
     // solo si en el futuro se añade/renombra algún tipo de exportación, sin tocar aquí.
     entries.sort((a, b) => a.label.localeCompare(b.label, 'es'));
