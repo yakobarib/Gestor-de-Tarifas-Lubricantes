@@ -2,6 +2,14 @@
 
 Formato inspirado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [v1.0.61] — 2026-11-04
+
+### Añadido
+- Importación de las tarifas AD de 42 columnas (aceites, grasas y químicos), con la gama nueva
+  Grasas de AD Parts. Ver ADR 0098.
+- Exportación "Valor Reserva Bidones y Cubas": tarifa menos triple-neto (o neto-neto) en formatos
+  de 200 L / 180 kg o más, de cualquier marca.
+
 ## [v1.0.60] — 2026-11-03
 
 ### Corregido

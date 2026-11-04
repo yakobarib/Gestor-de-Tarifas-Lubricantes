@@ -16,7 +16,7 @@
    gamas (Repsol, Eni Live, Racing Oil, Shell) siempre llegan en un único
    Excel con una pestaña por gama, así que se resumen en una sola línea. */
 const BRANDS = [
-  { id: 'ad_parts_aceite', label: 'AD Parts', abbr: 'ADP', color: '#3b82f6', gamas: ['normal', 'standard', 'sportcar', 'quimico'], separateFiles: true, pending: false },
+  { id: 'ad_parts_aceite', label: 'AD Parts', abbr: 'ADP', color: '#3b82f6', gamas: ['normal', 'standard', 'sportcar', 'quimico', 'grasas'], separateFiles: true, pending: false },
   { id: 'repsol', label: 'Repsol', abbr: 'REP', color: '#f97316', gamas: ['automocion', 'industria', 'productos-de-mantenimiento', 'marinos', 'grasas', 'alimentarios'], pending: false },
   { id: 'castrol', label: 'Castrol', abbr: 'CAT', color: '#8b5cf6', gamas: ['other', 'crb', 'edge', 'gtx', 'gtx-5w', 'magnatec', 'castrol-on', 'transmax', 'vecton'], pending: false },
   { id: 'shell', label: 'Shell', abbr: 'SHL', color: '#f43f5e', gamas: ['advance', 'air-tool', 'corena', 'diala', 'gadinia', 'gadus', 'heat-transfer', 'helix', 'hydraulic', 'morlina', 'omala', 'ondina', 'paper-mach', 'refrigeration', 'rimula', 'sirius', 'spirax', 'tegula', 'tellus', 'tonna', 'transmission', 'turbo', 'vacuum-pump'], pending: false },

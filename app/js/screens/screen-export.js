@@ -59,8 +59,28 @@ const ScreenExport = (() => {
     'list:neto_factura': 'Neto Factura',
     'list:neto_neto': 'Neto Neto',
     'list:triple_neto': 'Neto Triple',
-    'list:regalo_1x1': 'Valor Regalo 1+1'
+    'list:regalo_1x1': 'Valor Regalo 1+1',
+    'list:reserva_bidones': 'Valor Reserva Bidones y Cubas'
   };
+
+  /** Formato mínimo de "bidones y cubas" para el Valor Reserva (ADR 0098): 200 L o 180 kg. Los
+   *  litros de las grasas ya vienen en kg (1 kg ≈ 1 L en toda la app), así que un solo umbral
+   *  vale para las dos. */
+  const RESERVA_MIN_LITERS = 180;
+
+  /** Valor Reserva de un bidón/cuba: precio de tarifa (factura) menos el coste neto — el
+   *  triple-neto si existe, si no el neto-neto —; es el margen de compra que se puede usar
+   *  para vender más barato u obsequiar. null si el formato es menor, o si falta la tarifa o
+   *  ningún neto (nunca se inventa un número). */
+  function reservaValueFor(row) {
+    if (!(typeof row.liters === 'number' && row.liters >= RESERVA_MIN_LITERS)) return null;
+    const num = (v) => (typeof v === 'number' && isFinite(v)) ? v : null;
+    const tarifa = num(row.costFactura);
+    const neto = num(row.costTripleNeto) != null ? num(row.costTripleNeto) : num(row.costNetoNeto);
+    if (tarifa == null || neto == null) return null;
+    return Math.round((tarifa - neto) * 100) / 100;
+  }
+  const isBigContainerRow = (r) => typeof r.liters === 'number' && r.liters >= RESERVA_MIN_LITERS;
 
   function escapeHtml(s) {
     return String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -326,6 +346,8 @@ const ScreenExport = (() => {
     if (has1x2) {
       entries.push({ value: 'list:regalo_1x1', label: 'Valor Regalo 1+1 (Venta)' });
     }
+    // "Valor Reserva Bidones y Cubas": siempre disponible (no depende del modo 1+2).
+    entries.push({ value: 'list:reserva_bidones', label: 'Valor Reserva Bidones y Cubas (Compra)' });
     // Orden alfabético por etiqueta (pedido por Yako) — así el desplegable se reordena
     // solo si en el futuro se añade/renombra algún tipo de exportación, sin tocar aquí.
     entries.sort((a, b) => a.label.localeCompare(b.label, 'es'));
@@ -504,6 +526,34 @@ const ScreenExport = (() => {
       }
       for (const r of visible.slice(0, 500)) {
         const value = r._regaloValue;
+        trackRowErrors(tally, r, value == null);
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${escapeHtml(brand.abbr)}</td>
+          <td>${escapeHtml(exportRef(r, brand.abbr))}</td>
+          <td class="prod" title="${escapeHtml(r.description)}">${escapeHtml(truncate(exportDescription(r), 60))}</td>
+          <td class="num liters">${r.liters ?? '—'}</td>
+          <td class="num">${formatEur(value)}</td>
+        `;
+        if (value == null) tr.className = 'warn';
+        frag.appendChild(tr);
+      }
+      tbody.innerHTML = '';
+      tbody.appendChild(frag);
+      renderErrorsBox(tally);
+      return;
+    }
+
+    if (kind === 'list' && key === 'reserva_bidones') {
+      // Solo bidones y cubas (≥ 200 L / 180 kg) — el resto de formatos no tiene este concepto.
+      visible = visible.filter(isBigContainerRow);
+      thead.innerHTML = `<tr><th>Marca</th><th>Referencia</th><th class="prod">Producto</th><th class="num liters">Litros</th><th class="num">Valor Reserva</th></tr>`;
+      updateCountBox(visible.length, rows.length);
+      const tally = newErrorTally();
+      const frag = document.createDocumentFragment();
+      for (const r of visible) r._reservaValue = reservaValueFor(r);   // todas, no solo las 500 pintadas (ADR 0091)
+      for (const r of visible.slice(0, 500)) {
+        const value = r._reservaValue;
         trackRowErrors(tally, r, value == null);
         const tr = document.createElement('tr');
         tr.innerHTML = `
@@ -747,6 +797,16 @@ const ScreenExport = (() => {
       const withValue = filtered.filter(r => typeof r._regaloValue === 'number' && isFinite(r._regaloValue));
       if (!withValue.length) { alert('Ninguna referencia visible tiene el modo "1+2" activado en PVP y con coste auditado.'); return; }
       const fname = await ExcelWriter.exportPriceList(filtered, brand.abbr, '_regaloValue', 'Valor Regalo 1+1', tariffDate, EXPORT_FILE_TYPE_LABELS[currentOption]);
+      $('exportStatus').innerHTML = `<small style="color: var(--pico-ins-color);">✓ Exportado: <strong>${escapeHtml(fname)}</strong> (${withValue.length} filas).</small>`;
+      return;
+    }
+
+    if (kind === 'list' && key === 'reserva_bidones') {
+      const big = filtered.filter(isBigContainerRow);
+      big.forEach(r => { r._reservaValue = reservaValueFor(r); });
+      const withValue = big.filter(r => r._reservaValue != null);
+      if (!withValue.length) { alert('Ninguna referencia visible de 200 L / 180 kg o más tiene a la vez tarifa y coste neto (triple-neto o neto-neto).'); return; }
+      const fname = await ExcelWriter.exportPriceList(big, brand.abbr, '_reservaValue', 'Valor Reserva Bidones y Cubas', tariffDate, EXPORT_FILE_TYPE_LABELS[currentOption]);
       $('exportStatus').innerHTML = `<small style="color: var(--pico-ins-color);">✓ Exportado: <strong>${escapeHtml(fname)}</strong> (${withValue.length} filas).</small>`;
       return;
     }
