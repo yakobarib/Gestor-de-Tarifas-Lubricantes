@@ -28,8 +28,10 @@ const MasterDB = (() => {
 
   const SNAPSHOT_STORE = 'master_cache_snapshot';
 
-  // Marcas cuyo coste del envase = precio por litro × litros (ver profile-castrol / profile-shell).
-  const PER_LITER_COST_BRANDS = new Set(['castrol', 'shell']);
+  // Marcas cuyo coste del envase = precio por litro × litros (ver profile-shell). Castrol lo era
+  // con su formato antiguo; desde nov-2026 manda un precio por unidad de venta que no depende de
+  // los litros, así que reescalarlo al corregir litros lo estropearía (ADR 0099).
+  const PER_LITER_COST_BRANDS = new Set(['shell']);
 
   function open() {
     if (dbPromise) return dbPromise;

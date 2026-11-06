@@ -96,12 +96,73 @@
     return parseEnvaseFromDescription(raw).liters;
   }
 
+  /** Gama (línea de producto) por la primera palabra de la descripción — el formato nuevo no
+   *  trae columna GAMA. Mismas gamas que ya tenían las refs guardadas (edge, vecton, gtx,
+   *  gtx-5w, …); lo que no es de una línea conocida (anticongelante, grasas, frenos…) es
+   *  `other`, como hasta ahora. GTX se parte en `gtx-5w` (viscosidad 5W-xx) y `gtx` (resto). */
+  function gamaFromDescription(raw) {
+    const words = String(raw).split(',')[0].trim().split(/\s+/);
+    const first = (words[0] || '').toUpperCase();
+    if (first === 'GTX') return /^5W/i.test(words[1] || '') ? 'gtx-5w' : 'gtx';
+    const MAP = { EDGE: 'edge', MAGNATEC: 'magnatec', VECTON: 'vecton', CRB: 'crb', TRANSMAX: 'transmax', ON: 'castrol-on' };
+    return MAP[first] || 'other';
+  }
+
+  /** Formato "tarifa maestra" de 42 columnas (desde nov-2026, igual que AD Parts, ver ADR 0099):
+   *  PRECIO COMPRA es el precio de la UNIDAD DE VENTA (la caja si UD CAJA > 1: 4X5L, 12X1L…),
+   *  así que el coste del envase es PRECIO COMPRA / UD CAJA — a diferencia de AD, donde el precio
+   *  ya es por envase. Los litros siguen mandando por el maestro verificado, y no intervienen en
+   *  el coste. */
+  function readCastrolTarifaMaestra(workbook, sheetName, raw) {
+    const h = raw[0].map(normalizeHeader);
+    const col = (name) => h.indexOf(name);
+    const idxRef = col('REF PROVEEDOR'), idxName = col('DESCRIPCION ARTICULO'), idxPrecio = col('PRECIO COMPRA');
+    const idxUd = col('UD CAJA'), idxFam = col('FAMILIA ADGLOBAL'), idxNN = col('NETO NETO');
+    const idxSustituye = col('SUSTITUYE A');
+    const rows = [];
+    for (let i = 1; i < raw.length; i++) {
+      const r = raw[i];
+      if (!r) continue;
+      const ref = r[idxRef], nameRaw = r[idxName], precio = r[idxPrecio];
+      if (ref == null || nameRaw == null) continue;
+      if (typeof precio !== 'number' || !isFinite(precio) || precio <= 0) continue;
+      const refStr = String(ref).replace(/\./g, '').trim();
+      const envaseDesc = parseEnvaseFromDescription(nameRaw);
+      const verified = MasterCache.get('castrol', refStr);
+      const liters = (verified && verified.liters != null) ? verified.liters : envaseDesc.liters;
+      const udRaw = idxUd >= 0 ? r[idxUd] : null;
+      const units = (typeof udRaw === 'number' && udRaw >= 1) ? udRaw : (envaseDesc.units || 1);
+      const row = {
+        ref: refStr,
+        description: cleanCastrolDescription(nameRaw, liters),
+        liters,
+        formatKey: Parser.formatKey(liters),
+        costPerPack: precio / units,
+        gama: gamaFromDescription(nameRaw),
+        fam: idxFam >= 0 ? r[idxFam] : null,
+        litersDetected: liters != null,
+        unitsPerBox: units
+      };
+      const nn = idxNN >= 0 ? r[idxNN] : null;
+      if (typeof nn === 'number' && isFinite(nn) && nn > 0) row.costNetoNeto = nn / units;
+      rows.push(row);
+      const oldRefRaw = idxSustituye >= 0 ? r[idxSustituye] : null;
+      const oldRef = oldRefRaw != null ? String(oldRefRaw).trim() : '';
+      if (oldRef !== '' && oldRef.toUpperCase() !== 'NUEVO') rows.push(Object.assign({}, row, { ref: oldRef, _aliasOf: row.ref }));
+    }
+    const gamas = [...new Set(rows.map(r => r.gama))];
+    return { supplier: 'Castrol', gamas, rows, sheetUsed: sheetName };
+  }
+
   function readCastrol(workbook) {
     const sheetName = workbook.SheetNames.find(n => /^TARIFA/i.test(n)) || workbook.SheetNames[0];
     const raw = sheetRows(workbook, sheetName);
     if (!raw || !raw.length) return { supplier: 'Castrol', gamas: [], rows: [], sheetUsed: '' };
 
     const headers = raw[0].map(normalizeHeader);
+    if (headers.includes('REF PROVEEDOR') && headers.includes('PRECIO COMPRA') && !headers.some(h => h.includes('PRECIO UNITARIO'))) {
+      return readCastrolTarifaMaestra(workbook, sheetName, raw);
+    }
     const idxRef = headers.findIndex(h => h.includes('MATERIAL') || h === 'SKU');
     const idxName = headers.findIndex(h => h.includes('DESCRIP'));
     const idxGama = headers.findIndex(h => h === 'GAMA');
@@ -195,7 +256,10 @@
       const sheet = workbook.Sheets[sheetName];
       const raw = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: null, blankrows: false });
       const header = (raw[0] || []).map(x => String(x || '').toUpperCase());
-      return header.some(h => h.includes('MATERIAL')) && header.some(h => h.includes('PRONTO PAGO'));
+      if (header.some(h => h.includes('MATERIAL')) && header.some(h => h.includes('PRONTO PAGO'))) return true;
+      // Formato nuevo de 42 columnas: la marca va en la columna MARCA.
+      const iM = header.indexOf('MARCA');
+      return iM >= 0 && header.includes('REF PROVEEDOR') && raw.slice(1, 6).some(r => String(r && r[iM] || '').toUpperCase() === 'CASTROL');
     },
     read: readCastrol
   });

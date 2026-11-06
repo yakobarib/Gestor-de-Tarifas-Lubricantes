@@ -2,6 +2,16 @@
 
 Formato inspirado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [v1.0.63] — 2026-11-06
+
+### Añadido
+- Importación de la tarifa Castrol de 42 columnas (nov-2026): coste del envase = precio de compra / uds. por caja,
+  gama por el nombre del producto. Ver ADR 0099.
+
+### Corregido
+- Una tarifa Castrol en ese formato ya no puede confundirse con una de AD Parts.
+- Corregir litros de Castrol en el maestro ya no reescala su coste (solo Shell, que lo calcula por litro).
+
 ## [v1.0.62] — 2026-11-04
 
 ### Cambiado

@@ -95,7 +95,13 @@
     id: 'ad_parts_aceite',
     name: 'AD Parts Tarifa (aceites / grasas / químicos)',
     detect(filename, workbook) {
-      return workbook.SheetNames.includes('Tarifa') && !!headerIndexes(sheetRows(workbook, 'Tarifa'));
+      if (!workbook.SheetNames.includes('Tarifa')) return false;
+      const raw = sheetRows(workbook, 'Tarifa');
+      if (!headerIndexes(raw)) return false;
+      // Castrol manda la misma hoja de 42 columnas (ADR 0099): que no la lea este perfil.
+      if (/castrol/i.test(filename || '')) return false;
+      const iM = raw[0].map(norm).indexOf('MARCA');
+      return !(iM >= 0 && raw.slice(1, 6).some(r => norm(r && r[iM]) === 'CASTROL'));
     },
     read: readTarifa
   });
