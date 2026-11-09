@@ -2,6 +2,12 @@
 
 Formato inspirado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [v1.0.64] — 2026-11-09
+
+### Corregido
+- Tema oscuro: los avisos amarillos parpadeantes (descripciones sin verificar, errores de exportación)
+  se leían mal porque la animación pisaba el fondo oscuro con uno claro.
+
 ## [v1.0.63] — 2026-11-06
 
 ### Añadido

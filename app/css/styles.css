@@ -481,6 +481,18 @@ table.preview th.prod, table.preview td.prod { max-width: 260px; overflow: hidde
   0%, 100% { background-color: #fdf6d3; }
   50% { background-color: #fbe9a0; }
 }
+/* En tema oscuro el parpadeo usa tonos oscuros: con los claros, la animación pisaba el fondo
+   oscuro y el texto claro quedaba casi ilegible (ADR 0100). */
+@keyframes export-errors-blink-dark {
+  0%, 100% { background-color: #3a331c; }
+  50% { background-color: #55491f; }
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .export-errors-box.has-errors,
+  :root:not([data-theme="light"]) .desc-validation-banner { animation-name: export-errors-blink-dark; }
+}
+:root[data-theme="dark"] .export-errors-box.has-errors,
+:root[data-theme="dark"] .desc-validation-banner { animation-name: export-errors-blink-dark; }
 
 /* Modal simple */
 .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; z-index: 100; backdrop-filter: blur(1px); }
@@ -516,10 +528,10 @@ table.preview th.prod, table.preview td.prod { max-width: 260px; overflow: hidde
 }
 .desc-validation-banner a { color: inherit; font-weight: 600; text-decoration: underline; }
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) .desc-validation-banner { color: #f0d98c; }
+  :root:not([data-theme="light"]) .desc-validation-banner { background: #3a331c; color: #f0d98c; }
 }
-:root[data-theme="dark"] .desc-validation-banner { color: #f0d98c; }
-:root[data-theme="light"] .desc-validation-banner { color: #7a5d00; }
+:root[data-theme="dark"] .desc-validation-banner { background: #3a331c; color: #f0d98c; }
+:root[data-theme="light"] .desc-validation-banner { background: #fdf6d3; color: #7a5d00; }
 
 /* Aviso persistente de correcciones sin incorporar al maestro (ver ADR 0043) —
    discreto, no parpadea (a diferencia del banner de pendientes: esto no es un
